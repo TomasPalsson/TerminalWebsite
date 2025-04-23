@@ -15,30 +15,23 @@ const TABS = [
   {
     name: "School",
     icon: <School size={18} className="inline mr-2" />,
-    content: (
-      <p>School</p>
-    ),
+    content: <p>School</p>,
   },
   {
     name: "Projects",
     icon: <FolderGit2 size={18} className="inline mr-2" />,
-    content: (
-      <p>Hello Projects :)</p>
-    ),
+    content: <p>Hello Projects :)</p>,
   },
   {
     name: "Contact",
     icon: <Mail size={18} className="inline mr-2" />,
-    content: (
-      <p> Hello!</p>
-    ),
+    content: <p>Hello!</p>,
   },
 ];
 
 export default function PersonalWebsiteTabs() {
   const [activeTab, setActiveTab] = useState("About");
-
-  const currentTab = TABS.find(tab => tab.name === activeTab);
+  const currentTab = TABS.find((tab) => tab.name === activeTab);
 
   return (
     <div className="min-h-screen text-terminal font-mono p-6 pt-16">
@@ -47,23 +40,22 @@ export default function PersonalWebsiteTabs() {
           {TABS.map(({ name, icon }) => (
             <button
               key={name}
-              className={`px-4 py-2 rounded-lg transition hover:bg-green-700 hover:text-black ${
-                activeTab === name ? "bg-green-700 text-black" : ""
-              }`}
               onClick={() => setActiveTab(name)}
+              className={`px-4 py-2 rounded-lg border transition-colors duration-200 ${
+                activeTab === name
+                  ? "border-terminal text-terminal"
+                  : "border-transparent hover:border-gray-600"
+              }`}
             >
               {icon}
               {name}
             </button>
           ))}
         </div>
-
         <div className="rounded-xl shadow-xl p-6">
           {currentTab?.content}
         </div>
-
       </div>
     </div>
   );
 }
-

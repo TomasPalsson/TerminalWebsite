@@ -1,24 +1,37 @@
 import React, { useEffect, useState } from 'react';
 
-export default function TypingAnimation({ text, speed = 100, color = 'black', size = 'text-2xl', cursor = true }) {
+export default function TypingAnimation({
+  text,
+  speed = 100,
+  cursor = true,
+  className = '',
+  onFinished,
+}: {
+  text: string;
+  speed?: number;
+  cursor?: boolean;
+  className?: string;
+  onFinished?: () => void;
+}) {
   const [displayedText, setDisplayedText] = useState('');
   const [index, setIndex] = useState(0);
 
   useEffect(() => {
     if (index < text.length) {
       const timeout = setTimeout(() => {
-        setDisplayedText(prev => prev + text.charAt(index));
-        setIndex(prev => prev + 1);
+        setDisplayedText((prev) => prev + text.charAt(index));
+        setIndex((prev) => prev + 1);
       }, speed);
-
       return () => clearTimeout(timeout);
+    } else {
+      onFinished?.();
     }
-  }, [index, text, speed]);
+  }, [index, text, speed, onFinished]);
 
   return (
-    <div className={`font-mono ${size} ${color}`}>
+    <div className={`whitespace-pre-wrap break-words ${className}`}>
       {displayedText}
-      {cursor ? <span className="animate-pulse">|</span> : null}
+      {cursor && <span className="animate-pulse">|</span>}
     </div>
   );
 }
