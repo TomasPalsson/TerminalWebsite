@@ -53,7 +53,7 @@ export default function MacBar({ fullscreenRef }: MacBarProps) {
       </button>
 
       <span className="font-mono text-gray-300 font-bold absolute left-1/2 -translate-x-1/2">
-        tomasp.is
+        tomasp.me
       </span>
 
       <Link to="/chat">
