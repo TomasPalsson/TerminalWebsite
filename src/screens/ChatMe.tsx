@@ -50,11 +50,13 @@ export default function ChatMe() {
   };
 
   return (
-    <div className="h-screen flex flex-col bg-neutral-900 text-neutral-100">
-      {/* messages */}
+    <div className="flex flex-col h-screen bg-neutral-900 text-neutral-100">
+<div className='flex justify-center px-6 py-4 font-mono text-center text-neutral-400'>
+  <p>Be aware this is a chat bot and so can make mistakes :)</p>
+</div>
       <div
         ref={scrollRef}
-        className="flex-1 overflow-y-auto px-6 pt-4 pb-28 space-y-6 flex flex-col"
+        className="flex flex-col flex-1 px-6 pt-4 space-y-6 overflow-y-auto pb-28"
       >
         {messages.map(({ role, content }, i) => {
           const baseCls =
@@ -91,7 +93,7 @@ export default function ChatMe() {
         {isTyping && (
           <TypingAnimation
             text=""
-            className="font-mono text-base text-left mr-auto w-6 h-4"
+            className="w-6 h-4 mr-auto font-mono text-base text-left"
           />
         )}
       </div>
@@ -102,11 +104,10 @@ export default function ChatMe() {
           e.preventDefault();
           send();
         }}
-        className="fixed inset-x-0 bottom-0 pb-6 px-4 flex justify-center"
+        className="fixed inset-x-0 bottom-0 flex justify-center px-4 pb-6"
       >
         <div
-          className="w-full max-w-2xl flex items-end rounded-lg bg-neutral-800/80 backdrop-blur
-            ring-1 ring-neutral-700 focus-within:ring-2 focus-within:ring-neutral-500 transition"
+          className="flex items-end w-full max-w-2xl transition rounded-lg bg-neutral-800/80 backdrop-blur ring-1 ring-neutral-700 focus-within:ring-2 focus-within:ring-neutral-500"
         >
           <textarea
             value={input}
@@ -123,14 +124,12 @@ export default function ChatMe() {
             }}
             rows={1}
             placeholder="Type something…"
-            className="flex-1 bg-transparent resize-none overflow-hidden
-              py-3 pl-4 pr-12 font-mono placeholder-neutral-400 outline-none"
+            className="flex-1 py-3 pl-4 pr-12 overflow-hidden font-mono bg-transparent outline-none resize-none placeholder-neutral-400"
           />
 
           <button
             type="submit"
-            className="grid place-items-center h-10 w-10 m-1 rounded-md
-              hover:bg-neutral-700 active:scale-95 transition"
+            className="grid w-10 h-10 m-1 transition rounded-md place-items-center hover:bg-neutral-700 active:scale-95"
           >
             <Send size={18} strokeWidth={2} />
           </button>
