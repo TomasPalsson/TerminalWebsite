@@ -15,7 +15,15 @@ const TABS = [
   {
     name: "School",
     icon: <School size={18} className="inline mr-2" />,
-    content: <p>School</p>,
+    content: (
+      <>
+        <h2 className="text-xl font-bold">Menntaskólinn við Hamrahlíð</h2>
+        <p>2021-2023</p>
+        <h2 className="text-xl font-bold mt-4">Háskólinn í Reykjavík</h2>
+        <p className="text-gray-500">// BSc in Computer Science</p>
+        <p>2023-2026</p>
+      </>
+    ),
   },
   {
     name: "Projects",
