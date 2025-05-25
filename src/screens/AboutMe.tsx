@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { TerminalSquare, School, FolderGit2, Mail } from "lucide-react";
+import { TerminalSquare, School, FolderGit2, Mail, Github } from "lucide-react";
 
 const TABS = [
   {
@@ -17,18 +17,34 @@ const TABS = [
     icon: <School size={18} className="inline mr-2" />,
     content: (
       <>
-        <h2 className="text-xl font-bold">Menntaskólinn við Hamrahlíð</h2>
-        <p>2021-2023</p>
-        <h2 className="text-xl font-bold mt-4">Háskólinn í Reykjavík</h2>
+        <h2 className="text-xl font-bold">Menntaskólinn við Hamrahlíð (2021-2023)</h2>
+          <br/>
+        <h2 className="text-xl font-bold mt-4">Háskólinn í Reykjavík (2023-2026)</h2>
         <p className="text-gray-500">// BSc in Computer Science</p>
-        <p>2023-2026</p>
       </>
     ),
   },
   {
     name: "Projects",
     icon: <FolderGit2 size={18} className="inline mr-2" />,
-    content: <p>Hello Projects :)</p>,
+    content: (
+      <>
+        <h2 className="text-xl font-bold">Lanuage Compiler</h2>
+        <p className="text-gray-500">// A compiler for a turing complete programming language</p>
+        <p>I created a compiler for a turing complete programming language that used Rust</p>
+        <p>to compile a basic langugae into assembly binary code</p>
+        <br/>
+        
+        <a 
+          href="https://github.com/TomasPalsson/Language-Compiler" 
+          target="_blank"
+          className="text-terminal border border-terminal border rounded-l text-l inline-flex items-center space-x-2 p-2 hover:border-gray-600  transition-colors duration-200">
+          <Github />
+          <span>Github</span>
+        </a>
+
+      </>
+    ),
   },
   {
     name: "Contact",
