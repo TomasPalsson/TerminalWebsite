@@ -14,12 +14,12 @@ function App() {
         <TypingAnimation
           text="Tómas Ari Pálsson"
           speed={50}
-          className="font-mono text-terminal lg:text-6xl md:text-4xl sm:text-xl"
+          className="px-2 font-mono text-4xl text-center sm:text-5xl md:text-5xl lg:text-6xl text-terminal"
         />
         <span className='pt-5 font-mono text-gray-500 text-bold'>
           // Software Dev
         </span>
-        <div className="flex justify-end pt-4 space-x-4">
+        <div className="flex flex-wrap justify-center gap-4 px-4 pt-6">
           <MainButton link="/terminal" >
             <Terminal />
             <span>Terminal</span>
