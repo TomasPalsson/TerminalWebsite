@@ -8,7 +8,7 @@ import React from 'react';
 export type Msg = { role: 'user' | 'assistant'; content: string };
 
 const API_ENDPOINT =
-  'https://d53i8riosh.execute-api.eu-west-1.amazonaws.com/default/chat';
+  'https://api.tomasp.me/chat';
 
 export default function ChatMe() {
   const [input, setInput] = useState('');
