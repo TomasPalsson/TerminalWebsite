@@ -144,11 +144,18 @@ async function callAI(
   prompt: string,
   session: string | null,
 ): Promise<{ reply: string; session?: string }> {
-  const url = new URL(API_ENDPOINT);
-  url.searchParams.append('chat', prompt);
-  if (session) url.searchParams.append('session', session);
+  const res = await fetch(API_ENDPOINT, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      chat: prompt,
+      session: session,
+    }),
+  });
+  console.log('callAI', prompt, session, res.status);
 
-  const res = await fetch(url.toString());
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
   const data = await res.json();
   return { reply: data.reply ?? JSON.stringify(data), session: data.session };
