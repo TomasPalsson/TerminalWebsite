@@ -29,7 +29,7 @@ const TerminalHandler = () => {
       }
 
       else if (command) {
-        const result = command.run(args.slice(1));
+        const result = command.run(args.slice(1), context);
         const split = cmd.split(" ");
 
         if (command.name === "exit") {
@@ -38,8 +38,8 @@ const TerminalHandler = () => {
         if (result) {
           setOutput((prev) => [
             ...prev,
-            <span key={Math.random()} className="font-mono text-xl ">
-              <span className="text-green-500 font-bold">{split[0]}</span>
+            <span key={Math.random()} className="font-mono text-lg">
+              <span className="font-bold text-green-500">{split[0]}</span>
               <span className="text-white">
                 {split.length > 1 ? " " + split.slice(1).join(" ") : ""}
               </span>
@@ -52,8 +52,8 @@ const TerminalHandler = () => {
       } else {
         setOutput((prev) => [
           ...prev,
-          <span key={Math.random()} className="font-mono text-xl ">
-            <span className="text-green-500 font-bold">{split[0]}</span>
+          <span key={Math.random()} className="font-mono text-lg">
+            <span className="font-bold text-green-500">{split[0]}</span>
             <span className="text-white">
               {split.length > 1 ? " " + split.slice(1).join(" ") : ""}
             </span>
@@ -95,16 +95,16 @@ const TerminalHandler = () => {
   const startString = '$ ';
   return (
     <>
-      {output.map((line) => (
+      {output.map((line, index) => (
         <>
-          <span className='font-mono text-xl text-terminal'>{startString}</span>
-          <span key={Math.random()} className="font-mono text-xl whitespace-pre-wrap">
+          <span className='font-mono text-lg text-terminal'>{startString}</span>
+          <span key={index} className="font-mono text-lg whitespace-pre-wrap">
             {line}
           </span>
         </>
       ))}
-      <span className='font-mono text-xl text-terminal'>{startString}</span>
-      <span className="font-mono text-xl whitespace-pre-wrap">
+      <span className='font-mono text-lg text-terminal'>{startString}</span>
+      <span className="font-mono text-lg whitespace-pre-wrap">
         {renderText()}
       </span>
       <Cursor cursor="_" />

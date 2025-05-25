@@ -1,6 +1,6 @@
 import React, { useState, useEffect, createContext } from "react";
 
-type KeyPressContextType = {
+export type KeyPressContextType = {
   text: string
   setText: React.Dispatch<React.SetStateAction<string>>
   clearText: () => void

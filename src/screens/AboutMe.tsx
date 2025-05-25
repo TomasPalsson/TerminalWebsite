@@ -4,6 +4,7 @@ import { FaGithub, FaRust } from "react-icons/fa";
 import { SiAssemblyscript, SiOpenai } from "react-icons/si";
 import { IoMdInformationCircleOutline } from "react-icons/io";
 import { FaDartLang, FaFlutter } from "react-icons/fa6";
+import { IoDocument } from "react-icons/io5";
 
 const TABS = [
   {
@@ -101,37 +102,34 @@ const TABS = [
     name: "Contact",
     icon: <Mail size={18} className="inline mr-2" />,
   content: (
-    <>
-      <p className="mb-2 text-xl font-bold">Get in Touch</p>
-      <p className="mb-4 text-gray-500">
-        // Want to drop me a message 
-      </p>
-      <ul className="space-y-2">
-        <li>
-          <span className="font-semibold">Email:</span>{" "}
-          <a
-            href="mailto:tomas@p5.is"
-            className="text-terminal hover:underline"
-          >
-            tomas@p5.is
-          </a>
-        </li>
-        <li>
-          <span className="font-semibold">GitHub:</span>{" "}
-          <a
-            href="https://github.com/TomasPalsson"
-            className="text-terminal hover:underline"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            github.com/TomasPalsson
-          </a>
-        </li>
-        <li>
-          <span className="font-semibold">Location:</span> Reykjavík, Iceland
-        </li>
-      </ul>
-    </>
+    <ul className="space-y-2">
+      <li>
+        <span className="font-semibold">Email:</span>{" "}
+        <a
+          href="mailto:tomas@p5.is"
+          className="text-terminal hover:underline"
+        >
+          tomas@p5.is
+        </a>
+      </li>
+
+      <li>
+        <span className="font-semibold">GitHub:</span>{" "}
+        <a
+          href="https://github.com/TomasPalsson"
+          className="text-terminal hover:underline"
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          github.com/TomasPalsson
+        </a>
+      </li>
+
+      <li>
+        <span className="font-semibold">Location:</span> Reykjavík, Iceland
+      </li>
+    </ul>
+
   ),
   },
 ];
@@ -148,16 +146,24 @@ export default function PersonalWebsiteTabs() {
             <button
               key={name}
               onClick={() => setActiveTab(name)}
-              className={`px-4 py-2 rounded-lg border transition-colors duration-200 ${
-                activeTab === name
+              className={`px-4 py-2 rounded-lg border transition-colors duration-200 ${activeTab === name
                   ? "border-terminal text-terminal"
                   : "border-transparent hover:border-gray-600"
-              }`}
+                }`}
             >
               {icon}
               {name}
             </button>
           ))}
+          <a
+            href="https://api.tomasp.me/cv"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-2 px-4 py-2 transition-colors duration-200 border border-transparent rounded-lg text-terminal hover:border-gray-600"
+          >
+            <IoDocument className="text-lg" />
+            <span>CV</span>
+          </a>
         </div>
         <div className="p-6 shadow-xl rounded-xl">
           {currentTab?.content}

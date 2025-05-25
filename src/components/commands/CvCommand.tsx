@@ -6,13 +6,16 @@ export const CvCommand: Command = {
   name: "cv",
   description: "Get a Link to my CV",
   run: (args: string[]) => (
-    <span className="font-mono text-xl ">
-      <div className="flex flex-col">
-        <span className='text-orange-500'>- CV 1</span>
-        <span className='text-orange-500'>- CV 2</span>
-        <span className='text-orange-500'>- CV 3</span>
-      </div>
-    </span>
+    <>
+    <a
+      href="https://api.tomasp.me/cv"
+      target="_blank"
+      className="text-gray-600 transition-colors hover:text-gray-800 dark:text-gray-300 dark:hover:text-gray-100"
+      >
+        Click here to view my CV
+      </a>
+      <br />
+      </>
   ),
 };
 
