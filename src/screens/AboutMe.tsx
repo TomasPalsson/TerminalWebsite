@@ -3,7 +3,7 @@ import { TerminalSquare, School, FolderGit2, Mail, Github } from "lucide-react";
 import { FaGithub, FaRust } from "react-icons/fa";
 import { SiAssemblyscript, SiOpenai } from "react-icons/si";
 import { IoMdInformationCircleOutline } from "react-icons/io";
-import { FaDartLang, FaFlutter } from "react-icons/fa6";
+import { FaArrowUpRightFromSquare, FaDartLang, FaFlutter } from "react-icons/fa6";
 import { IoDocument } from "react-icons/io5";
 
 const TABS = [
@@ -17,7 +17,7 @@ const TABS = [
         <a href="https://www.mh.is/is/ib-studies"
           target="_blank"
           className="inline-flex items-center p-2 mt-4 space-x-2 transition-colors duration-200 border rounded-l text-terminal border-terminal text-l hover:border-gray-600">
-          <IoMdInformationCircleOutline />
+          <FaArrowUpRightFromSquare />
           <span>
             More Info
           </span>
@@ -27,7 +27,7 @@ const TABS = [
         <a href="https://www.ru.is/deildir/tolvunarfraedideild/hugbunadarverkfraedi-bsc"
           target="_blank"
           className="inline-flex items-center p-2 mt-4 space-x-2 transition-colors duration-200 border rounded-l text-terminal border-terminal text-l hover:border-gray-600">
-          <IoMdInformationCircleOutline />
+          <FaArrowUpRightFromSquare />
           <span>
             More Info
           </span>

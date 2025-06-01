@@ -5,10 +5,9 @@ import { Send } from 'lucide-react';
 import TypingAnimation from '../components/TypingAnimation';
 import React from 'react';
 
-export type Msg = { role: 'user' | 'assistant'; content: string };
+export type Msg = { role: 'user' | 'assistant'; content: string, time_taken: string };
 
-const API_ENDPOINT =
-  'https://api.tomasp.me/chat';
+const API_ENDPOINT = 'https://api.tomasp.me/chat';
 
 export default function ChatMe() {
   const [input, setInput] = useState('');
@@ -25,10 +24,10 @@ export default function ChatMe() {
   }, [messages, isTyping]);
 
   const pushUser = (text: string) =>
-    setMessages((m) => [...m, { role: 'user', content: text }]);
+    setMessages((m) => [...m, { role: 'user', content: text, time_taken: '0s' }]);
 
-  const pushAssistant = (text: string) =>
-    setMessages((m) => [...m, { role: 'assistant', content: text }]);
+  const pushAssistant = (text: string, time_taken: string) =>
+    setMessages((m) => [...m, { role: 'assistant', content: text, time_taken }]);
 
   const send = async () => {
     const text = input.trim();
@@ -38,35 +37,30 @@ export default function ChatMe() {
     setIsTyping(true);
 
     try {
-      const { reply, session } = await callAI(text, sessionRef.current);
+      const { reply, session, time_taken } = await callAI(text, sessionRef.current);
       if (!sessionRef.current && session) sessionRef.current = session;
-      pushAssistant(reply);
-      // no more setIsTyping(false) here
+      pushAssistant(reply, `${time_taken.toFixed(2)}s`);
     } catch (err) {
       console.error(err);
-      pushAssistant('❌ error talking to the model');
+      pushAssistant('Error talking to the model', '0s');
       setIsTyping(false);
     }
   };
 
   return (
     <div className="flex flex-col h-screen bg-neutral-900 text-neutral-100">
-<div className='flex justify-center px-6 py-4 font-mono text-center text-neutral-400'>
-  <p>Be aware this is a chat bot and so can make mistakes :)</p>
-</div>
+      <div className='flex justify-center px-6 py-4 font-mono text-center text-neutral-400'>
+        <p>Be aware this is a chat bot and so can make mistakes :)</p>
+      </div>
       <div
         ref={scrollRef}
         className="flex flex-col flex-1 px-6 pt-4 space-y-6 overflow-y-auto pb-28"
       >
-        {messages.map(({ role, content }, i) => {
-          const baseCls =
-            'font-mono text-base leading-relaxed max-w-[65ch]';
-          const align =
-            role === 'assistant'
-              ? 'text-left mr-auto'
-              : 'text-right ml-auto';
-
+        {messages.map(({ role, content, time_taken }, i) => {
+          const baseCls = 'font-mono text-base leading-relaxed max-w-[65ch]';
+          const align = role === 'assistant' ? 'text-left mr-auto' : 'text-right ml-auto';
           const isLast = i === messages.length - 1;
+
           if (role === 'assistant' && isTyping && isLast) {
             return (
               <TypingAnimation
@@ -80,16 +74,17 @@ export default function ChatMe() {
           }
 
           return (
-            <p
-              key={i}
-              className={`${baseCls} ${align} whitespace-pre-wrap break-words`}
-            >
-              {content}
-            </p>
+            <div key={i} className={`${align}`}>
+              <p className={`${baseCls} whitespace-pre-wrap break-words`}>
+                {content}
+              </p>
+              {role === 'assistant' && (
+                <p className="mt-1 text-xs text-neutral-500">{time_taken}</p>
+              )}
+            </div>
           );
         })}
 
-        {/* tiny cursor while waiting for reply */}
         {isTyping && (
           <TypingAnimation
             text=""
@@ -98,7 +93,6 @@ export default function ChatMe() {
         )}
       </div>
 
-      {/* input */}
       <form
         onSubmit={(e: FormEvent) => {
           e.preventDefault();
@@ -106,9 +100,7 @@ export default function ChatMe() {
         }}
         className="fixed inset-x-0 bottom-0 flex justify-center px-4 pb-6"
       >
-        <div
-          className="flex items-end w-full max-w-2xl transition rounded-lg bg-neutral-800/80 backdrop-blur ring-1 ring-neutral-700 focus-within:ring-2 focus-within:ring-neutral-500"
-        >
+        <div className="flex items-end w-full max-w-2xl transition rounded-lg bg-neutral-800/80 backdrop-blur ring-1 ring-neutral-700 focus-within:ring-2 focus-within:ring-neutral-500">
           <textarea
             value={input}
             onChange={(e) => setInput(e.target.value)}
@@ -126,7 +118,6 @@ export default function ChatMe() {
             placeholder="Type something…"
             className="flex-1 py-3 pl-4 pr-12 overflow-hidden font-mono bg-transparent outline-none resize-none placeholder-neutral-400"
           />
-
           <button
             type="submit"
             className="grid w-10 h-10 m-1 transition rounded-md place-items-center hover:bg-neutral-700 active:scale-95"
@@ -142,7 +133,7 @@ export default function ChatMe() {
 async function callAI(
   prompt: string,
   session: string | null,
-): Promise<{ reply: string; session?: string }> {
+): Promise<{ reply: string; session?: string; time_taken: number }> {
   const res = await fetch(API_ENDPOINT, {
     method: 'POST',
     headers: {
@@ -153,9 +144,12 @@ async function callAI(
       session: session,
     }),
   });
-  console.log('callAI', prompt, session, res.status);
 
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
   const data = await res.json();
-  return { reply: data.reply ?? JSON.stringify(data), session: data.session };
+  return {
+    reply: data.reply ?? JSON.stringify(data),
+    session: data.session,
+    time_taken: data.time_taken ?? 0
+  };
 }
