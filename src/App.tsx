@@ -28,10 +28,6 @@ function App() {
             <FaInfo />
             <span>About Me!</span>
           </MainButton>
-          <MainButton link="/chat">
-            <IoChatbubbleEllipsesOutline/>
-            <span>Chat With AI Me!</span>
-          </MainButton>
 
         </div>
       </div>
