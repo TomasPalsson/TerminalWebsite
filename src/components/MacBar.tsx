@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Maximize2, Minimize2, MessageCircleCode, X } from 'lucide-react';
+import ColorWheel from './ColorWheel';
 import { Link } from 'react-router';
 
 type MacBarProps = {
@@ -42,7 +43,7 @@ export default function MacBar({ fullscreenRef }: MacBarProps) {
       <span className="w-3 h-3 bg-yellow-400 rounded-full" />
 
       <button
-        className="flex items-center justify-center w-3 h-3 bg-green-500 rounded-full"
+        className="flex items-center justify-center w-3 h-3 bg-terminal rounded-full"
         onClick={handleToggleFullscreen}
       >
         {isFullscreen ? (
@@ -55,6 +56,10 @@ export default function MacBar({ fullscreenRef }: MacBarProps) {
       <span className="absolute font-mono font-bold text-gray-300 -translate-x-1/2 left-1/2">
         tomasp.me
       </span>
+
+      <div className="ml-auto">
+        <ColorWheel />
+      </div>
 
     </div>
   );
