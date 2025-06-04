@@ -22,18 +22,22 @@ export default function ColorWheel() {
 
   return (
     <>
+
+    <div className="relative w-5 h-5">
       <Palette
-        aria-label="Pick terminal color"
         className="w-5 h-5 cursor-pointer text-terminal"
         onClick={() => inputRef.current?.click()}
       />
+
       <input
         ref={inputRef}
         type="color"
         value={color}
         onChange={handleChange}
-        className="hidden"
+        className="absolute top-0 left-0 w-full h-full opacity-0 cursor-pointer"
       />
+    </div>
+
     </>
   );
 }
