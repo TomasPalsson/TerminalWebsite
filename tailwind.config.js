@@ -19,7 +19,7 @@ export default {
         mono: ["JetBrains Mono", "monospace"],
       },
       colors: {
-          terminal: "#22c55e",
+        terminal: "var(--terminal)",
       }
     },
   },
