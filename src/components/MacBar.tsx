@@ -43,7 +43,7 @@ export default function MacBar({ fullscreenRef }: MacBarProps) {
       <span className="w-3 h-3 bg-yellow-400 rounded-full" />
 
       <button
-        className="flex items-center justify-center w-3 h-3 bg-green-500 rounded-full"
+        className="flex items-center justify-center w-3 h-3 bg-terminal rounded-full"
         onClick={handleToggleFullscreen}
       >
         {isFullscreen ? (

@@ -1,7 +1,10 @@
-import React, { useState, useEffect } from 'react';
+
+import React, { useState, useEffect, useRef } from 'react';
+import { Palette } from 'lucide-react';
 
 export default function ColorWheel() {
   const [color, setColor] = useState('#22c55e');
+  const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     const style = getComputedStyle(document.documentElement);
@@ -18,12 +21,19 @@ export default function ColorWheel() {
   };
 
   return (
-    <input
-      aria-label="Pick terminal color"
-      type="color"
-      value={color}
-      onChange={handleChange}
-      className="w-5 h-5 p-0 m-0 border-none bg-transparent cursor-pointer"
-    />
+    <>
+      <Palette
+        aria-label="Pick terminal color"
+        className="w-5 h-5 cursor-pointer text-terminal"
+        onClick={() => inputRef.current?.click()}
+      />
+      <input
+        ref={inputRef}
+        type="color"
+        value={color}
+        onChange={handleChange}
+        className="hidden"
+      />
+    </>
   );
 }
