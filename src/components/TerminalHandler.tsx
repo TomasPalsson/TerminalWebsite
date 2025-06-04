@@ -39,7 +39,7 @@ const TerminalHandler = () => {
           setOutput((prev) => [
             ...prev,
             <span key={Math.random()} className="font-mono text-lg">
-              <span className="font-bold text-green-500">{split[0]}</span>
+              <span className="font-bold text-terminal">{split[0]}</span>
               <span className="text-white">
                 {split.length > 1 ? " " + split.slice(1).join(" ") : ""}
               </span>
@@ -53,7 +53,7 @@ const TerminalHandler = () => {
         setOutput((prev) => [
           ...prev,
           <span key={Math.random()} className="font-mono text-lg">
-            <span className="font-bold text-green-500">{split[0]}</span>
+            <span className="font-bold text-terminal">{split[0]}</span>
             <span className="text-white">
               {split.length > 1 ? " " + split.slice(1).join(" ") : ""}
             </span>
@@ -83,7 +83,7 @@ const TerminalHandler = () => {
     }
     return (
       <>
-        <span className="font-bold text-green-500">{split[0]}</span>
+        <span className="font-bold text-terminal">{split[0]}</span>
         <span className="text-white">
           {split.length > 1 ? " " + split.slice(1).join(" ") : ""}
         </span>

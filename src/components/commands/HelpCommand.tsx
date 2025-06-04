@@ -20,7 +20,7 @@ export const HelpCommand: Command = {
         <div className="text-cyan-400">Available commands:</div>
         {builtInCommands.map((cmd) => (
           <div key={cmd.name}>
-            <span className="text-green-400 font-bold">  ❯ {cmd.name.padEnd(12)}</span>
+            <span className="text-terminal font-bold">  ❯ {cmd.name.padEnd(12)}</span>
             <span className="text-gray-400 pr-5">{cmd.desc}</span>
             {cmd.args ? <span className="text-gray-400"><i>Args: [{cmd.args?.join(',')}]</i></span> : null}
           </div>
