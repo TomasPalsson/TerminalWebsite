@@ -66,7 +66,8 @@ export default function IdeaGenerator() {
             <span className="mr-2 text-terminal">$</span>
             <input
               type="text"
-              placeholder="Enter a topic"
+              placeholder="Enter a topic or keyword for your idea..."
+              autoFocus
               className="flex-1 px-2 py-1 text-white placeholder-gray-400 bg-transparent outline-none"
               value={idea}
               onChange={(e) => setIdea(e.target.value)}
