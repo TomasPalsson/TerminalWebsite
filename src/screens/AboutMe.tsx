@@ -124,6 +124,13 @@ export default function PersonalWebsiteTabs() {
           >
             <span>Idea Generator</span>
           </button> 
+
+          <button
+            onClick={() => navigate("/blob")}
+            className="inline-flex items-center p-2 space-x-2 transition-colors duration-200 border rounded-l text-terminal border-terminal text-l hover:border-gray-600"
+            >
+              <span>3D Terminal</span>
+            </button>
         </div>
       ),
     },
