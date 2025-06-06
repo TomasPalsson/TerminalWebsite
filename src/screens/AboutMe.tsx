@@ -4,16 +4,9 @@ import { FaGithub, FaRust } from "react-icons/fa";
 import { SiAssemblyscript, SiOpenai } from "react-icons/si";
 import { IoMdInformationCircleOutline } from "react-icons/io";
 import { FaArrowUpRightFromSquare, FaDartLang, FaFlutter } from "react-icons/fa6";
-import { IoChatbubbleEllipsesOutline, IoChatbubbleEllipsesOutline, IoDocument } from "react-icons/io5";
+import { IoChatbubbleEllipsesOutline, IoDocument } from "react-icons/io5";
 import { MainButton } from "../components/MainButton";
 import { useNavigate } from "react-router";
-
-export default function PersonalWebsiteTabs() {
-  const [activeTab, setActiveTab] = useState("School");
-  const navigate = useNavigate();
-import { MainButton } from "../components/MainButton";
-import { useNavigate } from "react-router";
-import BlobAvatar from "../components/BlobAvatar";
 
 export default function PersonalWebsiteTabs() {
   const [activeTab, setActiveTab] = useState("School");
