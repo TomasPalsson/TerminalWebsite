@@ -5,6 +5,7 @@ import { Terminal } from "../screens/Terminal";
 import AboutMe from "../screens/AboutMe";
 import ChatMe from "../screens/ChatMe";
 import IdeaGenerator from "../screens/IdeaGenerator";
+import TerminalCanvas from "./terminal/TerminalCanvas";
 
 
 export default function AppRoutes() {
@@ -15,6 +16,7 @@ export default function AppRoutes() {
       <Route path="/chat" element={<ChatMe />} />
       <Route path="/idea-generator" element={<IdeaGenerator />} />
       <Route path="/aboutme" element={<AboutMe />} />
+      <Route path="/blob" element={<TerminalCanvas />} />
     </Routes>
   )
 }

@@ -4,7 +4,14 @@ import { FaGithub, FaRust } from "react-icons/fa";
 import { SiAssemblyscript, SiOpenai } from "react-icons/si";
 import { IoMdInformationCircleOutline } from "react-icons/io";
 import { FaArrowUpRightFromSquare, FaDartLang, FaFlutter } from "react-icons/fa6";
-import { IoDocument } from "react-icons/io5";
+import { IoChatbubbleEllipsesOutline, IoDocument } from "react-icons/io5";
+import { MainButton } from "../components/MainButton";
+import { useNavigate } from "react-router";
+import BlobAvatar from "../components/BlobAvatar";
+
+export default function PersonalWebsiteTabs() {
+  const [activeTab, setActiveTab] = useState("School");
+  const navigate = useNavigate();
 
 const TABS = [
   {
@@ -67,51 +74,74 @@ const TABS = [
           <span>Github</span>
         </a>
 
-        <h2 className="mt-16 text-xl font-bold">Lanuage Compiler</h2>
-        <div className="flex items-center py-2 space-x-4">
-          <FaRust className="text-3xl" />
-          <SiAssemblyscript className="text-3xl" />
-        </div>
-        <p className="text-gray-500">// A compiler for a programming language</p>
-        <p>I created a simple programming langauage in Rust to compile a basic langugae into assembly binary code</p>
-        <h4 className="mt-4 text-lg font-bold">Features</h4>
-        <ul className="pl-6 list-disc">
-          <li>Full function definitions and calls</li>
-          <li>Local variable declarations and assignments</li>
-          <li>Integer and string literals</li>
-          <li>While loops and if-else conditionals</li>
-          <li>Printing to stdout (print)</li>
-          <li>Expression evaluation with support for:</li>
-          <li>Arithmetic: +, -, *, /</li>
-          <li>{'Comparisons: ==, !=, <, >'}</li>
-        </ul>
-        <br/>
-        
-        <a 
-          href="https://github.com/TomasPalsson/Language-Compiler" 
-          target="_blank"
-          className="inline-flex items-center p-2 space-x-2 transition-colors duration-200 border rounded-l text-terminal border-terminal text-l hover:border-gray-600">
-          <FaGithub />
-          <span>Github</span>
-        </a>
+          <h2 className="mt-16 text-xl font-bold">Lanuage Compiler</h2>
+          <div className="flex items-center py-2 space-x-4">
+            <FaRust className="text-3xl" />
+            <SiAssemblyscript className="text-3xl" />
+          </div>
+          <p className="text-gray-500">// A compiler for a programming language</p>
+          <p>I created a simple programming langauage in Rust to compile a basic langugae into assembly binary code</p>
+          <h4 className="mt-4 text-lg font-bold">Features</h4>
+          <ul className="pl-6 list-disc">
+            <li>Full function definitions and calls</li>
+            <li>Local variable declarations and assignments</li>
+            <li>Integer and string literals</li>
+            <li>While loops and if-else conditionals</li>
+            <li>Printing to stdout (print)</li>
+            <li>Expression evaluation with support for:</li>
+            <li>Arithmetic: +, -, *, /</li>
+            <li>{'Comparisons: ==, !=, <, >'}</li>
+          </ul>
+          <br/>
+          
+          <a 
+            href="https://github.com/TomasPalsson/Language-Compiler" 
+            target="_blank"
+            className="inline-flex items-center p-2 space-x-2 transition-colors duration-200 border rounded-l text-terminal border-terminal text-l hover:border-gray-600">
+            <FaGithub />
+            <span>Github</span>
+          </a>
+        </>
+      ),
+    },
+    {
+      name: "Fun",
+      icon: <Smile size={18} className="inline mr-2" />,
+      content: (
+        <div className="flex flex-row items-center justify-center p-4 space-x-4">
+          {/* Chat with me */}
+          <button
+            onClick={() => navigate("/chat")}
+            className="inline-flex items-center p-2 space-x-2 transition-colors duration-200 border rounded-l text-terminal border-terminal text-l hover:border-gray-600"
+          >
+            <IoChatbubbleEllipsesOutline />
+            <span>Chat With AI Me!</span>
+          </button>
 
-      </>
-    ),
-  },
-  {
-    name: "Contact",
-    icon: <Mail size={18} className="inline mr-2" />,
-  content: (
-    <ul className="space-y-2">
-      <li>
-        <span className="font-semibold">Email:</span>{" "}
-        <a
-          href="mailto:tomas@p5.is"
-          className="text-terminal hover:underline"
-        >
-          tomas@p5.is
-        </a>
-      </li>
+          {/* IDEA Generator */}
+          <button
+            onClick={() => navigate("/idea-generator")}
+            className="inline-flex items-center p-2 space-x-2 transition-colors duration-200 border rounded-l text-terminal border-terminal text-l hover:border-gray-600"
+          >
+            <span>Idea Generator</span>
+          </button> 
+        </div>
+      ),
+    },
+    {
+      name: "Contact",
+      icon: <Mail size={18} className="inline mr-2" />,
+      content: (
+        <ul className="space-y-2">
+          <li>
+            <span className="font-semibold">Email:</span>{" "}
+            <a
+              href="mailto:tomas@p5.is"
+              className="text-terminal hover:underline"
+            >
+              tomas@p5.is
+            </a>
+          </li>
 
       <li>
         <span className="font-semibold">GitHub:</span>{" "}
