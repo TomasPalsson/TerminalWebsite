@@ -1,10 +1,16 @@
 import React, { useState } from "react";
-import { TerminalSquare, School, FolderGit2, Mail, Github } from "lucide-react";
+import { TerminalSquare, School, FolderGit2, Mail, Github, Smile } from "lucide-react";
 import { FaGithub, FaRust } from "react-icons/fa";
 import { SiAssemblyscript, SiOpenai } from "react-icons/si";
 import { IoMdInformationCircleOutline } from "react-icons/io";
 import { FaArrowUpRightFromSquare, FaDartLang, FaFlutter } from "react-icons/fa6";
-import { IoChatbubbleEllipsesOutline, IoDocument } from "react-icons/io5";
+import { IoChatbubbleEllipsesOutline, IoChatbubbleEllipsesOutline, IoDocument } from "react-icons/io5";
+import { MainButton } from "../components/MainButton";
+import { useNavigate } from "react-router";
+
+export default function PersonalWebsiteTabs() {
+  const [activeTab, setActiveTab] = useState("School");
+  const navigate = useNavigate();
 import { MainButton } from "../components/MainButton";
 import { useNavigate } from "react-router";
 import BlobAvatar from "../components/BlobAvatar";
@@ -13,66 +19,66 @@ export default function PersonalWebsiteTabs() {
   const [activeTab, setActiveTab] = useState("School");
   const navigate = useNavigate();
 
-const TABS = [
-  {
-    name: "School",
-    icon: <School size={18} className="inline mr-2" />,
-    content: (
-      <>
-        <h2 className="text-xl font-bold">Menntaskólinn við Hamrahlíð (2021-2023)</h2>
-        <p className="text-gray-500">// International Baccalaureate</p>
-        <a href="https://www.mh.is/is/ib-studies"
-          target="_blank"
-          className="inline-flex items-center p-2 mt-4 space-x-2 transition-colors duration-200 border rounded-l text-terminal border-terminal text-l hover:border-gray-600">
-          <FaArrowUpRightFromSquare />
-          <span>
-            More Info
-          </span>
-        </a>
-        <h2 className="pt-16 mt-4 text-xl font-bold">Háskólinn í Reykjavík (2023-2026)</h2>
-        <p className="text-gray-500">// BSc in Software Engineering</p>
-        <a href="https://www.ru.is/deildir/tolvunarfraedideild/hugbunadarverkfraedi-bsc"
-          target="_blank"
-          className="inline-flex items-center p-2 mt-4 space-x-2 transition-colors duration-200 border rounded-l text-terminal border-terminal text-l hover:border-gray-600">
-          <FaArrowUpRightFromSquare />
-          <span>
-            More Info
-          </span>
-        </a>
-      </>
-    ),
-  },
-  {
-    name: "Projects",
-    icon: <FolderGit2 size={18} className="inline mr-2" />,
-    content: (
-      <>
-      <h2 className="text-xl font-bold">Canvas App</h2>
-        <div className="flex items-center py-2 space-x-4">
-          <FaFlutter className="text-3xl" />
-          <FaDartLang className="text-3xl" />
-          <SiOpenai className="text-3xl" />
-        </div>
-        <p className="text-gray-500">// A Canvas LMS client application built with Flutter.</p>
-        <p>I created a wrapper for the university learning software. It allows the user to perform many different actions which aren't possible in the default app and allows the user to perform most tasks which are possible in the default app </p>
-        <h4 className="mt-4 text-lg font-bold">Features</h4>
-        <ul className="pl-6 list-disc">
-          <li>Calendar View</li>
-          <li>View/interact with your courses</li>
-          <li>View your assigments</li>
-          <li>Use AI to plan your assignments</li>
-          <li>Chat with your course material using AI</li>
-          <li>Create flashcards from your course material using AI</li>
-        </ul>
-        <br/>
+  const TABS = [
+    {
+      name: "School",
+      icon: <School size={18} className="inline mr-2" />,
+      content: (
+        <>
+          <h2 className="text-xl font-bold">Menntaskólinn við Hamrahlíð (2021-2023)</h2>
+          <p className="text-gray-500">// International Baccalaureate</p>
+          <a href="https://www.mh.is/is/ib-studies"
+            target="_blank"
+            className="inline-flex items-center p-2 mt-4 space-x-2 transition-colors duration-200 border rounded-l text-terminal border-terminal text-l hover:border-gray-600">
+            <FaArrowUpRightFromSquare />
+            <span>
+              More Info
+            </span>
+          </a>
+          <h2 className="pt-16 mt-4 text-xl font-bold">Háskólinn í Reykjavík (2023-2026)</h2>
+          <p className="text-gray-500">// BSc in Software Engineering</p>
+          <a href="https://www.ru.is/deildir/tolvunarfraedideild/hugbunadarverkfraedi-bsc"
+            target="_blank"
+            className="inline-flex items-center p-2 mt-4 space-x-2 transition-colors duration-200 border rounded-l text-terminal border-terminal text-l hover:border-gray-600">
+            <FaArrowUpRightFromSquare />
+            <span>
+              More Info
+            </span>
+          </a>
+        </>
+      ),
+    },
+    {
+      name: "Projects",
+      icon: <FolderGit2 size={18} className="inline mr-2" />,
+      content: (
+        <>
+          <h2 className="text-xl font-bold">Canvas App</h2>
+          <div className="flex items-center py-2 space-x-4">
+            <FaFlutter className="text-3xl" />
+            <FaDartLang className="text-3xl" />
+            <SiOpenai className="text-3xl" />
+          </div>
+          <p className="text-gray-500">// A Canvas LMS client application built with Flutter.</p>
+          <p>I created a wrapper for the university learning software. It allows the user to perform many different actions which aren't possible in the default app and allows the user to perform most tasks which are possible in the default app </p>
+          <h4 className="mt-4 text-lg font-bold">Features</h4>
+          <ul className="pl-6 list-disc">
+            <li>Calendar View</li>
+            <li>View/interact with your courses</li>
+            <li>View your assigments</li>
+            <li>Use AI to plan your assignments</li>
+            <li>Chat with your course material using AI</li>
+            <li>Create flashcards from your course material using AI</li>
+          </ul>
+          <br/>
 
-        <a 
-          href="https://github.com/TomasPalsson/canvas_app" 
-          target="_blank"
-          className="inline-flex items-center p-2 space-x-2 transition-colors duration-200 border rounded-l text-terminal border-terminal text-l hover:border-gray-600">
-          <FaGithub />
-          <span>Github</span>
-        </a>
+          <a 
+            href="https://github.com/TomasPalsson/canvas_app" 
+            target="_blank"
+            className="inline-flex items-center p-2 space-x-2 transition-colors duration-200 border rounded-l text-terminal border-terminal text-l hover:border-gray-600">
+            <FaGithub />
+            <span>Github</span>
+          </a>
 
           <h2 className="mt-16 text-xl font-bold">Lanuage Compiler</h2>
           <div className="flex items-center py-2 space-x-4">
@@ -143,29 +149,26 @@ const TABS = [
             </a>
           </li>
 
-      <li>
-        <span className="font-semibold">GitHub:</span>{" "}
-        <a
-          href="https://github.com/TomasPalsson"
-          className="text-terminal hover:underline"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          github.com/TomasPalsson
-        </a>
-      </li>
+          <li>
+            <span className="font-semibold">GitHub:</span>{" "}
+            <a
+              href="https://github.com/TomasPalsson"
+              className="text-terminal hover:underline"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              github.com/TomasPalsson
+            </a>
+          </li>
 
-      <li>
-        <span className="font-semibold">Location:</span> Reykjavík, Iceland
-      </li>
-    </ul>
+          <li>
+            <span className="font-semibold">Location:</span> Reykjavík, Iceland
+          </li>
+        </ul>
+      ),
+    },
+  ];
 
-  ),
-  },
-];
-
-export default function PersonalWebsiteTabs() {
-  const [activeTab, setActiveTab] = useState("School");
   const currentTab = TABS.find((tab) => tab.name === activeTab);
 
   return (

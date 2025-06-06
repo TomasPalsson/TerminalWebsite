@@ -66,7 +66,8 @@ export default function IdeaGenerator() {
             <span className="mr-2 text-terminal">$</span>
             <input
               type="text"
-              placeholder="Enter a topic"
+              placeholder="Enter a topic or keyword for your idea..."
+              autoFocus
               className="flex-1 px-2 py-1 text-white placeholder-gray-400 bg-transparent outline-none"
               value={idea}
               onChange={(e) => setIdea(e.target.value)}
@@ -85,6 +86,8 @@ export default function IdeaGenerator() {
               value={selectedSize}
               onChange={(e) => setSelectedSize(e.target.value)}
             >
+                <option value="XS">XS</option>
+
               <option value="Small">Small</option>
               <option value="Medium">Medium</option>
               <option value="Large">Large</option>
@@ -113,8 +116,10 @@ export default function IdeaGenerator() {
 
 async function generateIdea(idea: string, size: string) {
     const url = "https://api.tomasp.me/idea-generator"
+    // Add a random seed to the beginning of the idea string to make the idea different everytime
+    const seed = Math.floor(Math.random() * 1000000);
     const body = {
-        "idea": "Project Size: " + size.toUpperCase() + "\n" + "Idea: " + idea
+        "idea": "Seed: " + seed + "\n" + "Project Size: " + size.toUpperCase() + "\n" + "Idea: " + idea
     }
     try {
     const response = await fetch(url, {
