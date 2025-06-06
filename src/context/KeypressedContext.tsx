@@ -8,14 +8,19 @@ export type KeyPressContextType = {
 
 export const KeyPressContext = createContext<KeyPressContextType | null>(null);
 
-export const KeyPressProvider = ({ children }) => {
+export type KeyPressProviderProps = {
+  children: React.ReactNode;
+  onKeyPress?: (key: string, event: KeyboardEvent) => void;
+};
+
+export const KeyPressProvider = ({ children, onKeyPress }: KeyPressProviderProps) => {
   const [text, setText] = useState("");
 
   const clearText = () => {
     setText("");
   };
 
-  const handleKeyDown = (e) => {
+  const handleKeyDown = (e: KeyboardEvent) => {
     if (e.key.length === 1) {
       setText((prev) => prev + e.key);
     } else if (e.key === "Backspace") {
@@ -23,6 +28,7 @@ export const KeyPressProvider = ({ children }) => {
     } else if (e.key === "Enter") {
       setText((prev) => prev + "\n");
     }
+    if (onKeyPress) onKeyPress(e.key, e);
   };
 
   useEffect(() => {
