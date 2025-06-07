@@ -4,6 +4,7 @@ import React, { useMemo, useEffect, useState } from "react";
 import * as THREE from "three";
 import TerminalHandler from "../TerminalHandler";
 import { KeyPressProvider } from "../../context/KeypressedContext";
+import useKeyClick from "../../hooks/useKeyClick";
 
 /* ---------- hook that returns a CanvasTexture driven by terminal lines ---------- */
 function useTerminalTexture(lines: string[]) {
@@ -102,8 +103,10 @@ function TerminalScene() {
 }
 
 export default function TerminalCanvas() {
+  const playClick = useKeyClick();
+
   return (
-    <KeyPressProvider>
+    <KeyPressProvider onKeyPress={playClick}>
       <div className="w-screen h-screen">
         <TerminalScene />
       </div>

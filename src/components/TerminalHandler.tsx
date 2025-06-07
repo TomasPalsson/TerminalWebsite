@@ -51,6 +51,12 @@ function extractText(node: React.ReactNode): string {
     // <li> ⇒ bullet + newline
     if (node.type === "li") return `• ${children}\n`;
 
+    // <a>
+    if (node.type === "a") {
+      const children = React.Children.map(node.props.children, extractText)?.join("") ?? "";
+      return `${children} (${node.props.href})`;
+    }
+    
     // any other block element ⇒ newline at end
     if (typeof node.type === "string" && blockTags.has(node.type)) {
       return `${children}\n`;
