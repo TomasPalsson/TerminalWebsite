@@ -1,25 +1,18 @@
 import { useCallback, useRef } from "react";
 
 export default function useKeyClick() {
-  const audioCtxRef = useRef<AudioContext>();
+  const audioRef = useRef<HTMLAudioElement | null>(null);
 
   const play = useCallback(() => {
-    if (!audioCtxRef.current) {
-      audioCtxRef.current = new (window.AudioContext || (window as any).webkitAudioContext)();
+    if (!audioRef.current) {
+      audioRef.current = new Audio('/spacebar-click-keyboard-199448.mp3');
+      audioRef.current.playbackRate = 4.0;
     }
-    const ctx = audioCtxRef.current;
-    if (ctx.state === "suspended") {
-      ctx.resume();
-    }
-    const osc = ctx.createOscillator();
-    const gain = ctx.createGain();
-    osc.type = "square";
-    osc.frequency.value = 800;
-    gain.gain.value = 0.1;
-    osc.connect(gain);
-    gain.connect(ctx.destination);
-    osc.start();
-    osc.stop(ctx.currentTime + 0.05);
+    
+    audioRef.current.currentTime = 0;
+    audioRef.current.play().catch(error => {
+      console.error('Error playing sound:', error);
+    });
   }, []);
 
   return play;
