@@ -107,30 +107,42 @@ export default function PersonalWebsiteTabs() {
       name: "Fun",
       icon: <Smile size={18} className="inline mr-2" />,
       content: (
-        <div className="flex flex-row items-center justify-center p-4 space-x-4">
+        <div className="grid max-w-2xl grid-cols-2 gap-4 p-4 mx-auto">
+          {/* 3D Terminal */}
+          <button
+            onClick={() => navigate("/blob")}
+            className="flex items-center justify-center p-4 space-x-2 transition-colors duration-200 border rounded-lg text-terminal border-terminal hover:border-gray-600 hover:bg-terminal/5"
+          >
+            <TerminalSquare size={24} />
+            <span className="text-lg">3D Terminal</span>
+          </button>
+
           {/* Chat with me */}
           <button
             onClick={() => navigate("/chat")}
-            className="inline-flex items-center p-2 space-x-2 transition-colors duration-200 border rounded-l text-terminal border-terminal text-l hover:border-gray-600"
+            className="flex items-center justify-center p-4 space-x-2 transition-colors duration-200 border rounded-lg text-terminal border-terminal hover:border-gray-600 hover:bg-terminal/5"
           >
-            <IoChatbubbleEllipsesOutline />
-            <span>Chat With AI Me!</span>
+            <IoChatbubbleEllipsesOutline size={24} />
+            <span className="text-lg">Chat With AI Me!</span>
+          </button>
+
+          {/* URL Shortener */}
+          <button
+            onClick={() => navigate("/shorten")}
+            className="flex items-center justify-center p-4 space-x-2 transition-colors duration-200 border rounded-lg text-terminal border-terminal hover:border-gray-600 hover:bg-terminal/5"
+          >
+            <TerminalSquare size={24} />
+            <span className="text-lg">URL Shortener</span>
           </button>
 
           {/* IDEA Generator */}
           <button
             onClick={() => navigate("/idea-generator")}
-            className="inline-flex items-center p-2 space-x-2 transition-colors duration-200 border rounded-l text-terminal border-terminal text-l hover:border-gray-600"
+            className="flex items-center justify-center p-4 space-x-2 transition-colors duration-200 border rounded-lg text-terminal border-terminal hover:border-gray-600 hover:bg-terminal/5"
           >
-            <span>Idea Generator</span>
-          </button> 
-
-          <button
-            onClick={() => navigate("/blob")}
-            className="inline-flex items-center p-2 space-x-2 transition-colors duration-200 border rounded-l text-terminal border-terminal text-l hover:border-gray-600"
-            >
-              <span>3D Terminal</span>
-            </button>
+            <IoMdInformationCircleOutline size={24} />
+            <span className="text-lg">Idea Generator</span>
+          </button>
         </div>
       ),
     },
@@ -152,13 +164,13 @@ export default function PersonalWebsiteTabs() {
           <li>
             <span className="font-semibold">GitHub:</span>{" "}
             <a
-              href="https://github.com/TomasPalsson"
+              href="https://t0mas.io/github"
               className="text-terminal hover:underline"
               target="_blank"
               rel="noopener noreferrer"
             >
-              github.com/TomasPalsson
-            </a>
+              https://t0mas.io/github
+              </a>
           </li>
 
           <li>

@@ -6,6 +6,7 @@ import AboutMe from "../screens/AboutMe";
 import ChatMe from "../screens/ChatMe";
 import IdeaGenerator from "../screens/IdeaGenerator";
 import TerminalCanvas from "./terminal/TerminalCanvas";
+import UrlShortener from "../screens/UrlShortener";
 
 
 export default function AppRoutes() {
@@ -17,6 +18,7 @@ export default function AppRoutes() {
       <Route path="/idea-generator" element={<IdeaGenerator />} />
       <Route path="/aboutme" element={<AboutMe />} />
       <Route path="/blob" element={<TerminalCanvas />} />
+      <Route path="/shorten" element={<UrlShortener />} />
     </Routes>
   )
 }
