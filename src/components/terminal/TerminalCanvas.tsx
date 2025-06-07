@@ -5,6 +5,7 @@ import * as THREE from "three";
 import TerminalHandler from "../TerminalHandler";
 import { KeyPressProvider } from "../../context/KeypressedContext";
 import useKeyClick from "../../hooks/useKeyClick";
+import { isMobile } from "react-device-detect";
 
 /* ---------- hook that returns a CanvasTexture driven by terminal lines ---------- */
 function useTerminalTexture(lines: string[]) {
@@ -103,13 +104,25 @@ function TerminalScene() {
 }
 
 export default function TerminalCanvas() {
+  if (!isMobile) {
   const playClick = useKeyClick();
 
   return (
     <KeyPressProvider onKeyPress={playClick}>
       <div className="w-screen h-screen">
+        <div className="flex justify-center">
+          <p className="font-mono text-terminal">Zoom in to view the terminal</p>
+        </div>
         <TerminalScene />
       </div>
     </KeyPressProvider>
   );
+}
+else {
+  return (
+    <div className="flex items-center justify-center h-screen">
+      <p className="font-mono text-terminal">This is best viewed on desktop!</p>
+    </div>
+  )
+}
 }
