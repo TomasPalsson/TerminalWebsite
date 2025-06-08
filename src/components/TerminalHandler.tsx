@@ -69,6 +69,7 @@ function extractText(node: React.ReactNode): string {
   return "";
 }
 
+const PROMPT = "$ ";
 
 const TerminalHandler = ({ onBufferChange, headless = false }: Props) => {
   const context = useContext(KeyPressContext);
@@ -78,7 +79,8 @@ const TerminalHandler = ({ onBufferChange, headless = false }: Props) => {
   const { text, clearText } = context;
 
   const [output, setOutput] = useState<ReactNode[]>([]);
-  const [plainLines, setPlainLines] = useState<string[]>([]);
+  type PlainLine = { text: string; command: boolean };
+  const [plainLines, setPlainLines] = useState<PlainLine[]>([]);
   const bottomRef = useRef<HTMLDivElement>(null);
 
   /* helper to push a React line + its text twin */
@@ -89,8 +91,11 @@ const TerminalHandler = ({ onBufferChange, headless = false }: Props) => {
     const split = extracted
       .split(/\r?\n/) // break on \n
       .filter(Boolean); // toss empties
-    setPlainLines((prev) => [...prev, ...split]);
-  };
+      setPlainLines((prev) => [
+        ...prev,
+        ...split.map((t, idx) => ({ text: t, command: idx === 0 })),
+      ]);
+    };
 
   /* command processing */
   useEffect(() => {
@@ -153,13 +158,17 @@ const TerminalHandler = ({ onBufferChange, headless = false }: Props) => {
   useEffect(() => {
     if (!onBufferChange) return;
     const live = text.replace(/\n$/, ""); // strip trailing newline while typing
-    onBufferChange([...plainLines, live]);
+    const mapped = plainLines.map((l) =>
+      l.command ? PROMPT + l.text : l.text
+    );
+    const liveWithPrompt = PROMPT + live;
+    onBufferChange([...mapped, liveWithPrompt]);
   }, [plainLines, text]);
 
   /* -------- HTML terminal (hidden in headless mode) -------- */
   if (headless) return null;
 
-  const prompt = "$ ";
+  const prompt = PROMPT;
   const renderText = () => {
     if (!text) return null;
     const [first, ...rest] = text.split(" ");
