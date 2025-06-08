@@ -28,6 +28,7 @@ function extractText(node: React.ReactNode): string {
   }
 
   if (React.isValidElement(node)) {
+    const element = node as React.ReactElement<any>;
     const blockTags = new Set([
       "div",
       "p",
@@ -42,7 +43,7 @@ function extractText(node: React.ReactNode): string {
       "ol",
     ]);
 
-    const children = React.Children.map(node.props.children, extractText)?.join(
+    const children = React.Children.map(element.props.children, extractText)?.join(
       ""
     ) ?? "";
 
@@ -54,8 +55,8 @@ function extractText(node: React.ReactNode): string {
 
     // <a>
     if (node.type === "a") {
-      const children = React.Children.map(node.props.children, extractText)?.join("") ?? "";
-      return `${children} (${node.props.href})`;
+      const children = React.Children.map(element.props.children, extractText)?.join("") ?? "";
+      return `${children} (${element.props.href})`;
     }
     
     // any other block element ⇒ newline at end
