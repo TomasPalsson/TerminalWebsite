@@ -57,6 +57,7 @@ function useTerminalTexture(lines: string[]) {
       const lineHeight = 42;
   
       let y = margin;
+      
       lines.slice(-100).forEach((ln) => {
         y = wrapText(ln, margin, y, maxWidth, lineHeight);
       });
@@ -93,7 +94,7 @@ function TerminalScene() {
       {/* headless terminal; just feeds `buffer` */}
       <TerminalHandler headless onBufferChange={setBuffer} />
 
-      <Canvas className="fixed inset-0" camera={{ position: [0, 1.5, 5] }}>
+      <Canvas className="fixed inset-0" camera={{ position: [0, 0.5, 1] }}>
         <ambientLight intensity={0.5} />
         <pointLight position={[0, 0.721, 0.9]} intensity={1} />
         <RetroComputer screenTexture={screenTexture} />
@@ -111,7 +112,7 @@ export default function TerminalCanvas() {
     <KeyPressProvider onKeyPress={playClick}>
       <div className="w-screen h-screen">
         <div className="flex justify-center">
-          <p className="font-mono text-terminal">Zoom in to view the terminal</p>
+          <p className="font-mono text-terminal">Zoom in to view the terminal, type help for commands</p>
         </div>
         <TerminalScene />
       </div>
