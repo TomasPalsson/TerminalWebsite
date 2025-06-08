@@ -1,6 +1,6 @@
 import { OrbitControls, useGLTF } from "@react-three/drei";
 import { Canvas, useFrame } from "@react-three/fiber";
-import React, { useMemo, useEffect, useState } from "react";
+import React, { useMemo, useEffect, useState, useRef } from "react";
 import * as THREE from "three";
 import TerminalHandler from "../TerminalHandler";
 import { KeyPressProvider } from "../../context/KeypressedContext";
@@ -20,6 +20,12 @@ function useTerminalTexture(lines: string[]) {
       texture.center.set(0.5, 0.5);
       return { canvas, ctx, texture };
     }, []);
+
+    const totalHeightRef = useRef(0);
+    const visibleHeight = 768; // canvas height
+    const margin = 20;
+    const lineHeight = 42;
+    const maxWidth = canvas.width - margin * 2;
   
     /* helper → draw one string with word-wrap */
     const wrapText = (
@@ -31,36 +37,75 @@ function useTerminalTexture(lines: string[]) {
     ) => {
       const words = text.split(" ");
       let line = "";
+      let currentY = y;
       words.forEach((word, idx) => {
         const test = line + (idx ? " " : "") + word;
         if (ctx.measureText(test).width > maxWidth) {
-          ctx.fillText(line, x, y);
-          y += lineHeight;
+          ctx.fillText(line, x, currentY);
+          currentY += lineHeight;
           line = word;
         } else {
           line = test;
         }
       });
-      ctx.fillText(line, x, y);
-      return y + lineHeight; // next y-pos
+      ctx.fillText(line, x, currentY);
+      return currentY + lineHeight; // next y-pos
     };
   
     let color = getComputedStyle(document.documentElement).getPropertyValue('--terminal').trim() || "#0f0";
     useEffect(() => {
+      // Clear the entire canvas first
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
       ctx.fillStyle = "#000";
       ctx.fillRect(0, 0, canvas.width, canvas.height);
-      ctx.fillStyle =  color == "#22c55e" ? "#0f0" : color ;
+      ctx.fillStyle = color == "#22c55e" ? "#0f0" : color;
       ctx.font = "20px monospace";
       ctx.textBaseline = "top";
   
-      const margin = 20;
-      const maxWidth = canvas.width - margin * 2;
-      const lineHeight = 42;
-  
+      // Calculate total height of all text
+      let tempY = margin;
+      lines.forEach((ln) => {
+        const words = ln.split(" ");
+        let line = "";
+        words.forEach((word, idx) => {
+          const test = line + (idx ? " " : "") + word;
+          if (ctx.measureText(test).width > maxWidth) {
+            tempY += lineHeight;
+            line = word;
+          } else {
+            line = test;
+          }
+        });
+        tempY += lineHeight;
+      });
+      totalHeightRef.current = tempY;
+
+      // Calculate starting y position
       let y = margin;
+      if (totalHeightRef.current > visibleHeight) {
+        y = margin - (totalHeightRef.current - visibleHeight);
+      }
       
-      lines.slice(-100).forEach((ln) => {
-        y = wrapText(ln, margin, y, maxWidth, lineHeight);
+      // Draw visible portion of text
+      lines.forEach((ln) => {
+        const words = ln.split(" ");
+        let line = "";
+        words.forEach((word, idx) => {
+          const test = line + (idx ? " " : "") + word;
+          if (ctx.measureText(test).width > maxWidth) {
+            if (y >= margin && y <= visibleHeight) {
+              ctx.fillText(line, margin, y);
+            }
+            y += lineHeight;
+            line = word;
+          } else {
+            line = test;
+          }
+        });
+        if (y >= margin && y <= visibleHeight) {
+          ctx.fillText(line, margin, y);
+        }
+        y += lineHeight;
       });
   
       texture.needsUpdate = true;
