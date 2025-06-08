@@ -8,6 +8,7 @@ import React, {
 import { KeyPressContext } from "../context/KeypressedContext";
 import { commandMap } from "./commands/CommandMap";
 import Cursor from "./Cursor";
+import { useNavigate } from "react-router";
 
 type Props = {
   onBufferChange?: (lines: string[]) => void;
@@ -73,6 +74,8 @@ const PROMPT = "$ ";
 
 const TerminalHandler = ({ onBufferChange, headless = false }: Props) => {
   const context = useContext(KeyPressContext);
+  const navigate = useNavigate();
+
   if (!context)
     throw new Error("TerminalHandler must be used within KeyPressProvider");
 
@@ -115,7 +118,7 @@ const TerminalHandler = ({ onBufferChange, headless = false }: Props) => {
 
       if (command) {
         const result = await command.run(args.join(" "), context);
-        if (command.name === "exit") window.location.href = "/";
+        if (command.name === "exit") setTimeout(() => navigate("/"), 1000);
         if (result) {
           pushLine(
             <span key={crypto.randomUUID()} className="font-mono text-lg">

@@ -2,6 +2,7 @@ import React from 'react'
 import TypingAnimation from '../components/TypingAnimation'
 import TerminalHandler from '../components/TerminalHandler'
 import { KeyPressProvider } from '../context/KeypressedContext'
+import useKeyClick from '../hooks/useKeyClick';
 
 export function Terminal() {
   const bottomRef = React.useRef<HTMLDivElement>(null);

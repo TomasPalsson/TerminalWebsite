@@ -1,6 +1,6 @@
 import { KeyPressContextType } from "../../context/KeypressedContext";
 
-export interface Command {
+export default interface Command {
   name: string;
   description: string;
   args: string[];

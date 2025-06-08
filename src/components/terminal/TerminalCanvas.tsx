@@ -176,9 +176,6 @@ export default function TerminalCanvas() {
   return (
     <KeyPressProvider onKeyPress={playClick}>
       <div className="w-screen h-screen">
-        <div className="flex justify-center">
-          <p className="font-mono text-terminal">Zoom in to view the terminal, type help for commands</p>
-        </div>
         <TerminalScene />
       </div>
     </KeyPressProvider>
