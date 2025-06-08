@@ -22,7 +22,7 @@ export const HelpCommand: Command = {
           <div key={cmd.name}>
             <span className="font-bold text-terminal">  ❯ {cmd.name.padEnd(12)}</span>
             <span className="pr-5 text-gray-400">{cmd.desc}</span>
-            {cmd.args ? <span className="text-gray-400"><i>Args: [{cmd.args?.join(',')}]</i></span> : null}
+            {cmd.args?.length > 0 ? <span className="text-gray-400"><i> Args: [{cmd.args?.join(',')}]</i></span> : null}
           </div>
         ))}
       </div>

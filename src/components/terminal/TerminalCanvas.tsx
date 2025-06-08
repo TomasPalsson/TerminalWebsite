@@ -45,10 +45,11 @@ function useTerminalTexture(lines: string[]) {
       return y + lineHeight; // next y-pos
     };
   
+    let color = getComputedStyle(document.documentElement).getPropertyValue('--terminal').trim() || "#0f0";
     useEffect(() => {
       ctx.fillStyle = "#000";
       ctx.fillRect(0, 0, canvas.width, canvas.height);
-      ctx.fillStyle = "#0f0";
+      ctx.fillStyle =  color == "#22c55e" ? "#0f0" : color ;
       ctx.font = "20px monospace";
       ctx.textBaseline = "top";
   

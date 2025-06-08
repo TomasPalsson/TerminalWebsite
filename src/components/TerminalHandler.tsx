@@ -62,7 +62,7 @@ function extractText(node: React.ReactNode): string {
       return `${children}\n`;
     }
 
-    // inline element ⇒ just return its children’s text
+    // inline element ⇒ just return its children's text
     return children;
   }
 
@@ -94,23 +94,36 @@ const TerminalHandler = ({ onBufferChange, headless = false }: Props) => {
 
   /* command processing */
   useEffect(() => {
-    if (!text.endsWith("\n")) return;
+    const processCommand = async () => {
+      if (!text.endsWith("\n")) return;
 
-    const cmd = text.trim();
-    const [base, ...args] = cmd.split(" ");
-    const command = commandMap.get(base);
+      const cmd = text.trim();
+      const [base, ...args] = cmd.split(" ");
+      const command = commandMap.get(base);
 
-    if (base === "clear") {
-      setOutput([]);
-      setPlainLines([]);
-      clearText();
-      return;
-    }
+      if (base === "clear") {
+        setOutput([]);
+        setPlainLines([]);
+        clearText();
+        return;
+      }
 
-    if (command) {
-      const result = command.run(args, context);
-      if (command.name === "exit") window.location.href = "/";
-      if (result) {
+      if (command) {
+        const result = await command.run(args.join(" "), context);
+        if (command.name === "exit") window.location.href = "/";
+        if (result) {
+          pushLine(
+            <span key={crypto.randomUUID()} className="font-mono text-lg">
+              <span className="font-bold text-terminal">{base}</span>
+              <span className="text-white">
+                {args.length ? " " + args.join(" ") : ""}
+              </span>
+              <br />
+              {result}
+            </span>
+          );
+        }
+      } else {
         pushLine(
           <span key={crypto.randomUUID()} className="font-mono text-lg">
             <span className="font-bold text-terminal">{base}</span>
@@ -118,31 +131,22 @@ const TerminalHandler = ({ onBufferChange, headless = false }: Props) => {
               {args.length ? " " + args.join(" ") : ""}
             </span>
             <br />
-            {result}
+            <span>
+              Command not found: <span className="text-red-600">{cmd}</span>
+            </span>
+            <br />
+            <span>
+              Type <span className="text-orange-500">help</span> to see all
+              available commands
+            </span>
           </span>
         );
       }
-    } else {
-      pushLine(
-        <span key={crypto.randomUUID()} className="font-mono text-lg">
-          <span className="font-bold text-terminal">{base}</span>
-          <span className="text-white">
-            {args.length ? " " + args.join(" ") : ""}
-          </span>
-          <br />
-          <span>
-            Command not found: <span className="text-red-600">{cmd}</span>
-          </span>
-          <br />
-          <span>
-            Type <span className="text-orange-500">help</span> to see all
-            available commands
-          </span>
-        </span>
-      );
-    }
 
-    clearText();
+      clearText();
+    };
+
+    processCommand();
   }, [text]);
 
   /* ship plain lines (plus live typing) to the CRT canvas */

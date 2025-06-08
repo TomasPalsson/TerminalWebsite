@@ -12,7 +12,7 @@ export function Terminal() {
 
   return (
     <KeyPressProvider >
-      <div className="text-white h-screen relative top-1 p-5 pt-14 justify-center h-screen overflow-y-auto">
+      <div className="relative justify-center h-screen px-4 overflow-y-auto text-white top-1">
         <TypingAnimation text="Welcome! To see all available commands type help" color="white" size="text-l" cursor={false} speed={10}
         className="font-mono"/>
         <TerminalHandler />

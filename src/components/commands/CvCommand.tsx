@@ -1,11 +1,12 @@
 import React from "react";
-import Command from "./Command";
+import { Command } from "./Command";
+import { KeyPressContextType } from "../../context/KeypressedContext";
 
 
 export const CvCommand: Command = {
   name: "cv",
   description: "Get a Link to my CV",
-  run: (args: string[]) => (
+  run: (args: string[], context: KeyPressContextType) => (
     <>
     <a
       href="https://api.tomasp.me/cv"
