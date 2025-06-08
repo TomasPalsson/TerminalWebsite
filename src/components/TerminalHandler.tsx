@@ -48,6 +48,8 @@ function extractText(node: React.ReactNode): string {
     // <br> ⇒ newline
     if (node.type === "br") return "\n";
 
+    if (node.type === "button") return `${children}\n`;
+
     // <li> ⇒ bullet + newline
     if (node.type === "li") return `• ${children}\n`;
 

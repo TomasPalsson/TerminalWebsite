@@ -225,9 +225,9 @@ export const ProjectsCommand: Command = {
     else {
 return (
   <div className="font-mono text-lg">
-    <span className="text-gray-600">
+    <p className="text-gray-600">
       To see more detail do [projects -d (project num)] or click on the project name below.
-    </span>
+    </p>
     <div className="flex flex-col pt-2 pl-2">
       <button
         type="button"
