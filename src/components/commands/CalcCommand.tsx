@@ -47,9 +47,7 @@ export const CalcCommand: Command = {
 
     return (
       <p>
-        <span className="text-terminal">{args}</span>
-        <span className="text-white"> = </span>
-        <span className="text-terminal">{result}</span>
+        <span className="text-terminal">{"> "}{result}</span>
       </p>
     );
   }

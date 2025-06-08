@@ -10,7 +10,7 @@ export const EchoCommand: Command = {
     if (!args) {
       return <p className="text-red-500">Usage: echo [text]</p>;
     }
-    return <p>{args}</p>;
+    return <p>{"> "}{args}</p>;
   }
 };
 

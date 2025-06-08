@@ -26,6 +26,15 @@ function useTerminalTexture(lines: string[]) {
     const margin = 20;
     const lineHeight = 42;
     const maxWidth = canvas.width - margin * 2;
+    const [cursorVisible, setCursorVisible] = useState(true);
+
+    // Add cursor blink effect
+    useEffect(() => {
+      const interval = setInterval(() => {
+        setCursorVisible(prev => !prev);
+      }, 500);
+      return () => clearInterval(interval);
+    }, []);
   
     /* helper → draw one string with word-wrap */
     const wrapText = (
@@ -107,9 +116,19 @@ function useTerminalTexture(lines: string[]) {
         }
         y += lineHeight;
       });
+
+      // Draw cursor if visible
+      if (cursorVisible && lines.length > 0) {
+        const lastLine = lines[lines.length - 1];
+        const cursorX = margin + ctx.measureText(lastLine).width;
+        const cursorY = y - lineHeight;
+        if (cursorY >= margin && cursorY <= visibleHeight) {
+          ctx.fillText("_", cursorX, cursorY);
+        }
+      }
   
       texture.needsUpdate = true;
-    }, [lines]);
+    }, [lines, cursorVisible]);
   
     return texture;
   }
