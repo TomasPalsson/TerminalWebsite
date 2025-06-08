@@ -5,14 +5,35 @@ import { commandMap } from "./CommandMap";
 export const HelpCommand: Command = {
   name: "help",
   description: "List all available commands",
-  run: () => {
+  args: [],
+  run: async (args: string[]) => {
+    if (args.length > 0) {
+      const command = commandMap.get(args[0]);
+      if (command) {
+        return (
+          <div className="font-mono text-sm text-xl leading-relaxed text-gray-200 whitespace-pre">
+            {command.usage || <p>No usage information available for this command.</p>}
+          </div>
+        );
+      } else {
+        return (
+          <div className="font-mono text-sm text-xl leading-relaxed text-gray-200 whitespace-pre">
+            <p className="text-red-500">Command not found: {args[0]}</p>
+          </div>
+        );
+      }
+    }
+
     const builtInCommands = [
-      { name: "clear", desc: "Clear the terminal screen" },
-      ...[...commandMap.keys()].map((cmd) => ({
-        name: cmd,
-        args: commandMap.get(cmd)?.args,
-        desc: commandMap.get(cmd)?.description,
-      })),
+      { name: "clear", desc: "Clear the terminal screen", args: [] },
+      ...[...commandMap.keys()].map((cmd) => {
+        const command = commandMap.get(cmd);
+        return {
+          name: cmd,
+          args: command?.args || [],
+          desc: command?.description || "",
+        };
+      }),
     ];
 
     return (
@@ -22,9 +43,10 @@ export const HelpCommand: Command = {
           <div key={cmd.name}>
             <span className="font-bold text-terminal">  ❯ {cmd.name.padEnd(12)}</span>
             <span className="pr-5 text-gray-400">{cmd.desc}</span>
-            {cmd.args?.length > 0 ? <span className="text-gray-400"><i> Args: [{cmd.args?.join(',')}]</i></span> : null}
           </div>
         ))}
+        <br />
+        <p className="text-gray-400">Type <span className="text-terminal">help [command]</span> to get details about a specific command.</p>
       </div>
     );
   },

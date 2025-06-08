@@ -4,12 +4,6 @@ import TerminalHandler from '../components/TerminalHandler'
 import { KeyPressProvider } from '../context/KeypressedContext'
 
 export function Terminal() {
-  const bottomRef = React.useRef<HTMLDivElement>(null);
-
-  setTimeout(() => {
-  bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
-}, 50);
-
   return (
     <KeyPressProvider >
       <div className="relative justify-center h-screen px-4 overflow-y-auto text-white top-1">

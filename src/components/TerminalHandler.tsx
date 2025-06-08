@@ -91,11 +91,17 @@ const TerminalHandler = ({ onBufferChange, headless = false }: Props) => {
     const split = extracted
       .split(/\r?\n/) // break on \n
       .filter(Boolean); // toss empties
-      setPlainLines((prev) => [
-        ...prev,
-        ...split.map((t, idx) => ({ text: t, command: idx === 0 })),
-      ]);
-    };
+    setPlainLines((prev) => [
+      ...prev,
+      ...split.map((t, idx) => ({ text: t, command: idx === 0 })),
+    ]);
+
+    // Check if the content is overflowing and scroll only if necessary
+    const container = bottomRef.current?.parentElement;
+    if (container && container.scrollHeight > container.clientHeight) {
+      bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }
+  };
 
   /* command processing */
   useEffect(() => {
@@ -110,11 +116,17 @@ const TerminalHandler = ({ onBufferChange, headless = false }: Props) => {
         setOutput([]);
         setPlainLines([]);
         clearText();
+
+        // Scroll to the top after clearing
+        const container = bottomRef.current?.parentElement;
+        if (container) {
+          container.scrollTo({ top: 0, behavior: 'smooth' });
+        }
         return;
       }
 
       if (command) {
-        const result = await command.run(args.join(" "), context);
+        const result = await command.run(args, context);
         if (command.name === "exit") window.location.href = "/";
         if (result) {
           pushLine(
@@ -181,6 +193,14 @@ const TerminalHandler = ({ onBufferChange, headless = false }: Props) => {
       </>
     );
   };
+
+  /* Ensure scrolling when output changes */
+  useEffect(() => {
+    const container = bottomRef.current?.parentElement;
+    if (container && container.scrollHeight > container.clientHeight) {
+      bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }
+  }, [output]);
 
   return (
     <>

@@ -1,20 +1,34 @@
-import React, { useContext } from 'react';
-import { KeyPressContext, KeyPressContextType } from "../../context/KeypressedContext";
+import { KeyPressContextType } from "../../context/KeypressedContext";
 import { Command } from './Command';
 import { FaDartLang, FaFlutter, FaGithub } from 'react-icons/fa6';
 import { FaRust, FaAws, FaReact, FaPython } from 'react-icons/fa';
 import { TbBrandThreejs } from 'react-icons/tb';
 import { SiOpenai } from 'react-icons/si';
 
+
 export const ProjectsCommand: Command = {
   name: "projects",  
   description: "List of my projects",
   args: ["--github", "--detail"],
-  run: (args: string[], context: KeyPressContextType) => {
+  usage: (
+    <>
+      <p className="font-bold text-terminal">Usage:</p>
+      <p>projects [options] [project_number]</p>
+      <br />
+      <p className="font-bold text-terminal">Options:</p>
+      <span className="text-terminal">-d, --detail</span> - Show project details<br />
+      <span className="text-terminal">-g, --github</span> - Show project GitHub link<br />
+      <br />
+      <p className="font-bold text-terminal">Description:</p>
+      <p>List of my projects with details and GitHub links</p>
+    </>
+  ),
+  run: async (args: string[], context: KeyPressContextType) => {
     if (args.length > 0) {
       console.log("args", args);
       switch (args[0]) {
         case "--detail":
+        case "-d":
           if (args[1] === "1") {
             return (
               <>
@@ -126,6 +140,7 @@ export const ProjectsCommand: Command = {
               </span>
             )
           }
+        case "-g":
         case "--github":
           if (args[1] === "1") {
             return (
@@ -181,6 +196,7 @@ export const ProjectsCommand: Command = {
               </>
             );
           } else {
+            context?.clearText();
             return (
               <span className="font-mono text-lg">
                 No project with that number found
@@ -190,11 +206,19 @@ export const ProjectsCommand: Command = {
         default:
           context?.clearText();
           return (
-            <span>
-              Invalid Arguments <span className='text-red-500'>{args.join(", ")}</span>
+            <>
+              <span>
+                Invalid Arguments <span className='text-red-500'>{Array.isArray(args) ? args.join(", ") : String(args)}</span>
+              </span>
               <br />
-            </span>
+              <p className="font-bold text-terminal">Usage:</p>
+              <p>projects [options] [project_number]</p>
+              <br />
+              <p className="font-bold text-terminal">Options:</p>
+              <p>-d, --detail     Show project details</p>
+              <p>-g, --github     Show project GitHub link</p>
 
+            </>
           )
       }
     }
@@ -202,7 +226,7 @@ export const ProjectsCommand: Command = {
 return (
   <div className="font-mono text-lg">
     <span className="text-gray-600">
-      To see more detail do [projects --detail (project num)] or click on the project name below.
+      To see more detail do [projects -d (project num)] or click on the project name below.
     </span>
     <div className="flex flex-col pt-2 pl-2">
       <button
