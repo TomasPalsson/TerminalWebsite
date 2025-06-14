@@ -54,7 +54,7 @@ export default function MacBar({ fullscreenRef }: MacBarProps) {
       </button>
 
     <span className="absolute font-mono font-bold text-gray-300 -translate-x-1/2 left-1/2">
-      {window.location.origin}
+      {window.location.hostname}
     </span>
 
       <div className="ml-auto">
