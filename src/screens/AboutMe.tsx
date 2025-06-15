@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { TerminalSquare, School, FolderGit2, Mail, Github, Smile } from "lucide-react";
-import { FaGithub, FaRust } from "react-icons/fa";
+import { FaGithub, FaRust, FaAws, FaReact, FaPython } from "react-icons/fa";
+import { TbBrandThreejs } from "react-icons/tb";
 import { SiAssemblyscript, SiOpenai } from "react-icons/si";
 import { IoMdInformationCircleOutline } from "react-icons/io";
 import { FaArrowUpRightFromSquare, FaDartLang, FaFlutter } from "react-icons/fa6";
@@ -58,7 +59,7 @@ export default function PersonalWebsiteTabs() {
           <ul className="pl-6 list-disc">
             <li>Calendar View</li>
             <li>View/interact with your courses</li>
-            <li>View your assigments</li>
+            <li>View your assignments</li>
             <li>Use AI to plan your assignments</li>
             <li>Chat with your course material using AI</li>
             <li>Create flashcards from your course material using AI</li>
@@ -73,13 +74,13 @@ export default function PersonalWebsiteTabs() {
             <span>Github</span>
           </a>
 
-          <h2 className="mt-16 text-xl font-bold">Lanuage Compiler</h2>
+          <h2 className="mt-16 text-xl font-bold">Language Compiler</h2>
           <div className="flex items-center py-2 space-x-4">
             <FaRust className="text-3xl" />
             <SiAssemblyscript className="text-3xl" />
           </div>
           <p className="text-gray-500">// A compiler for a programming language</p>
-          <p>I created a simple programming langauage in Rust to compile a basic langugae into assembly binary code</p>
+          <p>I created a simple programming language in Rust to compile a basic language into assembly binary code</p>
           <h4 className="mt-4 text-lg font-bold">Features</h4>
           <ul className="pl-6 list-disc">
             <li>Full function definitions and calls</li>
@@ -97,9 +98,39 @@ export default function PersonalWebsiteTabs() {
             href="https://github.com/TomasPalsson/Language-Compiler" 
             target="_blank"
             className="inline-flex items-center p-2 space-x-2 transition-colors duration-200 border rounded-l text-terminal border-terminal text-l hover:border-gray-600">
-            <FaGithub />
-            <span>Github</span>
-          </a>
+          <FaGithub />
+          <span>Github</span>
+        </a>
+
+        <h2 className="mt-16 text-xl font-bold">Personal Website</h2>
+        <div className="flex items-center py-2 space-x-4">
+          <FaReact className="text-3xl" />
+          <TbBrandThreejs className="text-3xl" />
+          <FaPython className="text-3xl" />
+          <FaAws className="text-3xl" />
+        </div>
+        <p className="text-gray-500">// This very website</p>
+        <p>
+          Features a 3D terminal, CV viewer, chat with AI, URL shortener and an
+          idea generator. Hosted on AWS with a Lambda backend.
+        </p>
+        <h4 className="mt-4 text-lg font-bold">Features</h4>
+        <ul className="pl-6 list-disc">
+          <li>3D terminal interface</li>
+          <li>View my CV through commands</li>
+          <li>Chat with an AI version of me</li>
+          <li>URL shortener</li>
+          <li>Idea generator</li>
+        </ul>
+        <br/>
+
+        <a
+          href="https://github.com/TomasPalsson/TerminalWebsite"
+          target="_blank"
+          className="inline-flex items-center p-2 space-x-2 transition-colors duration-200 border rounded-l text-terminal border-terminal text-l hover:border-gray-600">
+          <FaGithub />
+          <span>Github</span>
+        </a>
         </>
       ),
     },

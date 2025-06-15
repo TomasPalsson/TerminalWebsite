@@ -50,6 +50,8 @@ function extractText(node: React.ReactNode): string {
     // <br> ⇒ newline
     if (node.type === "br") return "\n";
 
+    if (node.type === "button") return `${children}\n`;
+
     // <li> ⇒ bullet + newline
     if (node.type === "li") return `• ${children}\n`;
 
@@ -95,11 +97,17 @@ const TerminalHandler = ({ onBufferChange, headless = false }: Props) => {
     const split = extracted
       .split(/\r?\n/) // break on \n
       .filter(Boolean); // toss empties
-      setPlainLines((prev) => [
-        ...prev,
-        ...split.map((t, idx) => ({ text: t, command: idx === 0 })),
-      ]);
-    };
+    setPlainLines((prev) => [
+      ...prev,
+      ...split.map((t, idx) => ({ text: t, command: idx === 0 })),
+    ]);
+
+    // Check if the content is overflowing and scroll only if necessary
+    const container = bottomRef.current?.parentElement;
+    if (container && container.scrollHeight > container.clientHeight) {
+      bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }
+  };
 
   /* command processing */
   useEffect(() => {
@@ -114,10 +122,17 @@ const TerminalHandler = ({ onBufferChange, headless = false }: Props) => {
         setOutput([]);
         setPlainLines([]);
         clearText();
+
+        // Scroll to the top after clearing
+        const container = bottomRef.current?.parentElement;
+        if (container) {
+          container.scrollTo({ top: 0, behavior: 'smooth' });
+        }
         return;
       }
 
       if (command) {
+
         const result = await command.run(args.join(" "), context);
         if (command.name === "exit") setTimeout(() => navigate("/"), 1000);
         if (result) {
@@ -185,6 +200,14 @@ const TerminalHandler = ({ onBufferChange, headless = false }: Props) => {
       </>
     );
   };
+
+  /* Ensure scrolling when output changes */
+  useEffect(() => {
+    const container = bottomRef.current?.parentElement;
+    if (container && container.scrollHeight > container.clientHeight) {
+      bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }
+  }, [output]);
 
   return (
     <>

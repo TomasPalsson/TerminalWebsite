@@ -23,8 +23,17 @@ const calculate = (expression: string): number | null => {
 export const CalcCommand: Command = {
   name: "calc",
   description: "perform basic arithmetic calculations",
+  usage: (
+    <>
+      <p className="font-bold text-terminal">Usage:</p>
+      <p>calc [expression]</p>
+      <br />
+      <p className="font-bold text-terminal">Description:</p>
+      <p>Perform basic arithmetic calculations</p>
+    </>
+  ),
   args: [],
-  run: async (args: string, context: KeyPressContextType) => {
+  run: async (args: string[], context: KeyPressContextType) => {
     if (!args) {
       return (
         <p className="text-red-500">
@@ -35,7 +44,7 @@ export const CalcCommand: Command = {
       );
     }
 
-    const result = calculate(args);
+    const result = calculate(args.join(" "));
     
     if (result === null) {
       return (
@@ -51,4 +60,4 @@ export const CalcCommand: Command = {
       </p>
     );
   }
-}; 
+};
