@@ -133,7 +133,7 @@ const TerminalHandler = ({ onBufferChange, headless = false }: Props) => {
 
       if (command) {
 
-        const result = await command.run(args.join(" "), context);
+        const result = await command.run(args, context);
         if (command.name === "exit") setTimeout(() => navigate("/"), 1000);
         if (result) {
           pushLine(
