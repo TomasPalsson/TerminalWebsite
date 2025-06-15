@@ -5,8 +5,17 @@ import { KeyPressContextType } from "../../context/KeypressedContext";
 export const IpCommand: Command = {
   name: "ip",
   description: "Get info about your ip :)",
+  usage: (
+    <>
+      <p className="font-bold text-terminal">Usage:</p>
+      <p>ip</p>
+      <br />
+      <p className="font-bold text-terminal">Description:</p>
+      <p>Get info about your IP</p>
+    </>
+  ),
   args: [],
-  run: async (args: string, context: KeyPressContextType) => {
+  run: async (args: string[], context: KeyPressContextType) => {
     let response = await fetch("https://api.tomasp.me/ip");
     let info = await response.json();
     return (
