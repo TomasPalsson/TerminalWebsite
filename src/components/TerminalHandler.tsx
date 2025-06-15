@@ -8,6 +8,7 @@ import React, {
 import { KeyPressContext } from "../context/KeypressedContext";
 import { commandMap } from "./commands/CommandMap";
 import Cursor from "./Cursor";
+import { useNavigate } from "react-router";
 
 type Props = {
   onBufferChange?: (lines: string[]) => void;
@@ -27,6 +28,7 @@ function extractText(node: React.ReactNode): string {
   }
 
   if (React.isValidElement(node)) {
+    const element = node as React.ReactElement<any>;
     const blockTags = new Set([
       "div",
       "p",
@@ -41,7 +43,7 @@ function extractText(node: React.ReactNode): string {
       "ol",
     ]);
 
-    const children = React.Children.map(node.props.children, extractText)?.join(
+    const children = React.Children.map(element.props.children, extractText)?.join(
       ""
     ) ?? "";
 
@@ -55,8 +57,8 @@ function extractText(node: React.ReactNode): string {
 
     // <a>
     if (node.type === "a") {
-      const children = React.Children.map(node.props.children, extractText)?.join("") ?? "";
-      return `${children} (${node.props.href})`;
+      const children = React.Children.map(element.props.children, extractText)?.join("") ?? "";
+      return `${children} (${element.props.href})`;
     }
     
     // any other block element ⇒ newline at end
@@ -75,6 +77,8 @@ const PROMPT = "$ ";
 
 const TerminalHandler = ({ onBufferChange, headless = false }: Props) => {
   const context = useContext(KeyPressContext);
+  const navigate = useNavigate();
+
   if (!context)
     throw new Error("TerminalHandler must be used within KeyPressProvider");
 
@@ -128,8 +132,9 @@ const TerminalHandler = ({ onBufferChange, headless = false }: Props) => {
       }
 
       if (command) {
-        const result = await command.run(args, context);
-        if (command.name === "exit") window.location.href = "/";
+
+        const result = await command.run(args.join(" "), context);
+        if (command.name === "exit") setTimeout(() => navigate("/"), 1000);
         if (result) {
           pushLine(
             <span key={crypto.randomUUID()} className="font-mono text-lg">

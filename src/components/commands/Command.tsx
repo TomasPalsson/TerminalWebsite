@@ -1,7 +1,7 @@
 import React from "react";
 import { KeyPressContextType } from "../../context/KeypressedContext";
 
-export interface Command {
+export default interface Command {
   name: string;
   description: string;
   usage?: React.ReactNode;
