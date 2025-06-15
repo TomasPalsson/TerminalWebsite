@@ -1,61 +1,54 @@
 import React from "react";
-import { Command } from "./Command";
+import Command from "./Command";
 import { KeyPressContextType } from "../../context/KeypressedContext";
 
 export const CurlCommand: Command = {
   name: "curl",
   description: "make HTTP requests",
+  usage: (
+    <p>
+      Usage: <code className="text-terminal">curl [options] &lt;URL&gt;</code><br />
+      Example: <code className="text-terminal">curl https://api.example.com</code><br />
+      <span className="text-terminal">Options:</span><br />
+      -I, --head Fetch headers only (HEAD request)<br />
+      -i, --include Include headers *and* body<br />
+    </p>
+  ),
   args: [],
-  run: async (args: string, context: KeyPressContextType) => {
-    if (!args) {
-      return (
-        <p className="text-red-500">
-          Usage: curl [URL] [-I]<br/>
-          Example: curl https://api.example.com<br/>
-        </p>
-      );
-    }
+  run: async (args: string[], _ctx: KeyPressContextType) => {
+    if (!args.length)
+      return <p className="text-red-500">Usage: curl [options] &lt;URL&gt;</p>;
 
-    const argsArray = args.split(" ");
-    const fetchHeadersOnly = argsArray.includes("-I");
-    const url = fetchHeadersOnly ? argsArray.find(arg => arg !== "-I") : argsArray[0];
+    const incHeaders = args.some(a => ["-i", "--include"].includes(a));
+    const headOnly  = args.some(a => ["-I", "--head"].includes(a));
 
-    if (!url || !url.startsWith("http")) {
-      return (
-        <p className="text-red-500">
-          Invalid usage. Please provide a valid URL.<br/>
-        </p>
-      );
-    }
+    const url = args.find(
+      a => !["-i", "--include", "-I", "--head"].includes(a)
+    );
+
+    if (!url?.startsWith("http"))
+      return <p className="text-red-500">Invalid URL.</p>;
 
     try {
-      const response = await fetch(url);
+      const res = await fetch(url, headOnly ? { method: "HEAD" } : {});
+      const headerLines = [...res.headers.entries()]
+        .map(([k, v]) => `${k}: ${v}`)
+        .join("\n");
 
-      if (fetchHeadersOnly) {
-        const headers = Array.from(response.headers.entries())
-          .map(([key, value]) => `${key}: ${value}`)
-          .join("\n");
+      if (headOnly)
+        return <pre className="whitespace-pre-wrap text-terminal">{headerLines}</pre>;
 
-        return (
-          <pre className="whitespace-pre-wrap text-terminal">
-            {headers}
-          </pre>
-        );
-      }
-
-      const data = await response.text();
+      const body = await res.text();
 
       return (
         <pre className="whitespace-pre-wrap text-terminal">
-          {data}
+          {incHeaders ? headerLines + "\n\n" : ""}
+          {body || "[no body]"}
         </pre>
       );
-    } catch (error) {
-      return (
-        <p className="text-red-500">
-          Failed to fetch the URL. Please ensure it is valid and try again.
-        </p>
-      );
+    } catch {
+      return <p className="text-red-500">Fetch failed – check the URL.</p>;
     }
   },
 };
+export default CurlCommand;

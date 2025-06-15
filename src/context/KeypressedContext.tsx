@@ -21,6 +21,12 @@ export const KeyPressProvider = ({ children, onKeyPress }: KeyPressProviderProps
   };
 
   const handleKeyDown = (e: KeyboardEvent) => {
+
+    if (e.code === "Space") {
+      e.preventDefault();
+    }
+
+
     if (e.key.length === 1) {
       setText((prev) => prev + e.key);
     } else if (e.key === "Backspace") {
