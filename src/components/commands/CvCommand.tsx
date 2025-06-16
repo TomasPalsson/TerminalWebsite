@@ -23,6 +23,9 @@ export const CvCommand: Command = {
           href="https://api.tomasp.me/cv"
           target="_blank"
           className="text-gray-600 transition-colors hover:text-gray-800 dark:text-gray-300 dark:hover:text-gray-100"
+          onClick={(e) => {
+                    e.currentTarget.blur();
+                  }}
         >
           Click here to view my CV
         </a>
