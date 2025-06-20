@@ -5,6 +5,11 @@
 
 :root {
     --terminal: #22c55e;
+    --selection-color: rgb(from var(--terminal) r g b / 0.4);
+}
+
+::selection {
+    background-color: var(--selection-color);
 }
 
 html, body {
