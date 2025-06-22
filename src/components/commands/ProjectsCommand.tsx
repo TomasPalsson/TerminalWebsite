@@ -1,5 +1,5 @@
 import { KeyPressContextType } from "../../context/KeypressedContext";
-import { Command } from './Command';
+import Command from './Command';
 import { FaDartLang, FaFlutter, FaGithub } from 'react-icons/fa6';
 import { FaRust, FaAws, FaReact, FaPython } from 'react-icons/fa';
 import { TbBrandThreejs } from 'react-icons/tb';
@@ -40,7 +40,7 @@ export const ProjectsCommand: Command = {
                   <SiOpenai className="text-xl" />
                 </div>
                 <p className="text-terminal">A Canvas LMS client application built with Flutter.</p>
-                <p>I created a wrapper for the university learning software. It allows the user to perform many different actions which aren't possible in the default app and allows the user to perform most tasks which are possible in the default app </p>
+                <p>I built a custom wrapper for the university's learning platform with AI-powered features. It lets users do everything the default app supports — plus extras like AI chat, smart flashcards, and task management that the official app doesn't offer.</p>
                 <h4 className="mt-4 text-lg font-bold">Features</h4>
                 <ul className="pl-6 list-disc">
                   <li>Calendar View</li>
@@ -72,7 +72,7 @@ export const ProjectsCommand: Command = {
                   <FaRust className="text-xl" />
                 </div>
                 <p className="text-terminal">A compiler for a programming language</p>
-                <p>I created a simple programming langauage in Rust to compile a basic langugae into assembly binary code</p>
+                <p>I created a simple programming langauage in Rust to compile a basic language into assembly binary code</p>
                 <h4 className="mt-4 text-lg font-bold">Features</h4>
                 <ul className="pl-6 list-disc">
                   <li>Full function definitions and calls</li>

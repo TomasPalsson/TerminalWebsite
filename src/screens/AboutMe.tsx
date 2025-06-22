@@ -54,7 +54,7 @@ export default function PersonalWebsiteTabs() {
             <SiOpenai className="text-3xl" />
           </div>
           <p className="text-gray-500">// A Canvas LMS client application built with Flutter.</p>
-          <p>I created a wrapper for the university learning software. It allows the user to perform many different actions which aren't possible in the default app and allows the user to perform most tasks which are possible in the default app </p>
+          <p>I built a custom wrapper for the university's learning platform with AI-powered features. It lets users do everything the default app supports — plus extras like AI chat, smart flashcards, and task management that the official app doesn't offer.</p>
           <h4 className="mt-4 text-lg font-bold">Features</h4>
           <ul className="pl-6 list-disc">
             <li>Calendar View</li>
