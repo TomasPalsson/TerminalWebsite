@@ -10,6 +10,7 @@ import { ProjectsCommand } from "./ProjectsCommand";
 import { SchoolCommand } from "./SchoolCommand";
 import { CurlCommand } from "./CurlCommand";
 import { WeatherCommand } from "./WeatherCommand";
+import { ShortenCommand } from "./ShortenCommand";
 
 export const commandMap = new Map<string, Command>();
 commandMap.set(HelpCommand.name, HelpCommand);
@@ -23,3 +24,4 @@ commandMap.set(EchoCommand.name, EchoCommand);
 commandMap.set(CalcCommand.name, CalcCommand);
 commandMap.set(CurlCommand.name, CurlCommand);
 commandMap.set(WeatherCommand.name, WeatherCommand);
+commandMap.set(ShortenCommand.name, ShortenCommand);
