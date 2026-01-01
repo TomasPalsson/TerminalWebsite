@@ -6,6 +6,8 @@ export type KeyPressContextType = {
   setText: React.Dispatch<React.SetStateAction<string>>
   setCursorPos: React.Dispatch<React.SetStateAction<number>>
   clearText: () => void
+  shortcut: string | null
+  clearShortcut: () => void
 }
 
 export const KeyPressContext = createContext<KeyPressContextType | null>(null);
@@ -20,6 +22,7 @@ export const KeyPressProvider = ({ children, onKeyPress }: KeyPressProviderProps
   const [cursorPos, setCursorPos] = useState(0);
   const textRef = useRef("");
   const cursorPosRef = useRef(0);
+  const [shortcut, setShortcut] = useState<string | null>(null);
 
   const clearText = () => {
     setText("");
@@ -27,6 +30,8 @@ export const KeyPressProvider = ({ children, onKeyPress }: KeyPressProviderProps
     textRef.current = "";
     cursorPosRef.current = 0;
   };
+
+  const clearShortcut = () => setShortcut(null);
 
   const handleKeyDown = (e: KeyboardEvent) => {
     if (e.code === "Space") {
@@ -37,8 +42,32 @@ export const KeyPressProvider = ({ children, onKeyPress }: KeyPressProviderProps
       return;
     }
 
+    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "r") {
+      e.preventDefault();
+      setShortcut("ctrl+r");
+      return;
+    }
+
     if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "c") {
       clearText();
+      return;
+    }
+
+    if (e.key === "ArrowUp") {
+      e.preventDefault();
+      setShortcut("history-up");
+      return;
+    }
+
+    if (e.key === "ArrowDown") {
+      e.preventDefault();
+      setShortcut("history-down");
+      return;
+    }
+
+    if (e.key === "Tab") {
+      e.preventDefault();
+      setShortcut("tab");
       return;
     }
 
@@ -112,7 +141,7 @@ export const KeyPressProvider = ({ children, onKeyPress }: KeyPressProviderProps
   }, [cursorPos]);
 
   return (
-    <KeyPressContext.Provider value={{ text, setText , clearText, cursorPos, setCursorPos }}>
+    <KeyPressContext.Provider value={{ text, setText , clearText, cursorPos, setCursorPos, shortcut, clearShortcut }}>
       {children}
     </KeyPressContext.Provider>
   );

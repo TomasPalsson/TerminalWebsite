@@ -116,10 +116,8 @@ export default function IdeaGenerator() {
 
 async function generateIdea(idea: string, size: string) {
     const url = "https://api.tomasp.me/idea-generator"
-    // Add a random seed to the beginning of the idea string to make the idea different everytime
-    const seed = Math.floor(Math.random() * 1000000);
     const body = {
-        "idea": "Seed: " + seed + "\n" + "Project Size: " + size.toUpperCase() + "\n" + "Idea: " + idea
+        "idea": "Project Size: " + size.toUpperCase() + "\n" + "Idea: " + idea
     }
     try {
     const response = await fetch(url, {
