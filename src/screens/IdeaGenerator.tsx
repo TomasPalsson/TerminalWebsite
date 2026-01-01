@@ -43,7 +43,7 @@ export default function IdeaGenerator() {
     setIsGenerating(true)
     console.log("Generating idea...")
     const data = await generateIdea(idea, selectedSize)
-    const parsed = parseIdeaResponse(data?.idea);
+    const parsed = parseIdeaResponse(data?.idea, data?.description);
     setGeneratedIdea(parsed.idea);
     setDescription(parsed.description);
     
@@ -119,16 +119,40 @@ async function generateIdea(idea: string, size: string) {
       body: JSON.stringify(body)
     })
 
-    const raw = await response.text()
-    // prefer JSON with { idea: "IDEA: ... DESCRIPTION: ..." }
-    try {
-      const parsed = JSON.parse(raw)
-      if (parsed?.idea) return parsed
-    } catch {
-      // fall through
+    const rawJson = await response.json().catch(async () => {
+      const fallbackText = await response.text()
+      try {
+        return JSON.parse(fallbackText)
+      } catch {
+        return { idea: fallbackText }
+      }
+    })
+
+    if (rawJson?.result) {
+      let innerStr = rawJson.result
+      if (typeof innerStr === "string") {
+        const fenced = innerStr.match(/```[a-zA-Z]*\n?([\s\S]*?)\n?```/)
+        if (fenced?.[1]) innerStr = fenced[1]
+      }
+      if (typeof innerStr === "string") {
+        try {
+          const inner = JSON.parse(innerStr)
+          if (inner?.idea || inner?.description) {
+            return { idea: inner.idea || "Idea", description: inner.description || "" }
+          }
+        } catch {
+          // ignore and fall through
+        }
+        return { idea: innerStr }
+      }
     }
 
-    if (raw?.trim()) return { idea: raw }
+    if (rawJson?.idea) {
+      return { idea: rawJson.idea, description: rawJson.description }
+    }
+
+    if (typeof rawJson === "string") return { idea: rawJson }
+
     return { idea: "IDEA: Failed to generate idea. DESCRIPTION: Empty response." }
   } catch (error) {
     console.error("Error generating idea:", error)
@@ -136,23 +160,31 @@ async function generateIdea(idea: string, size: string) {
   }
 }
 
-function parseIdeaResponse(raw: string | undefined) {
-    if (!raw) {
-        return { idea: "Failed to parse idea.", description: "No content returned." }
-    }
-    // Trim outer quotes if the API wraps the string
-    const cleaned = raw.trim().replace(/^"+|"+$/g, "");
-    const match = cleaned.match(/IDEA:\s*(.*?)\s*DESCRIPTION:\s*([\s\S]*)/i);
-    if (match) {
-        const [, idea, description] = match;
-        return {
-            idea: idea.trim() || "No idea available",
-            description: description.trim() || "No description available",
-        };
-    }
-    // Fallback: treat entire string as the description if it doesn't match the pattern
+function parseIdeaResponse(rawIdea: string | undefined, rawDescription?: string) {
+  if (rawDescription) {
     return {
-        idea: "Idea",
-        description: cleaned,
+      idea: (rawIdea || "Idea").trim() || "Idea",
+      description: rawDescription.trim() || "No description available",
+    }
+  }
+
+  if (!rawIdea) {
+    return { idea: "Failed to parse idea.", description: "No content returned." }
+  }
+  // Trim outer quotes if the API wraps the string
+  const cleanedFences = rawIdea.trim().replace(/```[a-zA-Z]*\n?([\s\S]*?)\n?```/, "$1");
+  const cleaned = cleanedFences.replace(/^"+|"+$/g, "");
+  const match = cleaned.match(/IDEA:\s*(.*?)\s*DESCRIPTION:\s*([\s\S]*)/i);
+  if (match) {
+    const [, idea, description] = match;
+    return {
+      idea: idea.trim() || "No idea available",
+      description: description.trim() || "No description available",
     };
+  }
+  // Fallback: treat entire string as the description if it doesn't match the pattern
+  return {
+    idea: "Idea",
+    description: cleaned,
+  };
 }
