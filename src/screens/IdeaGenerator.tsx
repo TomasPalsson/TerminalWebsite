@@ -43,16 +43,9 @@ export default function IdeaGenerator() {
     setIsGenerating(true)
     console.log("Generating idea...")
     const data = await generateIdea(idea, selectedSize)
-    const match = data?.idea?.match(/IDEA:\s*(.*?)\s*DESCRIPTION:\s*(.*)/s);
-    if (!match) {
-        console.log(data)
-      setGeneratedIdea("Failed to parse idea.");
-      setDescription("Response did not match expected format.");
-    } else {
-      const [_, responseIdea, responseDescription] = match;
-      setGeneratedIdea(responseIdea.trim() || "No idea available");
-      setDescription(responseDescription.trim() || "No description available");
-    }
+    const parsed = parseIdeaResponse(data?.idea);
+    setGeneratedIdea(parsed.idea);
+    setDescription(parsed.description);
     
     setIsGenerating(false)
   }
@@ -115,19 +108,51 @@ export default function IdeaGenerator() {
 
 
 async function generateIdea(idea: string, size: string) {
-    const url = "https://api.tomasp.me/idea-generator"
-    const body = {
-        "idea": "Project Size: " + size.toUpperCase() + "\n" + "Idea: " + idea
-    }
-    try {
+  const url = "https://api.tomasp.me/idea-generator"
+  const body = {
+    "idea": "Project Size: " + size.toUpperCase() + "\n" + "Idea: " + idea
+  }
+
+  try {
     const response = await fetch(url, {
-        method: "POST",
-        body: JSON.stringify(body)
-        })
-        const data = await response.json()
-        return data
-    } catch (error) {
-        console.error("Error generating idea:", error)
-        return "IDEA: Failed to generate idea. DESCRIPTION: Failed to generate idea."
+      method: "POST",
+      body: JSON.stringify(body)
+    })
+
+    const raw = await response.text()
+    // prefer JSON with { idea: "IDEA: ... DESCRIPTION: ..." }
+    try {
+      const parsed = JSON.parse(raw)
+      if (parsed?.idea) return parsed
+    } catch {
+      // fall through
     }
+
+    if (raw?.trim()) return { idea: raw }
+    return { idea: "IDEA: Failed to generate idea. DESCRIPTION: Empty response." }
+  } catch (error) {
+    console.error("Error generating idea:", error)
+    return { idea: "IDEA: Failed to generate idea. DESCRIPTION: Failed to generate idea." }
+  }
+}
+
+function parseIdeaResponse(raw: string | undefined) {
+    if (!raw) {
+        return { idea: "Failed to parse idea.", description: "No content returned." }
+    }
+    // Trim outer quotes if the API wraps the string
+    const cleaned = raw.trim().replace(/^"+|"+$/g, "");
+    const match = cleaned.match(/IDEA:\s*(.*?)\s*DESCRIPTION:\s*([\s\S]*)/i);
+    if (match) {
+        const [, idea, description] = match;
+        return {
+            idea: idea.trim() || "No idea available",
+            description: description.trim() || "No description available",
+        };
+    }
+    // Fallback: treat entire string as the description if it doesn't match the pattern
+    return {
+        idea: "Idea",
+        description: cleaned,
+    };
 }
