@@ -3,13 +3,11 @@ import './App.css'
 import TypingAnimation from './components/TypingAnimation'
 import { MainButton } from './components/MainButton'
 import { Terminal } from 'lucide-react'
-import { IoChatbubbleEllipsesOutline } from 'react-icons/io5'
 import { FaInfo } from 'react-icons/fa'
 
 function App() {
   return (
     <>
-
       <div className="flex flex-col items-center justify-center h-screen">
         <TypingAnimation
           text="Tómas Ari Pálsson"
@@ -24,7 +22,7 @@ function App() {
             <Terminal />
             <span>Terminal</span>
           </MainButton>
-          <MainButton link="/aboutme" >
+          <MainButton link="/aboutme">
             <FaInfo />
             <span>About Me!</span>
           </MainButton>
@@ -37,4 +35,3 @@ function App() {
 }
 
 export default App
-

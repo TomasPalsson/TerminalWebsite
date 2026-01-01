@@ -171,21 +171,20 @@ function TerminalScene() {
 
 export default function TerminalCanvas() {
   if (!isMobile) {
-  const playClick = useKeyClick();
+    const playClick = useKeyClick();
 
-  return (
-    <KeyPressProvider onKeyPress={playClick}>
-      <div className="w-screen h-screen">
-        <TerminalScene />
-      </div>
-    </KeyPressProvider>
-  );
-}
-else {
+    return (
+      <KeyPressProvider onKeyPress={playClick}>
+        <div className="w-screen h-screen">
+          <TerminalScene />
+        </div>
+      </KeyPressProvider>
+    );
+  }
+
   return (
     <div className="flex items-center justify-center h-screen">
       <p className="font-mono text-terminal">This is best viewed on desktop!</p>
     </div>
-  )
-}
+  );
 }
