@@ -35,3 +35,10 @@
 - Do not commit secrets or `.env*` values; prefer local `.env.local` kept out of version control.
 - Sanitize external links and user input in terminal/chat features before deploying.
 - Run `npm audit` before releases when new packages are introduced.
+
+## Coding Principles & Extensibility
+- Design new features to be extensible: keep command handlers isolated, reusable, and registered via `CommandMap`.
+- Prefer clarity over cleverness: small functions, explicit names, single-purpose components.
+- Keep side effects contained: network calls and DOM effects should be localized and error-handled.
+- Validate inputs at boundaries (commands, forms) and return actionable errors to users.
+- Preserve consistency: follow existing styling, routing, and data-flow patterns before inventing new ones.

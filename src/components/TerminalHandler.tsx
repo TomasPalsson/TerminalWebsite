@@ -82,12 +82,14 @@ const TerminalHandler = ({ onBufferChange, headless = false }: Props) => {
   if (!context)
     throw new Error("TerminalHandler must be used within KeyPressProvider");
 
-  const { text, clearText } = context;
+  const { text, clearText, cursorPos, setText, setCursorPos } = context;
 
   const [output, setOutput] = useState<ReactNode[]>([]);
   type PlainLine = { text: string; command: boolean };
   const [plainLines, setPlainLines] = useState<PlainLine[]>([]);
+  const [lastCommandTokens, setLastCommandTokens] = useState<string[]>([]);
   const bottomRef = useRef<HTMLDivElement>(null);
+  const expandingRef = useRef(false);
 
   /* helper to push a React line + its text twin */
   const pushLine = (node: ReactNode) => {
@@ -109,19 +111,107 @@ const TerminalHandler = ({ onBufferChange, headless = false }: Props) => {
     }
   };
 
+  /* inline history expansion (!!, !$, !*) */
+  useEffect(() => {
+    if (expandingRef.current) {
+      expandingRef.current = false;
+      return;
+    }
+
+    const hasHistory = lastCommandTokens.length > 0;
+    if (!hasHistory) return;
+
+    const hasPrevArgs = lastCommandTokens.length > 1;
+    const current = text.replace(/\n$/, "");
+    const tokens = current.split(/\s+/);
+
+    if (!tokens.length) return;
+
+    const expandedTokens = tokens.map((tok) => {
+      if (tok === "!!") return lastCommandTokens.join(" ");
+      if (tok === "!$" && hasPrevArgs) return lastCommandTokens[lastCommandTokens.length - 1];
+      if (tok === "!*" && hasPrevArgs) return lastCommandTokens.slice(1).join(" ");
+      return tok;
+    });
+
+    const expanded = expandedTokens.join(" ");
+
+    if (expanded !== current) {
+      expandingRef.current = true;
+      const trailingNewline = text.endsWith("\n") ? "\n" : "";
+      const cursorOffset = expanded.length - current.length;
+      setText(expanded + trailingNewline);
+      setCursorPos((prev) => {
+        const newPos = prev + cursorOffset;
+        return Math.min(Math.max(0, newPos), expanded.length);
+      });
+    }
+  }, [text, lastCommandTokens, setCursorPos, setText]);
+
   /* command processing */
   useEffect(() => {
     const processCommand = async () => {
       if (!text.endsWith("\n")) return;
 
       const cmd = text.trim();
-      const [base, ...args] = cmd.split(" ");
-      const command = commandMap.get(base);
-
-      if (base === "clear") {
-        setOutput([]);
-        setPlainLines([]);
+      if (!cmd) {
         clearText();
+        return;
+      }
+
+      const rawTokens = cmd.split(/\s+/);
+
+      const expandedTokens: string[] = [];
+      let expansionError: React.ReactNode | null = null;
+
+      rawTokens.forEach((token) => {
+        if (token === "!!") {
+          if (!lastCommandTokens.length) {
+            expansionError = <span className="text-red-500">No previous command to repeat.</span>;
+            return;
+          }
+          expandedTokens.push(...lastCommandTokens);
+          return;
+        }
+        if (token === "!$") {
+          if (lastCommandTokens.length < 2) {
+            expansionError = <span className="text-red-500">No previous argument to use.</span>;
+            return;
+          }
+          expandedTokens.push(lastCommandTokens[lastCommandTokens.length - 1]);
+          return;
+        }
+        if (token === "!*") {
+          if (lastCommandTokens.length < 2) {
+            expansionError = <span className="text-red-500">No previous arguments to use.</span>;
+            return;
+          }
+          expandedTokens.push(...lastCommandTokens.slice(1));
+          return;
+        }
+        expandedTokens.push(token);
+      });
+
+      if (expansionError) {
+        pushLine(
+          <span key={crypto.randomUUID()} className="font-mono text-lg">
+            <span className="font-bold text-terminal">{cmd}</span>
+            <br />
+            {expansionError}
+          </span>
+        );
+        clearText();
+        return;
+      }
+
+      const [base, ...args] = expandedTokens;
+    const command = commandMap.get(base);
+
+    if (base === "clear") {
+      setOutput([]);
+      setPlainLines([]);
+      clearText();
+      setLastCommandTokens([]);
 
         // Scroll to the top after clearing
         const container = bottomRef.current?.parentElement;
@@ -147,6 +237,7 @@ const TerminalHandler = ({ onBufferChange, headless = false }: Props) => {
             </span>
           );
         }
+        setLastCommandTokens(expandedTokens);
       } else {
         pushLine(
           <span key={crypto.randomUUID()} className="font-mono text-lg">
@@ -165,6 +256,7 @@ const TerminalHandler = ({ onBufferChange, headless = false }: Props) => {
             </span>
           </span>
         );
+        setLastCommandTokens(expandedTokens);
       }
 
       clearText();
@@ -188,15 +280,24 @@ const TerminalHandler = ({ onBufferChange, headless = false }: Props) => {
   if (headless) return null;
 
   const prompt = PROMPT;
-  const renderText = () => {
-    if (!text) return null;
-    const [first, ...rest] = text.split(" ");
+  const liveText = text.replace(/\n$/, "");
+  const boundary = liveText.indexOf(" ") === -1 ? liveText.length : liveText.indexOf(" ");
+
+  const renderSegment = (segment: string, start: number) => {
+    if (!segment) return null;
+    const end = start + segment.length;
+    if (end <= boundary) {
+      return <span className="font-bold text-terminal">{segment}</span>;
+    }
+    if (start >= boundary) {
+      return <span className="text-white">{segment}</span>;
+    }
+    const firstPart = segment.slice(0, boundary - start);
+    const secondPart = segment.slice(boundary - start);
     return (
       <>
-        <span className="font-bold text-terminal">{first}</span>
-        <span className="text-white">
-          {rest.length ? " " + rest.join(" ") : ""}
-        </span>
+        <span className="font-bold text-terminal">{firstPart}</span>
+        <span className="text-white">{secondPart}</span>
       </>
     );
   };
@@ -220,9 +321,12 @@ const TerminalHandler = ({ onBufferChange, headless = false }: Props) => {
       <div>
         <span className="font-mono text-lg text-terminal">{prompt}</span>
         <span className="font-mono text-lg whitespace-pre-wrap">
-          {renderText()}
+          {renderSegment(liveText.slice(0, cursorPos), 0)}
         </span>
         <Cursor cursor="_" />
+        <span className="font-mono text-lg whitespace-pre-wrap">
+          {renderSegment(liveText.slice(cursorPos), cursorPos)}
+        </span>
       </div>
       <div ref={bottomRef} />
     </>
