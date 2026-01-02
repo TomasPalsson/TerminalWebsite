@@ -7,17 +7,31 @@ export default function ColorWheel() {
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
+    try {
+      const saved = localStorage.getItem('terminal-color');
+      if (saved) {
+        setColor(saved);
+        document.documentElement.style.setProperty('--terminal', saved);
+        return;
+      }
+    } catch {
+      // ignore storage read errors
+    }
+
     const style = getComputedStyle(document.documentElement);
     const current = style.getPropertyValue('--terminal').trim();
-    if (current) {
-      setColor(current);
-    }
+    if (current) setColor(current);
   }, []);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
     setColor(value);
     document.documentElement.style.setProperty('--terminal', value);
+    try {
+      localStorage.setItem('terminal-color', value);
+    } catch {
+      // ignore storage write errors
+    }
   };
 
   return (

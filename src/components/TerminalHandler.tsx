@@ -96,6 +96,20 @@ const TerminalHandler = ({ onBufferChange, headless = false }: Props) => {
   const bottomRef = useRef<HTMLDivElement>(null);
   const expandingRef = useRef(false);
   const tabEditRef = useRef(false);
+  const colorPersistedRef = useRef(false);
+
+  useEffect(() => {
+    if (colorPersistedRef.current) return;
+    try {
+      const saved = localStorage.getItem('terminal-color');
+      if (saved && /^#([A-Fa-f0-9]{3}|[A-Fa-f0-9]{6})$/.test(saved)) {
+        document.documentElement.style.setProperty('--terminal', saved);
+      }
+    } catch {
+      // ignore storage read errors
+    }
+    colorPersistedRef.current = true;
+  }, []);
 
   /* helper to push a React line + its text twin */
   const pushLine = (node: ReactNode) => {

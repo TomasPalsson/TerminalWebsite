@@ -39,6 +39,11 @@ export const ColorCommand: Command = {
                                 );
                         }
                         document.documentElement.style.setProperty('--terminal', args[1]);
+                        try {
+                                localStorage.setItem('terminal-color', args[1])
+                        } catch {
+                                // ignore storage failures
+                        }
                         return (
                                 <p>
                                         <span>Setting color to </span>
@@ -59,6 +64,11 @@ export const ColorCommand: Command = {
                         );
                 } else if (args[0] === "reset") {
                         document.documentElement.style.setProperty('--terminal', "#22c55e"); 
+                        try {
+                                localStorage.removeItem('terminal-color')
+                        } catch {
+                                // ignore storage failures
+                        }
                         return (
                                 <p>
                                         <span>Setting color to </span>
@@ -78,4 +88,3 @@ export const ColorCommand: Command = {
         }
     }
 };
-
