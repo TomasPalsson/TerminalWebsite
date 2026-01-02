@@ -1,18 +1,16 @@
 'use client';
 
 import { useState, useRef, useEffect, KeyboardEvent, FormEvent } from 'react';
-import { Send } from 'lucide-react';
-import TypingAnimation from '../components/TypingAnimation';
+import { Send, Bot, User, Sparkles } from 'lucide-react';
 import React from 'react';
 
-export type Msg = { role: 'user' | 'assistant'; content: string, time_taken: string };
+export type Msg = { role: 'user' | 'assistant'; content: string; time_taken: string };
 
-const API_ENDPOINT = 'https://api.tomasp.me/chat';
+const API_ENDPOINT = 'https://wms5kwgviazs3ja6lnvngmovee0qqtuh.lambda-url.eu-west-1.on.aws/';
 
 export default function ChatMe() {
   const [input, setInput] = useState('');
   const [messages, setMessages] = useState<Msg[]>([]);
-  const [isTyping, setIsTyping] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const sessionRef = useRef<string | null>(null);
 
@@ -21,7 +19,7 @@ export default function ChatMe() {
       top: scrollRef.current.scrollHeight,
       behavior: 'smooth',
     });
-  }, [messages, isTyping]);
+  }, [messages]);
 
   const pushUser = (text: string) =>
     setMessages((m) => [...m, { role: 'user', content: text, time_taken: '0s' }]);
@@ -29,68 +27,151 @@ export default function ChatMe() {
   const pushAssistant = (text: string, time_taken: string) =>
     setMessages((m) => [...m, { role: 'assistant', content: text, time_taken }]);
 
+
   const send = async () => {
     const text = input.trim();
     if (!text) return;
     setInput('');
     pushUser(text);
-    setIsTyping(true);
-
     try {
-      const { reply, session, time_taken } = await callAI(text, sessionRef.current);
-      if (!sessionRef.current && session) sessionRef.current = session;
-      pushAssistant(reply, `${time_taken.toFixed(2)}s`);
+      const start = performance.now();
+      const res = await fetch(API_ENDPOINT, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ chat: text, session: sessionRef.current }),
+      });
+
+      if (!res.ok || !res.body) {
+        throw new Error(`HTTP ${res.status}`);
+      }
+
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+      let done = false;
+      let assistantContent = '';
+      let buffer = '';
+
+      // add placeholder assistant message
+      setMessages((m) => [...m, { role: 'assistant', content: '', time_taken: '...' }]);
+
+      const updateAssistant = (content: string) => {
+        setMessages((m) => {
+          const next = [...m];
+          const idx = next.findIndex((msg, i) => msg.role === 'assistant' && i === next.length - 1);
+          if (idx !== -1) {
+            next[idx] = { ...next[idx], content };
+          }
+          return next;
+        });
+      };
+
+      while (!done) {
+        const result = await reader.read();
+        done = result.done;
+        if (result.value) {
+          buffer += decoder.decode(result.value, { stream: !done });
+
+          // strip and handle any JSON tokens embedded in stream
+          const jsonRegex = /\{[^}]*\}/g;
+          let jsonMatch;
+          while ((jsonMatch = jsonRegex.exec(buffer)) !== null) {
+            try {
+              const obj = JSON.parse(jsonMatch[0]);
+              if (!sessionRef.current && obj.sessionId && typeof obj.sessionId === 'string') {
+                sessionRef.current = obj.sessionId;
+              }
+              if (obj.done) done = true;
+            } catch {
+              // ignore bad json
+            }
+          }
+          buffer = buffer.replace(jsonRegex, '');
+
+          // handle event: done markers
+          if (buffer.includes('event: done')) {
+            done = true;
+            buffer = buffer.replace('event: done', '');
+          }
+
+          // process data: chunks
+          const dataRegex = /data:\s*([^\n]*)/g;
+          let lastIdx = 0;
+          let dataMatch;
+          while ((dataMatch = dataRegex.exec(buffer)) !== null) {
+            lastIdx = dataRegex.lastIndex;
+            const addition = dataMatch[1]?.replace(/^"+|"+$/g, '');
+            if (!addition || addition === '[DONE]') continue;
+            assistantContent += addition;
+            updateAssistant(assistantContent);
+          }
+          // keep any trailing partial after the last processed match
+          buffer = buffer.slice(lastIdx);
+        }
+      }
+
+      const elapsed = ((performance.now() - start) / 1000).toFixed(2);
+      setMessages((m) => {
+        const next = [...m];
+        const idx = next.findIndex((msg, i) => msg.role === 'assistant' && i === next.length - 1);
+        if (idx !== -1) {
+          next[idx] = { ...next[idx], time_taken: `${elapsed}s` };
+        }
+        return next;
+      });
     } catch (err) {
       console.error(err);
       pushAssistant('Error talking to the model', '0s');
-      setIsTyping(false);
     }
   };
 
   return (
-    <div className="flex flex-col h-screen bg-neutral-900 text-neutral-100">
-      <div className='flex justify-center px-6 py-4 font-mono text-center text-neutral-400'>
-        <p>Be aware this is a chat bot and so can make mistakes :)</p>
+    <div className="flex flex-col h-screen bg-neutral-950 text-neutral-100">
+      <div className="relative w-full max-w-5xl px-4 pt-6 mx-auto">
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <div className="flex items-center gap-2 text-sm font-mono uppercase tracking-wide text-terminal">
+              <Sparkles size={14} />
+              AI Chat
+            </div>
+            <p className="mt-1 font-mono text-xs text-neutral-500 max-w-2xl">
+              LLM responses may be imperfect.
+            </p>
+          </div>
+        </div>
       </div>
+
       <div
         ref={scrollRef}
-        className="flex flex-col flex-1 px-6 pt-4 space-y-6 overflow-y-auto pb-28"
+        className="flex flex-col flex-1 w-full max-w-5xl px-4 mx-auto mt-6 space-y-6 overflow-y-auto scrollbar-hide pb-32"
       >
         {messages.map(({ role, content, time_taken }, i) => {
-          const baseCls = 'font-mono text-base leading-relaxed max-w-[65ch]';
-          const align = role === 'assistant' ? 'text-left mr-auto' : 'text-right ml-auto';
-          const isLast = i === messages.length - 1;
-
-          if (role === 'assistant' && isTyping && isLast) {
-            return (
-              <TypingAnimation
-                key={i}
-                text={content}
-                speed={10}
-                className={`${baseCls} ${align}`}
-                onFinished={() => setIsTyping(false)}
-              />
-            );
-          }
+          const isUser = role === 'user';
+          const bubble =
+            'inline-flex items-start gap-3 px-4 py-3 max-w-3xl rounded-lg border shadow-sm backdrop-blur';
+          const base =
+            isUser
+              ? `${bubble} border-terminal/60 bg-terminal/10 text-terminal ml-auto`
+              : `${bubble} border-neutral-700 bg-neutral-900 text-neutral-100 mr-auto`;
 
           return (
-            <div key={i} className={`${align}`}>
-              <p className={`${baseCls} whitespace-pre-wrap break-words`}>
-                {content}
-              </p>
-              {role === 'assistant' && (
-                <p className="mt-1 text-xs text-neutral-500">{time_taken}</p>
+            <div key={i} className={base}>
+              {isUser ? (
+                <User className="w-4 h-4 text-terminal shrink-0 mt-0.5" />
+              ) : (
+                <Bot className="w-4 h-4 text-terminal shrink-0 mt-0.5" />
               )}
+              <div className="flex flex-col">
+                <p className="font-mono text-sm leading-relaxed whitespace-pre-wrap break-words">
+                  {content}
+                </p>
+                {!isUser && (
+                  <span className="mt-1 text-xs text-neutral-500">{time_taken}</span>
+                )}
+              </div>
             </div>
           );
         })}
 
-        {isTyping && (
-          <TypingAnimation
-            text=""
-            className="w-6 h-4 mr-auto font-mono text-base text-left"
-          />
-        )}
       </div>
 
       <form
@@ -100,14 +181,10 @@ export default function ChatMe() {
         }}
         className="fixed inset-x-0 bottom-0 flex justify-center px-4 pb-6"
       >
-        <div className="flex items-end w-full max-w-2xl transition rounded-lg bg-neutral-800/80 backdrop-blur ring-1 ring-neutral-700 focus-within:ring-2 focus-within:ring-neutral-500">
+        <div className="flex items-center w-full max-w-3xl transition rounded-lg bg-neutral-900/90 backdrop-blur ring-1 ring-terminal/40 focus-within:ring-2 focus-within:ring-terminal/70 shadow-[0_0_24px_rgba(34,197,94,0.08)]">
           <textarea
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            onInput={(e: any) => {
-              e.target.style.height = 'auto';
-              e.target.style.height = `${e.target.scrollHeight}px`;
-            }}
             onKeyDown={(e: KeyboardEvent) => {
               if (e.key === 'Enter' && !e.shiftKey) {
                 e.preventDefault();
@@ -115,12 +192,12 @@ export default function ChatMe() {
               }
             }}
             rows={1}
-            placeholder="Type something…"
-            className="flex-1 py-3 pl-4 pr-12 overflow-hidden font-mono bg-transparent outline-none resize-none placeholder-neutral-400"
+            placeholder="Ask about my work, projects, or stack..."
+            className="flex-1 py-3 pl-4 pr-12 overflow-hidden font-mono bg-transparent outline-none resize-none placeholder-neutral-500 text-neutral-50 align-middle leading-tight"
           />
           <button
             type="submit"
-            className="grid w-10 h-10 m-1 transition rounded-md place-items-center hover:bg-neutral-700 active:scale-95"
+            className="grid w-12 h-12 m-2 text-terminal transition rounded-md place-items-center hover:bg-terminal/10 active:scale-95"
           >
             <Send size={18} strokeWidth={2} />
           </button>
