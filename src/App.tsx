@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import './App.css'
 import TypingAnimation from './components/TypingAnimation'
 import { MainButton } from './components/MainButton'
@@ -38,6 +38,30 @@ function App() {
     { label: 'Terraform', icon: <SiTerraform className="text-terminal" /> },
     { label: 'LLMs', icon: <FaRobot className="text-terminal" /> },
   ]
+  const marqueeRef = useRef<HTMLDivElement>(null)
+  const [isPaused, setIsPaused] = useState(false)
+  const [dragState, setDragState] = useState<{ active: boolean; startX: number; scrollLeft: number }>({
+    active: false,
+    startX: 0,
+    scrollLeft: 0,
+  })
+
+  useEffect(() => {
+    const el = marqueeRef.current
+    if (!el) return
+    const speed = 0.6 // px per tick
+    const tickMs = 32
+    const id = window.setInterval(() => {
+      if (!marqueeRef.current || isPaused || dragState.active) return
+      const half = marqueeRef.current.scrollWidth / 2
+      if (half <= marqueeRef.current.clientWidth) return
+      marqueeRef.current.scrollLeft += speed
+      if (marqueeRef.current.scrollLeft >= half) {
+        marqueeRef.current.scrollLeft -= half
+      }
+    }, tickMs)
+    return () => window.clearInterval(id)
+  }, [isPaused, dragState.active])
 
   return (
     <>
@@ -88,23 +112,49 @@ function App() {
             <p className="font-mono text-sm leading-relaxed text-gray-300 max-w-3xl">
               I’m Tómas, a software developer who enjoys building efficient, reliable software. I specialize in serverless systems and large language models, with a focus on solutions that scale and hold up in real use.
             </p>
-            <div className="relative w-full mt-3 overflow-hidden">
-              <div className="flex items-center gap-2 mb-2 text-xs font-mono uppercase tracking-wide text-gray-400">
+            <div className="relative w-full mt-3">
+              <div className="flex items-center gap-2 mb-2 text-xs font-mono uppercase tracking-wide text-gray-400 select-none">
                 <Sparkles size={14} className="text-terminal" />
                 Skills
               </div>
-              <div className="relative overflow-hidden">
-                <div className="flex min-w-full animate-marquee gap-2">
-                  {[...tools, ...tools].map((tool, idx) => (
-                    <div
-                      key={`${tool.label}-${idx}`}
-                      className="flex items-center gap-2 px-3 py-2 text-sm font-mono text-terminal border rounded-full border-terminal/40 bg-terminal/10 whitespace-nowrap"
-                    >
-                      {tool.icon}
-                      <span>{tool.label}</span>
-                    </div>
-                  ))}
-                </div>
+              <div
+                ref={marqueeRef}
+                className="relative flex flex-nowrap whitespace-nowrap gap-2 overflow-x-auto scrollbar-hide cursor-grab active:cursor-grabbing select-none"
+                onMouseEnter={() => setIsPaused(true)}
+                onMouseLeave={() => {
+                  if (!dragState.active) setIsPaused(false)
+                }}
+                onPointerDown={(e) => {
+                  const el = marqueeRef.current
+                  if (!el) return
+                  setIsPaused(true)
+                  setDragState({ active: true, startX: e.clientX, scrollLeft: el.scrollLeft })
+                }}
+                onPointerMove={(e) => {
+                  if (!dragState.active) return
+                  const el = marqueeRef.current
+                  if (!el) return
+                  const delta = e.clientX - dragState.startX
+                  el.scrollLeft = dragState.scrollLeft - delta
+                }}
+                onPointerUp={() => {
+                  setDragState((prev) => ({ ...prev, active: false }))
+                  setIsPaused(false)
+                }}
+                onPointerLeave={() => {
+                  setDragState((prev) => ({ ...prev, active: false }))
+                  setIsPaused(false)
+                }}
+              >
+                {[...tools, ...tools].map((tool, idx) => (
+                  <div
+                    key={`${tool.label}-${idx}`}
+                    className="flex items-center gap-2 px-3 py-2 text-sm font-mono text-terminal border rounded-full border-terminal/40 bg-terminal/10 whitespace-nowrap"
+                  >
+                    {tool.icon}
+                    <span>{tool.label}</span>
+                  </div>
+                ))}
               </div>
             </div>
           </div>
@@ -135,24 +185,24 @@ function App() {
                 <h3 className="text-lg font-semibold">Recent projects</h3>
               </div>
               <div className="space-y-3 font-mono text-sm text-gray-200">
-                <a href="https://github.com/TomasPalsson/canvas_app" target="_blank" rel="noreferrer" className="flex items-center gap-3 p-2 transition rounded hover:bg-terminal/10">
+                <a href="https://github.com/TomasPalsson/canvas_app" target="_blank" rel="noreferrer" className="flex items-center gap-3 p-2 transition rounded hover:bg-terminal/10 hover:underline hover:text-terminal">
                   <FaFlutter className="text-terminal" />
-                  <span className="text-white">Canvas App (AI-powered LMS client)</span>
+                  <span className="text-white group-hover:text-terminal">Canvas App (AI-powered LMS client)</span>
                   <FaGithub className="ml-auto text-terminal" />
                 </a>
-                <a href="https://github.com/TomasPalsson/Language-Compiler" target="_blank" rel="noreferrer" className="flex items-center gap-3 p-2 transition rounded hover:bg-terminal/10">
+                <a href="https://github.com/TomasPalsson/Language-Compiler" target="_blank" rel="noreferrer" className="flex items-center gap-3 p-2 transition rounded hover:bg-terminal/10 hover:underline hover:text-terminal">
                   <SiRust className="text-terminal" />
-                  <span className="text-white">Language Compiler in Rust</span>
+                  <span className="text-white group-hover:text-terminal">Language Compiler in Rust</span>
                   <FaGithub className="ml-auto text-terminal" />
                 </a>
-                <a href="https://github.com/TomasPalsson/TerminalWebsite" target="_blank" rel="noreferrer" className="flex items-center gap-3 p-2 transition rounded hover:bg-terminal/10">
+                <a href="https://github.com/TomasPalsson/TerminalWebsite" target="_blank" rel="noreferrer" className="flex items-center gap-3 p-2 transition rounded hover:bg-terminal/10 hover:underline hover:text-terminal">
                   <FaReact className="text-terminal" />
-                  <span className="text-white">Personal Terminal Website</span>
+                  <span className="text-white group-hover:text-terminal">Personal Terminal Website</span>
                   <FaGithub className="ml-auto text-terminal" />
                 </a>
-                <a href="/aboutme#fun" className="flex items-center gap-3 p-2 transition rounded hover:bg-terminal/10">
+                <a href="/aboutme#fun" className="flex items-center gap-3 p-2 transition rounded hover:bg-terminal/10 hover:underline hover:text-terminal">
                   <Sparkles size={14} className="text-terminal" />
-                  <span className="text-white">Fun stuff</span>
+                  <span className="text-white group-hover:text-terminal">Fun stuff</span>
                   <FaGithub className="ml-auto text-transparent" />
                 </a>
               </div>

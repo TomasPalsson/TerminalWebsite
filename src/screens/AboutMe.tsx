@@ -64,10 +64,10 @@ export default function PersonalWebsiteTabs() {
             <li>Chat with your course material using AI</li>
             <li>Create flashcards from your course material using AI</li>
           </ul>
-          <br/>
+          <br />
 
-          <a 
-            href="https://github.com/TomasPalsson/canvas_app" 
+          <a
+            href="https://github.com/TomasPalsson/canvas_app"
             target="_blank"
             className="inline-flex items-center p-2 space-x-2 transition-colors duration-200 border rounded-l text-terminal border-terminal text-l hover:border-gray-600">
             <FaGithub />
@@ -92,45 +92,45 @@ export default function PersonalWebsiteTabs() {
             <li>Arithmetic: +, -, *, /</li>
             <li>{'Comparisons: ==, !=, <, >'}</li>
           </ul>
-          <br/>
-          
-          <a 
-            href="https://github.com/TomasPalsson/Language-Compiler" 
+          <br />
+
+          <a
+            href="https://github.com/TomasPalsson/Language-Compiler"
             target="_blank"
             className="inline-flex items-center p-2 space-x-2 transition-colors duration-200 border rounded-l text-terminal border-terminal text-l hover:border-gray-600">
-          <FaGithub />
-          <span>Github</span>
-        </a>
+            <FaGithub />
+            <span>Github</span>
+          </a>
 
-        <h2 className="mt-16 text-xl font-bold">Personal Website</h2>
-        <div className="flex items-center py-2 space-x-4">
-          <FaReact className="text-3xl" />
-          <TbBrandThreejs className="text-3xl" />
-          <FaPython className="text-3xl" />
-          <FaAws className="text-3xl" />
-        </div>
-        <p className="text-gray-500">// This very website</p>
-        <p>
-          Features a 3D terminal, CV viewer, chat with AI, URL shortener and an
-          idea generator. Hosted on AWS with a Lambda backend.
-        </p>
-        <h4 className="mt-4 text-lg font-bold">Features</h4>
-        <ul className="pl-6 list-disc">
-          <li>3D terminal interface</li>
-          <li>View my CV through commands</li>
-          <li>Chat with an AI version of me</li>
-          <li>URL shortener</li>
-          <li>Idea generator</li>
-        </ul>
-        <br/>
+          <h2 className="mt-16 text-xl font-bold">Personal Website</h2>
+          <div className="flex items-center py-2 space-x-4">
+            <FaReact className="text-3xl" />
+            <TbBrandThreejs className="text-3xl" />
+            <FaPython className="text-3xl" />
+            <FaAws className="text-3xl" />
+          </div>
+          <p className="text-gray-500">// This very website</p>
+          <p>
+            Features a 3D terminal, CV viewer, chat with AI, URL shortener and an
+            idea generator. Hosted on AWS with a Lambda backend.
+          </p>
+          <h4 className="mt-4 text-lg font-bold">Features</h4>
+          <ul className="pl-6 list-disc">
+            <li>3D terminal interface</li>
+            <li>View my CV through commands</li>
+            <li>Chat with an AI version of me</li>
+            <li>URL shortener</li>
+            <li>Idea generator</li>
+          </ul>
+          <br />
 
-        <a
-          href="https://github.com/TomasPalsson/TerminalWebsite"
-          target="_blank"
-          className="inline-flex items-center p-2 space-x-2 transition-colors duration-200 border rounded-l text-terminal border-terminal text-l hover:border-gray-600">
-          <FaGithub />
-          <span>Github</span>
-        </a>
+          <a
+            href="https://github.com/TomasPalsson/TerminalWebsite"
+            target="_blank"
+            className="inline-flex items-center p-2 space-x-2 transition-colors duration-200 border rounded-l text-terminal border-terminal text-l hover:border-gray-600">
+            <FaGithub />
+            <span>Github</span>
+          </a>
         </>
       ),
     },
@@ -175,14 +175,6 @@ export default function PersonalWebsiteTabs() {
             <span className="text-lg">Idea Generator</span>
           </button>
 
-          {/* Idea Library */}
-          <button
-            onClick={() => navigate("/ideas")}
-            className="flex items-center justify-center p-4 space-x-2 transition-colors duration-200 border rounded-lg text-terminal border-terminal hover:border-gray-600 hover:bg-terminal/5"
-          >
-            <IoMdInformationCircleOutline size={24} />
-            <span className="text-lg">Idea Library</span>
-          </button>
         </div>
       ),
     },
@@ -210,7 +202,7 @@ export default function PersonalWebsiteTabs() {
               rel="noopener noreferrer"
             >
               https://t0mas.io/github
-              </a>
+            </a>
           </li>
 
           <li>
@@ -232,8 +224,8 @@ export default function PersonalWebsiteTabs() {
               key={name}
               onClick={() => setActiveTab(name)}
               className={`px-4 py-2 rounded-lg border transition-colors duration-200 ${activeTab === name
-                  ? "border-terminal text-terminal"
-                  : "border-transparent hover:border-gray-600"
+                ? "border-terminal text-terminal"
+                : "border-transparent hover:border-gray-600"
                 }`}
             >
               {icon}
