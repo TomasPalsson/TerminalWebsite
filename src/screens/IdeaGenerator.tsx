@@ -2,12 +2,18 @@ import Loader from "../components/Loader";
 import React from "react";
 import { useState } from "react";
 import ReactMarkdown from 'react-markdown';
+import { useNavigate } from "react-router";
+
+export type SavedIdea = { id: string; idea: string; description: string; savedAt: number };
 
 export default function IdeaGenerator() {
+  const navigate = useNavigate();
+
   const [idea, setIdea] = useState("");
   const [description, setDescription] = useState("");
   const [generatedIdea, setGeneratedIdea] = useState("");
   const [isGenerating, setIsGenerating] = useState(false);
+  const [favorites, setFavorites] = useState<SavedIdea[]>([]);
 
   const phrases = [
     "Generating...",
@@ -36,6 +42,30 @@ export default function IdeaGenerator() {
   // DROPDOWN
   const [selectedSize, setSelectedSize] = useState("Small");
 
+  React.useEffect(() => {
+    try {
+      const raw = localStorage.getItem("idea-favorites");
+      if (raw) {
+        const parsed = JSON.parse(raw) as SavedIdea[];
+        setFavorites(parsed);
+      }
+    } catch {
+      // ignore malformed storage
+    }
+  }, []);
+
+  React.useEffect(() => {
+    localStorage.setItem("idea-favorites", JSON.stringify(favorites));
+  }, [favorites]);
+
+  const isFavorited = React.useMemo(() => {
+    if (!generatedIdea || !description) return false;
+    return favorites.some(
+      (item) =>
+        item.idea.trim() === generatedIdea.trim() &&
+        item.description.trim() === description.trim()
+    );
+  }, [favorites, generatedIdea, description]);
 
   
 
@@ -50,8 +80,54 @@ export default function IdeaGenerator() {
     setIsGenerating(false)
   }
 
+  const handleSaveFavorite = () => {
+    if (!generatedIdea || !description) return;
+
+    if (isFavorited) {
+      setFavorites((prev) =>
+        prev.filter(
+          (item) =>
+            !(
+              item.idea.trim() === generatedIdea.trim() &&
+              item.description.trim() === description.trim()
+            )
+        )
+      );
+      return;
+    }
+
+    const id = crypto.randomUUID();
+    const next: SavedIdea = {
+      id,
+      idea: generatedIdea,
+      description,
+      savedAt: Date.now(),
+    };
+    setFavorites((prev) => {
+      const exists = prev.some(
+        (item) =>
+          item.idea.trim() === generatedIdea.trim() &&
+          item.description.trim() === description.trim()
+      );
+      const list = exists ? prev : [next, ...prev];
+      return list.slice(0, 20);
+    });
+  };
+
+  const handleRemoveFavorite = (id: string) => {
+    setFavorites((prev) => prev.filter((item) => item.id !== id));
+  };
+
   return (
     <div>
+      <div className="flex justify-end w-full max-w-4xl px-4 mx-auto">
+        <button
+          className="px-3 py-2 text-sm border rounded border-terminal text-terminal hover:border-gray-600"
+          onClick={() => navigate("/ideas")}
+        >
+          ★ View favourites
+        </button>
+      </div>
       <h1 className="pt-10 font-mono text-4xl font-bold text-center text-white">Idea Generator</h1>
       <div className="flex flex-col items-center justify-center mt-8">
         <div className="w-full max-w-xl p-6 font-mono bg-black border rounded-lg shadow-lg border-terminal">
@@ -95,6 +171,18 @@ export default function IdeaGenerator() {
                           <h2 className="flex items-center gap-2 mb-2 text-2xl font-bold text-terminal">
                               💡 {generatedIdea}
                           </h2>
+                          <div className="flex items-center gap-3 mb-3">
+                            <button
+                              onClick={handleSaveFavorite}
+                              className={`px-3 py-1 text-sm border rounded transition ${
+                                isFavorited
+                                  ? "border-red-500 text-red-300 hover:border-red-300"
+                                  : "border-terminal text-terminal hover:border-gray-600"
+                              }`}
+                            >
+                              {isFavorited ? "Remove from favourites" : "Save to favourites"}
+                            </button>
+                          </div>
                           <div className="font-mono prose text-white prose-invert prose-headings:font-mono prose-p:font-mono prose-li:font-mono max-w-none">
                               <ReactMarkdown>{description}</ReactMarkdown>
                           </div>

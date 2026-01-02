@@ -174,6 +174,15 @@ export default function PersonalWebsiteTabs() {
             <IoMdInformationCircleOutline size={24} />
             <span className="text-lg">Idea Generator</span>
           </button>
+
+          {/* Idea Library */}
+          <button
+            onClick={() => navigate("/ideas")}
+            className="flex items-center justify-center p-4 space-x-2 transition-colors duration-200 border rounded-lg text-terminal border-terminal hover:border-gray-600 hover:bg-terminal/5"
+          >
+            <IoMdInformationCircleOutline size={24} />
+            <span className="text-lg">Idea Library</span>
+          </button>
         </div>
       ),
     },
