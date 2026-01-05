@@ -19,28 +19,9 @@ export default defineConfig({
     // Chunk splitting strategy
     rollupOptions: {
       output: {
-        manualChunks(id) {
-          // Core vendor chunk
-          if (id.includes('node_modules')) {
-            // Three.js ecosystem - separate chunk (lazy loaded)
-            if (id.includes('three') || id.includes('@react-three')) {
-              return 'three-vendor';
-            }
-            // React core
-            if (id.includes('react') || id.includes('react-dom') || id.includes('react-router')) {
-              return 'react-vendor';
-            }
-            // Icons - separate chunk
-            if (id.includes('lucide-react') || id.includes('react-icons')) {
-              return 'icons-vendor';
-            }
-            // Markdown
-            if (id.includes('react-markdown') || id.includes('remark') || id.includes('rehype')) {
-              return 'markdown-vendor';
-            }
-            // Other vendor code
-            return 'vendor';
-          }
+        manualChunks: {
+          'react-vendor': ['react', 'react-dom', 'react-router', 'scheduler'],
+          'three-vendor': ['three', '@react-three/fiber', '@react-three/drei'],
         },
         // Asset naming for better caching
         chunkFileNames: 'assets/js/[name]-[hash].js',
