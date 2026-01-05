@@ -122,7 +122,7 @@ export default function IdeaGenerator() {
     <div>
       <div className="flex justify-end w-full max-w-4xl px-4 mx-auto">
         <button
-          className="px-3 py-2 text-sm border rounded border-terminal text-terminal hover:border-gray-600"
+          className="font-mono px-3 py-2 text-sm border rounded border-terminal text-terminal hover:border-gray-600"
           onClick={() => navigate("/ideas")}
         >
           ★ View favourites
