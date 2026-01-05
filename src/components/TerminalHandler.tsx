@@ -7,71 +7,20 @@ import React, {
 } from "react";
 import { KeyPressContext } from "../context/KeypressedContext";
 import { commandMap } from "./commands/CommandMap";
-import Cursor from "./Cursor";
 import { useNavigate } from "react-router";
+import { extractText } from "../utils/textExtraction";
+import { loadPersistedColor } from "../utils/colorPersistence";
+import {
+  TerminalOutput,
+  TerminalPrompt,
+  TerminalSuggestions,
+  ReverseSearchPrompt,
+} from "./terminal";
 
 type Props = {
   onBufferChange?: (lines: string[]) => void;
   headless?: boolean;
 };
-
-/* -- turn any React node into plain text, preserving layout -- */
-function extractText(node: React.ReactNode): string {
-  if (node == null) return "";
-
-  if (typeof node === "string" || typeof node === "number") {
-    return String(node);
-  }
-
-  if (Array.isArray(node)) {
-    return node.map(extractText).join("");
-  }
-
-  if (React.isValidElement(node)) {
-    const element = node as React.ReactElement<any>;
-    const blockTags = new Set([
-      "div",
-      "p",
-      "h1",
-      "h2",
-      "h3",
-      "h4",
-      "h5",
-      "h6",
-      "li",
-      "ul",
-      "ol",
-    ]);
-
-    const children = React.Children.map(element.props.children, extractText)?.join(
-      ""
-    ) ?? "";
-
-    // <br> ⇒ newline
-    if (node.type === "br") return "\n";
-
-    if (node.type === "button") return `${children}\n`;
-
-    // <li> ⇒ bullet + newline
-    if (node.type === "li") return `• ${children}\n`;
-
-    // <a>
-    if (node.type === "a") {
-      const children = React.Children.map(element.props.children, extractText)?.join("") ?? "";
-      return `${children} (${element.props.href})`;
-    }
-    
-    // any other block element ⇒ newline at end
-    if (typeof node.type === "string" && blockTags.has(node.type)) {
-      return `${children}\n`;
-    }
-
-    // inline element ⇒ just return its children's text
-    return children;
-  }
-
-  return "";
-}
 
 const PROMPT = "$ ";
 
@@ -100,14 +49,7 @@ const TerminalHandler = ({ onBufferChange, headless = false }: Props) => {
 
   useEffect(() => {
     if (colorPersistedRef.current) return;
-    try {
-      const saved = localStorage.getItem('terminal-color');
-      if (saved && /^#([A-Fa-f0-9]{3}|[A-Fa-f0-9]{6})$/.test(saved)) {
-        document.documentElement.style.setProperty('--terminal', saved);
-      }
-    } catch {
-      // ignore storage read errors
-    }
+    loadPersistedColor();
     colorPersistedRef.current = true;
   }, []);
 
@@ -458,28 +400,7 @@ const TerminalHandler = ({ onBufferChange, headless = false }: Props) => {
   /* -------- HTML terminal (hidden in headless mode) -------- */
   if (headless) return null;
 
-  const prompt = PROMPT;
   const liveText = text.replace(/\n$/, "");
-  const boundary = liveText.indexOf(" ") === -1 ? liveText.length : liveText.indexOf(" ");
-
-  const renderSegment = (segment: string, start: number) => {
-    if (!segment) return null;
-    const end = start + segment.length;
-    if (end <= boundary) {
-      return <span className="font-bold text-terminal">{segment}</span>;
-    }
-    if (start >= boundary) {
-      return <span className="text-white">{segment}</span>;
-    }
-    const firstPart = segment.slice(0, boundary - start);
-    const secondPart = segment.slice(boundary - start);
-    return (
-      <>
-        <span className="font-bold text-terminal">{firstPart}</span>
-        <span className="text-white">{secondPart}</span>
-      </>
-    );
-  };
 
   /* Ensure scrolling when output changes */
   useEffect(() => {
@@ -496,18 +417,8 @@ const TerminalHandler = ({ onBufferChange, headless = false }: Props) => {
     );
     return (
       <>
-        {output.map((line, i) => (
-          <div key={i}>
-            <span className="font-mono text-lg text-terminal">{prompt}</span>
-            <span className="font-mono text-lg whitespace-pre-wrap">{line}</span>
-          </div>
-        ))}
-        <div className="font-mono text-lg text-gray-300">
-          <span className="text-terminal">(reverse-i-search)</span>
-          <span>{` \`${query}\`: `}</span>
-          <span className="text-white">{match ?? ""}</span>
-          <Cursor cursor="_" />
-        </div>
+        <TerminalOutput output={output} prompt={PROMPT} />
+        <ReverseSearchPrompt query={query} matchedCommand={match ?? null} />
         <div ref={bottomRef} />
       </>
     );
@@ -515,27 +426,9 @@ const TerminalHandler = ({ onBufferChange, headless = false }: Props) => {
 
   return (
     <>
-      {output.map((line, i) => (
-        <div key={i}>
-          <span className="font-mono text-lg text-terminal">{prompt}</span>
-          <span className="font-mono text-lg whitespace-pre-wrap">{line}</span>
-        </div>
-      ))}
-      <div>
-        <span className="font-mono text-lg text-terminal">{prompt}</span>
-        <span className="font-mono text-lg whitespace-pre-wrap">
-          {renderSegment(liveText.slice(0, cursorPos), 0)}
-        </span>
-        <Cursor cursor="_" />
-        <span className="font-mono text-lg whitespace-pre-wrap">
-          {renderSegment(liveText.slice(cursorPos), cursorPos)}
-        </span>
-      </div>
-      {suggestions && suggestions.length > 0 && (
-        <div className="mt-1 font-mono text-sm text-terminal whitespace-pre-wrap">
-          {suggestions.join("  ")}
-        </div>
-      )}
+      <TerminalOutput output={output} prompt={PROMPT} />
+      <TerminalPrompt prompt={PROMPT} text={text} cursorPos={cursorPos} />
+      <TerminalSuggestions suggestions={suggestions} />
       <div ref={bottomRef} />
     </>
   );
