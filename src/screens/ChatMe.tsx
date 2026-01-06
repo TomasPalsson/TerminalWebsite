@@ -3,8 +3,9 @@
 import { useState, useRef, useEffect, KeyboardEvent, FormEvent } from 'react';
 import { Send, Bot, User, Sparkles } from 'lucide-react';
 import React from 'react';
+import ReactMarkdown from 'react-markdown';
 
-export type Msg = { role: 'user' | 'assistant'; content: string; time_taken: string };
+export type Msg = { role: 'user' | 'assistant'; content: string; time_taken: string; isStreaming?: boolean };
 
 const API_ENDPOINT = 'https://wms5kwgviazs3ja6lnvngmovee0qqtuh.lambda-url.eu-west-1.on.aws/';
 
@@ -53,7 +54,7 @@ export default function ChatMe() {
       let firstChunkTime: number | null = null;
 
       // add placeholder assistant message
-      setMessages((m) => [...m, { role: 'assistant', content: '', time_taken: '...' }]);
+      setMessages((m) => [...m, { role: 'assistant', content: '', time_taken: '...', isStreaming: true }]);
 
       const updateAssistant = (content: string) => {
         setMessages((m) => {
@@ -106,7 +107,8 @@ export default function ChatMe() {
             if (firstChunkTime === null) {
               firstChunkTime = performance.now();
             }
-            assistantContent += addition;
+            // convert escaped newlines to actual newlines
+            assistantContent += addition.replace(/\\n/g, '\n');
             updateAssistant(assistantContent);
           }
           // keep any trailing partial after the last processed match
@@ -121,7 +123,7 @@ export default function ChatMe() {
         const next = [...m];
         const idx = next.findIndex((msg, i) => msg.role === 'assistant' && i === next.length - 1);
         if (idx !== -1) {
-          next[idx] = { ...next[idx], time_taken: `${elapsed}s` };
+          next[idx] = { ...next[idx], time_taken: `${elapsed}s`, isStreaming: false };
         }
         return next;
       });
@@ -151,7 +153,7 @@ export default function ChatMe() {
         ref={scrollRef}
         className="flex flex-col flex-1 w-full max-w-5xl px-4 mx-auto mt-6 space-y-6 overflow-y-auto scrollbar-hide pb-32"
       >
-        {messages.map(({ role, content, time_taken }, i) => {
+        {messages.map(({ role, content, time_taken, isStreaming }, i) => {
           const isUser = role === 'user';
           const bubble =
             'inline-flex items-start gap-3 px-4 py-3 max-w-3xl rounded-lg border shadow-sm backdrop-blur';
@@ -168,9 +170,15 @@ export default function ChatMe() {
                 <Bot className="w-4 h-4 text-terminal shrink-0 mt-0.5" />
               )}
               <div className="flex flex-col">
-                <p className="font-mono text-sm leading-relaxed whitespace-pre-wrap break-words">
-                  {content}
-                </p>
+                {isUser || isStreaming ? (
+                  <p className="font-mono text-sm leading-relaxed whitespace-pre-wrap break-words">
+                    {content}
+                  </p>
+                ) : (
+                  <div className="font-mono text-sm leading-relaxed prose prose-invert prose-sm max-w-none prose-p:my-1 prose-headings:text-neutral-100 prose-code:text-terminal prose-code:bg-neutral-800 prose-code:px-1 prose-code:rounded">
+                    <ReactMarkdown>{content}</ReactMarkdown>
+                  </div>
+                )}
                 {!isUser && (
                   <span className="mt-1 text-xs text-neutral-500">{time_taken}</span>
                 )}
