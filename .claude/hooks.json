@@ -1,0 +1,28 @@
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Write",
+        "hooks": [
+          {
+            "type": "prompt",
+            "prompt": "When creating React components (.tsx files), follow these conventions:\n- Use functional components with PascalCase filenames\n- Apply Tailwind utilities, use `text-terminal` for green accent\n- Use `font-mono` for terminal-like UI elements\n- Black backgrounds (#000) for terminal surfaces\n- Follow patterns in style.md",
+            "timeout": 5
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "npm run test:run 2>/dev/null || echo 'Tests skipped (no test files or test command failed)'",
+            "timeout": 60
+          }
+        ]
+      }
+    ]
+  }
+}

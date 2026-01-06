@@ -50,6 +50,7 @@ export default function ChatMe() {
       let done = false;
       let assistantContent = '';
       let buffer = '';
+      let firstChunkTime: number | null = null;
 
       // add placeholder assistant message
       setMessages((m) => [...m, { role: 'assistant', content: '', time_taken: '...' }]);
@@ -101,6 +102,10 @@ export default function ChatMe() {
             lastIdx = dataRegex.lastIndex;
             const addition = dataMatch[1]?.replace(/^"+|"+$/g, '');
             if (!addition || addition === '[DONE]') continue;
+            // capture time-to-first-byte
+            if (firstChunkTime === null) {
+              firstChunkTime = performance.now();
+            }
             assistantContent += addition;
             updateAssistant(assistantContent);
           }
@@ -109,7 +114,9 @@ export default function ChatMe() {
         }
       }
 
-      const elapsed = ((performance.now() - start) / 1000).toFixed(2);
+      const elapsed = firstChunkTime !== null
+        ? ((firstChunkTime - start) / 1000).toFixed(2)
+        : '0.00';
       setMessages((m) => {
         const next = [...m];
         const idx = next.findIndex((msg, i) => msg.role === 'assistant' && i === next.length - 1);
