@@ -7,7 +7,7 @@ import ReactMarkdown from 'react-markdown';
 
 export type Msg = { role: 'user' | 'assistant'; content: string; time_taken: string; isStreaming?: boolean };
 
-const API_ENDPOINT = 'https://wms5kwgviazs3ja6lnvngmovee0qqtuh.lambda-url.eu-west-1.on.aws/';
+const API_ENDPOINT = 'https://4tbqtollh37e7h22fwcwwrj7pa0kwbhe.lambda-url.eu-west-1.on.aws/';
 
 export default function ChatMe() {
   const [input, setInput] = useState('');
