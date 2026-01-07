@@ -35,6 +35,11 @@ export default function ChatMe() {
     setInput('');
     pushUser(text);
     try {
+      // Generate session ID on first message if not already set
+      if (!sessionRef.current) {
+        sessionRef.current = crypto.randomUUID();
+      }
+      console.log('Session ID:', sessionRef.current);
       const start = performance.now();
       const res = await fetch(API_ENDPOINT, {
         method: 'POST',
@@ -73,15 +78,12 @@ export default function ChatMe() {
         if (result.value) {
           buffer += decoder.decode(result.value, { stream: !done });
 
-          // strip and handle any JSON tokens embedded in stream
+          // strip any JSON tokens embedded in stream (e.g., done markers)
           const jsonRegex = /\{[^}]*\}/g;
           let jsonMatch;
           while ((jsonMatch = jsonRegex.exec(buffer)) !== null) {
             try {
               const obj = JSON.parse(jsonMatch[0]);
-              if (!sessionRef.current && obj.sessionId && typeof obj.sessionId === 'string') {
-                sessionRef.current = obj.sessionId;
-              }
               if (obj.done) done = true;
             } catch {
               // ignore bad json
@@ -176,7 +178,17 @@ export default function ChatMe() {
                   </p>
                 ) : (
                   <div className="font-mono text-sm leading-relaxed prose prose-invert prose-sm max-w-none prose-p:my-1 prose-headings:text-neutral-100 prose-code:text-terminal prose-code:bg-neutral-800 prose-code:px-1 prose-code:rounded">
-                    <ReactMarkdown>{content}</ReactMarkdown>
+                    <ReactMarkdown
+                      components={{
+                        a: ({ href, children }) => (
+                          <a href={href} target="_blank" rel="noopener noreferrer">
+                            {children}
+                          </a>
+                        ),
+                      }}
+                    >
+                      {content}
+                    </ReactMarkdown>
                   </div>
                 )}
                 {!isUser && (
@@ -220,28 +232,4 @@ export default function ChatMe() {
       </form>
     </div>
   );
-}
-
-async function callAI(
-  prompt: string,
-  session: string | null,
-): Promise<{ reply: string; session?: string; time_taken: number }> {
-  const res = await fetch(API_ENDPOINT, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      chat: prompt,
-      session: session,
-    }),
-  });
-
-  if (!res.ok) throw new Error(`HTTP ${res.status}`);
-  const data = await res.json();
-  return {
-    reply: data.reply ?? JSON.stringify(data),
-    session: data.session,
-    time_taken: data.time_taken ?? 0
-  };
 }
