@@ -2,14 +2,22 @@ import React from 'react'
 import { Link } from 'react-router'
 
 type MainButtonProps = {
-  children: React.ReactNode;
-  link: string;
+  children: React.ReactNode
+  link: string
+  variant?: 'primary' | 'secondary'
 }
 
-export function MainButton({ children, link }: MainButtonProps) {
+export function MainButton({ children, link, variant = 'secondary' }: MainButtonProps) {
+  const baseClasses = 'inline-flex items-center gap-2 px-4 py-2.5 font-mono text-sm rounded-lg transition'
+
+  const variantClasses = {
+    primary: 'bg-terminal text-black hover:bg-terminal/90 active:scale-[0.98]',
+    secondary: 'border border-terminal/30 text-gray-400 hover:text-terminal hover:border-terminal/50',
+  }
+
   return (
     <Link to={link}>
-      <button className="inline-flex items-center gap-2 px-4 py-2 font-mono text-sm transition rounded-sm sm:text-base text-terminal hover:bg-terminal hover:text-black">
+      <button className={`${baseClasses} ${variantClasses[variant]}`}>
         {children}
       </button>
     </Link>

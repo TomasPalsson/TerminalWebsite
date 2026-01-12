@@ -1,174 +1,361 @@
-import React, { useState, useEffect } from "react";
-import Loader from "../components/Loader";
+import React, { useState, useEffect } from 'react'
+import Loader from '../components/Loader'
+import { Link2, Sparkles, Copy, Check, ExternalLink, AlertCircle, CheckCircle, Loader2, Hash } from 'lucide-react'
 
 export default function UrlShortener() {
-  const [url, setUrl] = useState("");
-  const [customSlug, setCustomSlug] = useState("");
-  const [shortenedUrl, setShortenedUrl] = useState("");
-  const [isGenerating, setIsGenerating] = useState(false);
-  const [error, setError] = useState("");
-  const [isChecking, setIsChecking] = useState(false);
-  const [slugAvailable, setSlugAvailable] = useState<boolean | null>(null);
-  const [slugError, setSlugError] = useState("");
-  const [showCopied, setShowCopied] = useState(false);
+  const [url, setUrl] = useState('')
+  const [customSlug, setCustomSlug] = useState('')
+  const [shortenedUrl, setShortenedUrl] = useState('')
+  const [isGenerating, setIsGenerating] = useState(false)
+  const [error, setError] = useState('')
+  const [isChecking, setIsChecking] = useState(false)
+  const [slugAvailable, setSlugAvailable] = useState<boolean | null>(null)
+  const [slugError, setSlugError] = useState('')
+  const [showCopied, setShowCopied] = useState(false)
 
   const phrases = [
-    "Shortening URL...",
-    "Creating magic link...",
-    "Compressing URL...",
-    "Making it tiny...",
-    "Almost there...",
-    "Processing...",
-    "Generating short link...",
-    "Optimizing...",
-  ];
-
+    'Shortening URL...',
+    'Creating magic link...',
+    'Compressing URL...',
+    'Making it tiny...',
+    'Almost there...',
+    'Processing...',
+    'Generating short link...',
+    'Optimizing...',
+  ]
 
   // Check slug availability when customSlug changes
   useEffect(() => {
     const checkSlugAvailability = async () => {
       if (!customSlug) {
-        setSlugAvailable(null);
-        setSlugError("");
-        return;
+        setSlugAvailable(null)
+        setSlugError('')
+        return
       }
 
-      setIsChecking(true);
-      setSlugError("");
+      setIsChecking(true)
+      setSlugError('')
       try {
-        const slug = customSlug.trim();
-        const response = await fetch(`https://t0mas.io/check/${encodeURIComponent(slug)}`);
-        const data = await response.json();
-        setSlugAvailable(data.available);
-      } catch (err) {
-        setSlugError("Failed to check slug availability");
-        setSlugAvailable(null);
+        const slug = customSlug.trim()
+        const response = await fetch(`https://t0mas.io/check/${encodeURIComponent(slug)}`)
+        const data = await response.json()
+        setSlugAvailable(data.available)
+      } catch {
+        setSlugError('Failed to check slug availability')
+        setSlugAvailable(null)
       } finally {
-        setIsChecking(false);
+        setIsChecking(false)
       }
-    };
+    }
 
-    const timeoutId = setTimeout(checkSlugAvailability, 500);
-    return () => clearTimeout(timeoutId);
-  }, [customSlug]);
+    const timeoutId = setTimeout(checkSlugAvailability, 500)
+    return () => clearTimeout(timeoutId)
+  }, [customSlug])
 
   const handleShorten = async () => {
-    setIsGenerating(true);
-    setError("");
+    setIsGenerating(true)
+    setError('')
     try {
-      const trimmedUrl = url.trim();
-      const trimmedSlug = customSlug.trim();
+      const trimmedUrl = url.trim()
+      const trimmedSlug = customSlug.trim()
 
-      const response = await fetch("https://t0mas.io/shorten", {
-        method: "POST",
+      const response = await fetch('https://t0mas.io/shorten', {
+        method: 'POST',
         headers: {
-          "Content-Type": "application/json",
+          'Content-Type': 'application/json',
         },
         body: JSON.stringify({
           url: trimmedUrl,
           id: trimmedSlug || undefined,
         }),
-      });
+      })
 
-      const data = await response.json();
+      const data = await response.json()
       if (!response.ok) {
-        throw new Error(data.message || "Failed to shorten URL");
+        throw new Error(data.message || 'Failed to shorten URL')
       }
 
-      setShortenedUrl(`${data.shortUrl}`);
+      setShortenedUrl(`${data.shortUrl}`)
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to shorten URL");
+      setError(err instanceof Error ? err.message : 'Failed to shorten URL')
     } finally {
-      setIsGenerating(false);
+      setIsGenerating(false)
     }
-  };
+  }
 
   const handleCopy = () => {
-    navigator.clipboard.writeText(shortenedUrl);
-    setShowCopied(true);
-    setTimeout(() => setShowCopied(false), 2000);
-  };
+    navigator.clipboard.writeText(shortenedUrl)
+    setShowCopied(true)
+    setTimeout(() => setShowCopied(false), 2000)
+  }
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' && url.trim() && !isGenerating && (customSlug === '' || slugAvailable !== false)) {
+      e.preventDefault()
+      handleShorten()
+    }
+  }
+
+  const isValidUrl = (string: string) => {
+    try {
+      new URL(string)
+      return true
+    } catch {
+      return false
+    }
+  }
+
+  const canSubmit = url.trim() && isValidUrl(url.trim()) && !isGenerating && (customSlug === '' || slugAvailable !== false)
 
   return (
-    <div>
-      <h1 className="pt-10 text-center font-mono text-4xl font-bold text-white">
-        URL Shortener
-      </h1>
-      <div className="mt-8 flex flex-col items-center justify-center">
-        <div className="w-full max-w-xl rounded-lg border border-terminal bg-black p-6 font-mono shadow-lg">
-          <div className="flex flex-col gap-4">
-            <div className="flex items-center">
-              <span className="mr-2 text-terminal">$</span>
-              <input
-                type="url"
-                placeholder="Enter URL to shorten..."
-                className="flex-1 bg-transparent px-2 py-1 text-white placeholder-gray-400 outline-none"
-                value={url}
-                onChange={(e) => setUrl(e.target.value)}
-              />
+    <div className="flex flex-col min-h-screen bg-black text-white">
+      {/* Header */}
+      <div className="w-full max-w-4xl px-4 pt-6 mx-auto">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="flex items-center gap-2 font-mono text-sm text-terminal">
+              <Link2 size={14} />
+              URL Shortener
+            </h1>
+            <p className="font-mono text-xs text-gray-600 mt-0.5">
+              Create short, memorable links
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {/* Main Content */}
+      <div className="flex-1 w-full max-w-4xl px-4 mx-auto mt-8 pb-8">
+        {/* Input Section */}
+        <div className="relative">
+          {/* Glow effect */}
+          <div className="absolute -inset-0.5 bg-gradient-to-r from-terminal/20 via-terminal/5 to-terminal/20 rounded-xl blur-sm opacity-50" />
+
+          <div className="relative p-6 rounded-xl bg-neutral-900/95 border border-terminal/30 shadow-[0_0_40px_rgba(34,197,94,0.08)]">
+            {/* URL Input */}
+            <div className="mb-4">
+              <label className="flex items-center gap-2 text-xs font-mono text-gray-500 mb-2">
+                <Link2 size={12} />
+                URL to shorten
+              </label>
+              <div className="flex items-center gap-3 p-3 rounded-lg bg-black/50 border border-neutral-700 focus-within:border-terminal/50 transition">
+                <span className="text-terminal font-mono">$</span>
+                <input
+                  type="url"
+                  placeholder="https://example.com/very-long-url..."
+                  autoFocus
+                  className="flex-1 font-mono text-sm text-white placeholder-gray-500 bg-transparent outline-none"
+                  value={url}
+                  onChange={(e) => setUrl(e.target.value)}
+                  onKeyDown={handleKeyDown}
+                />
+                {url && (
+                  <div className="shrink-0">
+                    {isValidUrl(url.trim()) ? (
+                      <CheckCircle size={16} className="text-terminal" />
+                    ) : (
+                      <AlertCircle size={16} className="text-red-400" />
+                    )}
+                  </div>
+                )}
+              </div>
             </div>
-            <div className="flex flex-col gap-2">
-              <div className="flex items-center">
-                <span className="mr-2 text-terminal">$</span>
+
+            {/* Custom Slug Input */}
+            <div className="mb-5">
+              <label className="flex items-center gap-2 text-xs font-mono text-gray-500 mb-2">
+                <Hash size={12} />
+                Custom slug (optional)
+              </label>
+              <div className="flex items-center gap-3 p-3 rounded-lg bg-black/50 border border-neutral-700 focus-within:border-terminal/50 transition">
+                <span className="text-gray-500 font-mono text-sm">t0mas.io/</span>
                 <input
                   type="text"
-                  placeholder="Custom slug (optional)..."
-                  className="flex-1 bg-transparent px-2 py-1 text-white placeholder-gray-400 outline-none"
+                  placeholder="my-custom-link"
+                  className="flex-1 font-mono text-sm text-white placeholder-gray-500 bg-transparent outline-none"
                   value={customSlug}
                   onChange={(e) => setCustomSlug(e.target.value)}
+                  onKeyDown={handleKeyDown}
                 />
+                {customSlug && (
+                  <div className="shrink-0">
+                    {isChecking ? (
+                      <Loader2 size={16} className="text-gray-400 animate-spin" />
+                    ) : slugAvailable === true ? (
+                      <CheckCircle size={16} className="text-terminal" />
+                    ) : slugAvailable === false ? (
+                      <AlertCircle size={16} className="text-red-400" />
+                    ) : null}
+                  </div>
+                )}
               </div>
-              {isChecking ? (
-                <span className="text-sm text-terminal">Checking availability...</span>
-              ) : slugAvailable !== null && customSlug && (
-                <span className={`${slugAvailable ? 'text-green-500' : 'text-red-500'} text-sm`}>
-                  {slugAvailable ? '✓ Slug is available' : '✗ Slug is not available'}
-                </span>
+              {/* Slug Status */}
+              {customSlug && !isChecking && slugAvailable !== null && (
+                <p className={`mt-2 font-mono text-xs flex items-center gap-1.5 ${slugAvailable ? 'text-terminal' : 'text-red-400'}`}>
+                  {slugAvailable ? (
+                    <>
+                      <CheckCircle size={12} />
+                      Slug is available
+                    </>
+                  ) : (
+                    <>
+                      <AlertCircle size={12} />
+                      Slug is already taken
+                    </>
+                  )}
+                </p>
               )}
               {slugError && (
-                <span className="text-sm text-red-500">{slugError}</span>
+                <p className="mt-2 font-mono text-xs text-red-400 flex items-center gap-1.5">
+                  <AlertCircle size={12} />
+                  {slugError}
+                </p>
               )}
             </div>
+
+            {/* Shorten Button */}
             <button
-              className="rounded-lg border border-terminal px-4 py-2 font-mono text-terminal hover:border-gray-600 disabled:opacity-50"
               onClick={handleShorten}
-              disabled={!url || isGenerating || (customSlug !== "" && slugAvailable === false)}
+              disabled={!canSubmit}
+              className={`w-full flex items-center justify-center gap-2 px-4 py-3 font-mono text-sm rounded-lg transition ${
+                canSubmit
+                  ? 'bg-terminal text-black hover:bg-terminal/90 active:scale-[0.99]'
+                  : 'bg-neutral-800 text-gray-500 cursor-not-allowed'
+              }`}
             >
-              Shorten
+              {isGenerating ? (
+                <span className="animate-pulse">Shortening...</span>
+              ) : (
+                <>
+                  <Sparkles size={16} />
+                  Shorten URL
+                </>
+              )}
             </button>
           </div>
         </div>
 
-        {isGenerating ? (
-          <Loader phrases={phrases} />
-        ) : (
-          shortenedUrl && (
-            <div className="mt-4 w-full max-w-xl rounded-lg border border-terminal bg-black p-6 font-mono shadow-lg">
-              <h2 className="mb-4 text-xl font-bold text-terminal">Shortened URL:</h2>
-              <div className="flex items-center gap-2">
-                <input
-                  type="text"
-                  readOnly
-                  value={shortenedUrl}
-                  className="flex-1 bg-transparent px-2 py-1 text-white outline-none"
-                />
+        {/* Loading State */}
+        {isGenerating && (
+          <div className="flex flex-col items-center justify-center mt-12">
+            <div className="w-12 h-12 rounded-xl bg-terminal/10 border border-terminal/30 flex items-center justify-center mb-4">
+              <Link2 size={24} className="text-terminal animate-pulse" />
+            </div>
+            <Loader phrases={phrases} />
+          </div>
+        )}
+
+        {/* Result */}
+        {!isGenerating && shortenedUrl && (
+          <div className="mt-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+            <div className="relative">
+              {/* Glow */}
+              <div className="absolute -inset-0.5 bg-gradient-to-r from-terminal/10 via-transparent to-terminal/10 rounded-xl blur-sm opacity-50" />
+
+              <div className="relative p-6 rounded-xl bg-neutral-900 border border-neutral-800">
+                {/* Header */}
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="flex items-center justify-center w-10 h-10 rounded-lg bg-terminal/10 border border-terminal/30">
+                    <CheckCircle size={20} className="text-terminal" />
+                  </div>
+                  <div>
+                    <h2 className="font-mono text-sm font-medium text-terminal">
+                      Link created successfully
+                    </h2>
+                    <p className="font-mono text-xs text-gray-500">
+                      Your shortened URL is ready to use
+                    </p>
+                  </div>
+                </div>
+
+                {/* Shortened URL Display */}
+                <div className="flex items-center gap-2 p-4 rounded-lg bg-black/50 border border-neutral-700">
+                  <Link2 size={16} className="text-terminal shrink-0" />
+                  <input
+                    type="text"
+                    readOnly
+                    value={shortenedUrl}
+                    className="flex-1 font-mono text-sm text-white bg-transparent outline-none"
+                  />
+                  <button
+                    onClick={handleCopy}
+                    className={`flex items-center gap-1.5 px-3 py-1.5 font-mono text-xs rounded-lg border transition shrink-0 ${
+                      showCopied
+                        ? 'border-terminal/50 bg-terminal/10 text-terminal'
+                        : 'border-neutral-700 text-gray-400 hover:text-terminal hover:border-terminal/50'
+                    }`}
+                  >
+                    {showCopied ? (
+                      <>
+                        <Check size={12} />
+                        Copied
+                      </>
+                    ) : (
+                      <>
+                        <Copy size={12} />
+                        Copy
+                      </>
+                    )}
+                  </button>
+                </div>
+
+                {/* Actions */}
+                <div className="flex items-center gap-3 mt-4">
+                  <a
+                    href={shortenedUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-2 px-3 py-1.5 font-mono text-xs rounded-lg border border-terminal/30 text-terminal hover:bg-terminal/10 transition"
+                  >
+                    <ExternalLink size={12} />
+                    Open link
+                  </a>
+                  <button
+                    onClick={() => {
+                      setShortenedUrl('')
+                      setUrl('')
+                      setCustomSlug('')
+                    }}
+                    className="flex items-center gap-2 px-3 py-1.5 font-mono text-xs rounded-lg border border-neutral-700 text-gray-400 hover:text-white hover:border-neutral-600 transition"
+                  >
+                    Shorten another
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Error */}
+        {error && (
+          <div className="mt-6 animate-in fade-in duration-300">
+            <div className="flex items-start gap-3 p-4 rounded-lg bg-red-500/10 border border-red-500/30">
+              <AlertCircle size={18} className="text-red-400 shrink-0 mt-0.5" />
+              <div>
+                <p className="font-mono text-sm text-red-400">{error}</p>
                 <button
-                  onClick={handleCopy}
-                  className="rounded-lg border border-terminal px-4 py-2 font-mono text-terminal hover:border-gray-600"
+                  onClick={() => setError('')}
+                  className="font-mono text-xs text-red-400/70 hover:text-red-400 mt-1 transition"
                 >
-                  {showCopied ? 'Copied!' : 'Copy'}
+                  Dismiss
                 </button>
               </div>
             </div>
-          )
+          </div>
         )}
 
-        {error && (
-          <div className="mt-4 w-full max-w-xl rounded-lg border border-red-500 bg-black p-4 font-mono text-red-500">
-            {error}
+        {/* Empty State */}
+        {!isGenerating && !shortenedUrl && !error && (
+          <div className="flex flex-col items-center justify-center mt-16 text-center">
+            <div className="w-16 h-16 rounded-2xl bg-neutral-900 border border-neutral-800 flex items-center justify-center mb-4">
+              <Link2 size={28} className="text-gray-600" />
+            </div>
+            <p className="font-mono text-sm text-gray-500 max-w-xs">
+              Enter a URL above to create a short, shareable link
+            </p>
           </div>
         )}
       </div>
     </div>
-  );
-} 
+  )
+}

@@ -1,16 +1,10 @@
 'use client'
 
 import { useState, useRef, useEffect, KeyboardEvent, FormEvent } from 'react'
-import { Send, Bot, User, Sparkles, Search, ChevronDown, ChevronRight } from 'lucide-react'
+import { Send, Bot, User, Sparkles } from 'lucide-react'
 import React from 'react'
 import ReactMarkdown from 'react-markdown'
-
-type ToolCall = {
-  tool: string
-  input?: Record<string, unknown>
-  result?: string
-  status?: 'running' | 'success' | 'error'
-}
+import { ToolRenderer, ToolCall } from '../components/chat/tools'
 
 export type Msg = {
   role: 'user' | 'assistant'
@@ -28,64 +22,6 @@ const SUGGESTED_PROMPTS = [
   { label: 'Projects', prompt: 'What are some interesting projects you\'ve built?' },
   { label: 'Contact', prompt: 'How can I get in touch with you?' },
 ]
-
-// Format tool name for display
-const formatToolName = (tool: string) => {
-  // Remove common prefixes/suffixes
-  let name = tool.replace(/_exa$/, '').replace(/^exa_/, '')
-  return name
-    .split('_')
-    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-    .join(' ')
-}
-
-// Collapsible tool component
-function ToolIndicator({ tool, isActive }: { tool: ToolCall; isActive: boolean }) {
-  const [expanded, setExpanded] = useState(false)
-
-  return (
-    <div className="my-2 not-prose">
-      <button
-        onClick={() => setExpanded(!expanded)}
-        className="flex items-center gap-2 text-gray-400 hover:text-gray-300 transition-colors"
-      >
-        {expanded ? (
-          <ChevronDown size={12} className="text-terminal/70" />
-        ) : (
-          <ChevronRight size={12} className="text-terminal/70" />
-        )}
-        <Search size={12} className="text-terminal" />
-        <span className="text-xs font-mono">{formatToolName(tool.tool)}</span>
-        {isActive ? (
-          <span className="text-terminal animate-pulse text-xs">...</span>
-        ) : (
-          <span className="text-terminal/60 text-xs">✓</span>
-        )}
-      </button>
-
-      {expanded && (
-        <div className="mt-2 ml-5 p-2 rounded bg-neutral-800/50 border border-neutral-700 text-xs font-mono overflow-x-auto">
-          {tool.input && (
-            <div className="mb-2">
-              <span className="text-gray-500">Input:</span>
-              <pre className="text-gray-400 mt-1 whitespace-pre-wrap">
-                {JSON.stringify(tool.input, null, 2)}
-              </pre>
-            </div>
-          )}
-          {tool.result && (
-            <div>
-              <span className="text-gray-500">Result:</span>
-              <pre className="text-gray-400 mt-1 whitespace-pre-wrap max-h-48 overflow-y-auto">
-                {tool.result.slice(0, 500)}{tool.result.length > 500 ? '...' : ''}
-              </pre>
-            </div>
-          )}
-        </div>
-      )}
-    </div>
-  )
-}
 
 export default function ChatMe() {
   const [input, setInput] = useState('')
@@ -144,7 +80,6 @@ export default function ChatMe() {
       let buffer = ''
       let firstChunkTime: number | null = null
       let tools: ToolCall[] = []
-      let currentToolIndex = -1
 
       // Add placeholder assistant message
       setMessages((m) => [...m, {
@@ -226,23 +161,22 @@ export default function ChatMe() {
                       status: 'running'
                     }
                     tools = [...tools, newTool]
-                    currentToolIndex = tools.length - 1
                     assistantContent += `\n::tool::${tools.length - 1}::\n`
                     updateAssistant({ content: assistantContent, tools: [...tools] })
                     continue
                   }
 
-                  // Handle tool_end
+                  // Handle tool_end - find tool by name since tools can complete out of order
                   if (parsed.type === 'tool_end') {
-                    if (currentToolIndex >= 0 && currentToolIndex < tools.length) {
-                      tools[currentToolIndex] = {
-                        ...tools[currentToolIndex],
+                    const toolIndex = tools.findIndex(t => t.tool === parsed.tool && t.status === 'running')
+                    if (toolIndex >= 0) {
+                      tools[toolIndex] = {
+                        ...tools[toolIndex],
                         result: parsed.result,
                         status: parsed.status === 'success' ? 'success' : 'error'
                       }
                       updateAssistant({ tools: [...tools] })
                     }
-                    currentToolIndex = -1
                     continue
                   }
 
@@ -347,7 +281,7 @@ export default function ChatMe() {
                                   const tool = tools[toolIndex]
                                   if (tool) {
                                     return (
-                                      <ToolIndicator
+                                      <ToolRenderer
                                         key={idx}
                                         tool={tool}
                                         isActive={tool.status === 'running'}
