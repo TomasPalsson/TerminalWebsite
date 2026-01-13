@@ -56,31 +56,37 @@ export default function IdeaLibrary() {
   }
 
   return (
-    <div className="flex flex-col min-h-screen bg-black text-white">
+    <div className="flex flex-col h-[calc(100vh-40px)] bg-black text-white">
       {/* Header */}
-      <div className="w-full max-w-6xl px-4 pt-6 mx-auto">
-        <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between px-4 py-3 bg-neutral-900/95 border-b border-neutral-800">
+        <div className="flex items-center gap-3">
+          <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-terminal/10 border border-terminal/30">
+            <Star size={16} className="text-terminal" />
+          </div>
           <div>
-            <h1 className="flex items-center gap-2 font-mono text-sm text-terminal">
-              <Star size={14} />
-              Saved Ideas
-            </h1>
-            <p className="font-mono text-xs text-gray-600 mt-0.5">
-              {ideas.length} {ideas.length === 1 ? 'idea' : 'ideas'} saved
+            <div className="flex items-center gap-2">
+              <span className="font-mono text-sm text-white">saved ideas</span>
+              <span className="font-mono text-xs text-gray-600">—</span>
+              <span className="font-mono text-xs text-gray-500">library</span>
+            </div>
+            <p className="font-mono text-[10px] text-gray-600 mt-0.5">
+              {ideas.length} {ideas.length === 1 ? 'idea' : 'ideas'} in your collection
             </p>
           </div>
+        </div>
+        <div className="flex items-center gap-2">
           <button
-            className="flex items-center gap-2 px-3 py-1.5 font-mono text-xs rounded-lg border border-terminal/30 text-gray-400 hover:text-terminal hover:border-terminal/50 transition"
+            className="flex items-center gap-2 px-3 py-1.5 font-mono text-xs rounded-lg border border-neutral-800 text-gray-400 hover:text-terminal hover:border-terminal/50 transition"
             onClick={() => navigate('/idea-generator')}
           >
-            <ArrowLeft size={12} />
-            Back to generator
+            <Lightbulb size={12} />
+            Generator
           </button>
         </div>
       </div>
 
       {/* Main Content */}
-      <div className="flex-1 w-full max-w-6xl px-4 mx-auto mt-6 pb-8">
+      <div className="flex-1 min-h-0 overflow-y-auto w-full max-w-6xl px-4 mx-auto py-6">
         {ideas.length === 0 ? (
           /* Empty State */
           <div className="flex flex-col items-center justify-center py-20">
@@ -104,7 +110,7 @@ export default function IdeaLibrary() {
           </div>
         ) : (
           /* Two Panel Layout */
-          <div className="flex gap-4 h-[calc(100vh-140px)]">
+          <div className="flex gap-4 h-full">
             {/* Sidebar */}
             <div className="w-72 shrink-0">
               <div className="relative h-full">

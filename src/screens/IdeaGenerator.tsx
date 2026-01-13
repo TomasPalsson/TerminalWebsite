@@ -132,36 +132,45 @@ export default function IdeaGenerator() {
   }
 
   return (
-    <div className="flex flex-col min-h-screen bg-black text-white">
+    <div className="flex flex-col h-[calc(100vh-40px)] bg-black text-white">
       {/* Header */}
-      <div className="w-full max-w-4xl px-4 pt-6 mx-auto">
-        <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between px-4 py-3 bg-neutral-900/95 border-b border-neutral-800">
+        <div className="flex items-center gap-3">
+          <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-terminal/10 border border-terminal/30">
+            <Lightbulb size={16} className="text-terminal" />
+          </div>
           <div>
-            <h1 className="flex items-center gap-2 font-mono text-sm text-terminal">
-              <Lightbulb size={14} />
-              Idea Generator
-            </h1>
-            <p className="font-mono text-xs text-gray-600 mt-0.5">
-              AI-powered project inspiration
+            <div className="flex items-center gap-2">
+              <span className="font-mono text-sm text-white">idea generator</span>
+              <span className="font-mono text-xs text-gray-600">—</span>
+              <span className="font-mono text-xs text-gray-500">ai-powered</span>
+            </div>
+            <p className="font-mono text-[10px] text-gray-600 mt-0.5">
+              Get project inspiration tailored to your interests
             </p>
           </div>
+        </div>
+        <div className="flex items-center gap-2">
           <button
-            className="flex items-center gap-2 px-3 py-1.5 font-mono text-xs rounded-lg border border-terminal/30 text-gray-400 hover:text-terminal hover:border-terminal/50 transition"
+            className="flex items-center gap-2 px-3 py-1.5 font-mono text-xs rounded-lg border border-neutral-800 text-gray-400 hover:text-terminal hover:border-terminal/50 transition"
             onClick={() => navigate('/ideas')}
           >
             <Star size={12} />
-            Saved ideas
+            Saved
             {favorites.length > 0 && (
               <span className="px-1.5 py-0.5 rounded-full bg-terminal/20 text-terminal text-[10px]">
                 {favorites.length}
               </span>
             )}
           </button>
+          <span className="px-2 py-0.5 font-mono text-[10px] rounded bg-terminal/10 text-terminal border border-terminal/20">
+            bedrock
+          </span>
         </div>
       </div>
 
       {/* Main Content */}
-      <div className="flex-1 w-full max-w-4xl px-4 mx-auto mt-8 pb-8">
+      <div className="flex-1 min-h-0 overflow-y-auto w-full max-w-4xl px-4 mx-auto py-8">
         {/* Input Section */}
         <div className="relative">
           {/* Glow effect */}

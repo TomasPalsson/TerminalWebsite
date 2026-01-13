@@ -34,17 +34,20 @@ export default function ChatMe() {
   const lastMessageCount = useRef(0)
 
   useEffect(() => {
-    if (messages.length !== lastMessageCount.current) {
-      lastMessageCount.current = messages.length
-      scrollRef.current?.scrollTo({
-        top: scrollRef.current.scrollHeight,
-        behavior: 'smooth',
-      })
-    } else {
-      scrollRef.current?.scrollTo({
-        top: scrollRef.current.scrollHeight,
-      })
-    }
+    // Use requestAnimationFrame to ensure DOM has updated
+    requestAnimationFrame(() => {
+      if (scrollRef.current) {
+        if (messages.length !== lastMessageCount.current) {
+          lastMessageCount.current = messages.length
+          scrollRef.current.scrollTo({
+            top: scrollRef.current.scrollHeight,
+            behavior: 'smooth',
+          })
+        } else {
+          scrollRef.current.scrollTop = scrollRef.current.scrollHeight
+        }
+      }
+    })
   }, [messages])
 
   useEffect(() => {
@@ -380,7 +383,7 @@ export default function ChatMe() {
       </div>
 
       {/* Input Area */}
-      <div className="px-4 py-3 bg-neutral-900/80 border-t border-neutral-800">
+      <div className="px-4 pt-3 pb-5">
         <div className="max-w-3xl mx-auto">
           <form
             onSubmit={(e: FormEvent) => {
@@ -388,7 +391,7 @@ export default function ChatMe() {
               send()
             }}
           >
-            <div className="flex items-end gap-2 p-2 rounded-lg bg-black border border-neutral-800 focus-within:border-terminal/50 transition">
+            <div className="flex items-end gap-2 p-2 rounded-lg border border-neutral-800 focus-within:border-terminal/50 transition">
               <textarea
                 ref={inputRef}
                 value={input}
@@ -417,7 +420,7 @@ export default function ChatMe() {
       </div>
 
       {/* Status Bar */}
-      <div className="flex items-center justify-between px-4 py-1.5 bg-neutral-900/80 border-t border-neutral-800 text-[10px] font-mono">
+      <div className="flex items-center justify-between px-4 py-1.5 border-t border-neutral-800 text-[10px] font-mono">
         <div className="flex items-center gap-4">
           <span className="text-gray-600">{messageCount} messages</span>
           {isTyping && (

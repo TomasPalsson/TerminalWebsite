@@ -110,6 +110,12 @@ function TerminalContent() {
           </div>
         </div>
         <div className="flex items-center gap-2">
+          <a
+            href="/blob"
+            className="flex items-center gap-1.5 px-2 py-1 font-mono text-[10px] rounded border border-neutral-800 text-gray-500 hover:text-terminal hover:border-terminal/50 transition"
+          >
+            3D Mode
+          </a>
           <span className="px-2 py-0.5 font-mono text-[10px] rounded bg-terminal/10 text-terminal border border-terminal/20">
             zsh
           </span>

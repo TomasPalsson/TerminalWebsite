@@ -51,6 +51,18 @@ export const VimCommand: Command = {
   ),
   args: [],
   run: async (args: string[], context: KeyPressContextType) => {
+    // Vim is not supported in 3D terminal mode
+    if (context.headless) {
+      return (
+        <div className="font-mono text-sm">
+          <p className="text-red-400">vim is not available in 3D terminal mode</p>
+          <p className="text-gray-500 mt-1">
+            Switch to <span className="text-terminal">2D Mode</span> to use the vim editor
+          </p>
+        </div>
+      )
+    }
+
     fileSystem.initialize()
 
     const filename = args[0] || null
