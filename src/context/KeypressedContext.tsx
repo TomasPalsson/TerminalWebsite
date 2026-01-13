@@ -1,5 +1,12 @@
 import React, { useState, useEffect, createContext, useRef } from "react";
 
+export type VimEditorConfig = {
+  filename: string | null
+  initialContent: string
+  onSave: (filename: string, content: string) => { success: boolean; error?: string }
+  onClose: () => void
+}
+
 export type KeyPressContextType = {
   text: string
   cursorPos: number
@@ -8,6 +15,9 @@ export type KeyPressContextType = {
   clearText: () => void
   shortcut: string | null
   clearShortcut: () => void
+  // Vim editor overlay state
+  vimEditor: VimEditorConfig | null
+  setVimEditor: React.Dispatch<React.SetStateAction<VimEditorConfig | null>>
 }
 
 export const KeyPressContext = createContext<KeyPressContextType | null>(null);
@@ -23,6 +33,13 @@ export const KeyPressProvider = ({ children, onKeyPress }: KeyPressProviderProps
   const textRef = useRef("");
   const cursorPosRef = useRef(0);
   const [shortcut, setShortcut] = useState<string | null>(null);
+  const [vimEditor, setVimEditor] = useState<VimEditorConfig | null>(null);
+  const vimEditorRef = useRef<VimEditorConfig | null>(null);
+
+  // Keep ref in sync with state
+  useEffect(() => {
+    vimEditorRef.current = vimEditor;
+  }, [vimEditor]);
 
   const clearText = () => {
     setText("");
@@ -34,6 +51,9 @@ export const KeyPressProvider = ({ children, onKeyPress }: KeyPressProviderProps
   const clearShortcut = () => setShortcut(null);
 
   const handleKeyDown = (e: KeyboardEvent) => {
+    // Skip terminal key handling when vim editor is active
+    if (vimEditorRef.current) return;
+
     if (e.code === "Space") {
       e.preventDefault();
     }
@@ -109,6 +129,9 @@ export const KeyPressProvider = ({ children, onKeyPress }: KeyPressProviderProps
   };
 
   const handlePaste = (e: ClipboardEvent) => {
+    // Skip terminal paste handling when vim editor is active
+    if (vimEditorRef.current) return;
+
     e.preventDefault();
     const pasted = e.clipboardData?.getData("text");
     if (pasted) {
@@ -141,7 +164,7 @@ export const KeyPressProvider = ({ children, onKeyPress }: KeyPressProviderProps
   }, [cursorPos]);
 
   return (
-    <KeyPressContext.Provider value={{ text, setText , clearText, cursorPos, setCursorPos, shortcut, clearShortcut }}>
+    <KeyPressContext.Provider value={{ text, setText, clearText, cursorPos, setCursorPos, shortcut, clearShortcut, vimEditor, setVimEditor }}>
       {children}
     </KeyPressContext.Provider>
   );

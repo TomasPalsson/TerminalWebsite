@@ -1,19 +1,20 @@
-import React, { ReactNode } from "react";
+import React, { ReactNode } from 'react'
 
 interface TerminalOutputProps {
-  output: ReactNode[];
-  prompt: string;
+  output: ReactNode[]
+  prompt: string
 }
 
-export function TerminalOutput({ output, prompt }: TerminalOutputProps) {
+export function TerminalOutput({ output }: TerminalOutputProps) {
   return (
-    <>
+    <div className="space-y-4">
       {output.map((line, i) => (
-        <div key={i}>
-          <span className="font-mono text-lg text-terminal">{prompt}</span>
-          <span className="font-mono text-lg whitespace-pre-wrap">{line}</span>
+        <div key={i} className="group">
+          <div className="font-mono text-sm leading-relaxed">
+            {line}
+          </div>
         </div>
       ))}
-    </>
-  );
+    </div>
+  )
 }

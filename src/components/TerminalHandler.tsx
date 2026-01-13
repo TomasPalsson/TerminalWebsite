@@ -10,12 +10,18 @@ import { commandMap } from "./commands/CommandMap";
 import { useNavigate } from "react-router";
 import { extractText } from "../utils/textExtraction";
 import { loadPersistedColor } from "../utils/colorPersistence";
+import { fileSystem } from "../services/filesystem";
+import { aliasService } from "../services/alias";
+import { envService } from "../services/env";
 import {
   TerminalOutput,
   TerminalPrompt,
   TerminalSuggestions,
   ReverseSearchPrompt,
 } from "./terminal";
+
+// Commands that accept filesystem paths as arguments
+const fsCommands = ['cd', 'ls', 'cat', 'touch', 'mkdir', 'rm', 'rmdir', 'cp', 'mv', 'find', 'grep'];
 
 type Props = {
   onBufferChange?: (lines: string[]) => void;
@@ -43,6 +49,7 @@ const TerminalHandler = ({ onBufferChange, headless = false }: Props) => {
   const [tabState, setTabState] = useState<{ prefix: string; candidates: string[]; index: number } | null>(null);
   const [suggestions, setSuggestions] = useState<string[] | null>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
+  const containerRef = useRef<HTMLElement | null>(null);
   const expandingRef = useRef(false);
   const tabEditRef = useRef(false);
   const colorPersistedRef = useRef(false);
@@ -66,11 +73,17 @@ const TerminalHandler = ({ onBufferChange, headless = false }: Props) => {
       ...split.map((t, idx) => ({ text: t, command: idx === 0 })),
     ]);
 
-    // Check if the content is overflowing and scroll only if necessary
-    const container = bottomRef.current?.parentElement;
-    if (container && container.scrollHeight > container.clientHeight) {
-      bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
-    }
+    // Scroll to bottom after state updates
+    requestAnimationFrame(() => {
+      const container = containerRef.current || bottomRef.current?.closest('.overflow-y-auto');
+      if (container) {
+        containerRef.current = container as HTMLElement;
+        container.scrollTo({
+          top: container.scrollHeight,
+          behavior: 'smooth'
+        });
+      }
+    });
   };
 
   /* inline history expansion (!!, !$, !*) */
@@ -174,6 +187,73 @@ const TerminalHandler = ({ onBufferChange, headless = false }: Props) => {
         clearShortcut();
         return;
       }
+
+      // Check if we should do filesystem completion (command is fs command and has args)
+      const isFsCommand = fsCommands.includes(first);
+      const lastArg = rest[rest.length - 1] || '';
+      const shouldCompletePath = isFsCommand && rest.length > 0;
+
+      if (shouldCompletePath) {
+        // Filesystem path completion
+        fileSystem.initialize();
+        const basePrefix = tabState?.prefix ?? lastArg;
+        let candidates =
+          tabState && tabState.prefix === basePrefix ? tabState.candidates : null;
+
+        if (!candidates) {
+          candidates = fileSystem.getCompletions(basePrefix);
+        }
+
+        if (!candidates.length) {
+          setSuggestions(null);
+          clearShortcut();
+          return;
+        }
+
+        // First tab for this prefix
+        if (!tabState || tabState.prefix !== basePrefix) {
+          const lcp = candidates.reduce((prev, curr) => {
+            let p = prev;
+            while (p && !curr.startsWith(p)) {
+              p = p.slice(0, -1);
+            }
+            return p;
+          }, candidates[0]);
+
+          const completion = lcp && lcp.length > basePrefix.length ? lcp : candidates[0];
+          const newArgs = [...rest.slice(0, -1), completion];
+          const newText = [first, ...newArgs].join(" ");
+          tabEditRef.current = true;
+          setText(newText);
+          setCursorPos(newText.length);
+          setSuggestions(candidates.length > 1 ? candidates : null);
+          setTabState({
+            prefix: basePrefix,
+            candidates,
+            index: candidates.length === 1 ? 0 : -1,
+          });
+          clearShortcut();
+          return;
+        }
+
+        // Subsequent tabs: cycle through candidates
+        const nextIndex =
+          tabState.index === -1
+            ? 0
+            : (tabState.index + 1) % tabState.candidates.length;
+        const completion = tabState.candidates[nextIndex];
+        const newArgs = [...rest.slice(0, -1), completion];
+        const newText = [first, ...newArgs].join(" ");
+        tabEditRef.current = true;
+        setText(newText);
+        setCursorPos(newText.length);
+        setSuggestions(tabState.candidates);
+        setTabState({ ...tabState, index: nextIndex });
+        clearShortcut();
+        return;
+      }
+
+      // Command name completion (original logic)
       const basePrefix = tabState?.prefix ?? first;
       let candidates =
         tabState && tabState.prefix === basePrefix ? tabState.candidates : null;
@@ -302,19 +382,32 @@ const TerminalHandler = ({ onBufferChange, headless = false }: Props) => {
         expandedTokens.push(token);
       });
 
+      // Expand aliases
+      aliasService.initialize();
+      const expandedCommand = aliasService.expand(expandedTokens.join(' '));
+      const aliasExpandedTokens = expandedCommand.split(/\s+/);
+
+      // Expand environment variables in each token
+      envService.initialize();
+      const finalTokens = aliasExpandedTokens.map(token => envService.expand(token));
+
       if (expansionError) {
         pushLine(
-          <span key={crypto.randomUUID()} className="font-mono text-lg">
-            <span className="font-bold text-terminal">{cmd}</span>
-            <br />
-            {expansionError}
-          </span>
+          <div key={crypto.randomUUID()} className="mb-4">
+            <div className="flex items-center gap-2 mb-2">
+              <span className="text-terminal">❯</span>
+              <span className="font-medium text-white">{cmd}</span>
+            </div>
+            <div className="ml-4">
+              {expansionError}
+            </div>
+          </div>
         );
         clearText();
         return;
       }
 
-      const [base, ...args] = expandedTokens;
+      const [base, ...args] = finalTokens;
       const command = commandMap.get(base);
 
       if (base === "clear") {
@@ -340,40 +433,46 @@ const TerminalHandler = ({ onBufferChange, headless = false }: Props) => {
         if (command.name === "exit") setTimeout(() => navigate("/"), 1000);
         if (result) {
           pushLine(
-            <span key={crypto.randomUUID()} className="font-mono text-lg">
-              <span className="font-bold text-terminal">{base}</span>
-              <span className="text-white">
-                {args.length ? " " + args.join(" ") : ""}
-              </span>
-              <br />
-              {result}
-            </span>
+            <div key={crypto.randomUUID()} className="mb-4">
+              <div className="flex items-center gap-2 mb-2">
+                <span className="text-terminal">❯</span>
+                <span className="font-medium text-white">{base}</span>
+                {args.length > 0 && (
+                  <span className="text-gray-500">{args.join(" ")}</span>
+                )}
+              </div>
+              <div className="ml-4">
+                {result}
+              </div>
+            </div>
           );
         }
-        setLastCommandTokens(expandedTokens);
+        setLastCommandTokens(finalTokens);
         setCommandHistory((prev) => {
           const next = [...prev, expandedTokens.join(" ")];
           return next.slice(-50);
         });
       } else {
         pushLine(
-          <span key={crypto.randomUUID()} className="font-mono text-lg">
-            <span className="font-bold text-terminal">{base}</span>
-            <span className="text-white">
-              {args.length ? " " + args.join(" ") : ""}
-            </span>
-            <br />
-            <span>
-              Command not found: <span className="text-red-600">{cmd}</span>
-            </span>
-            <br />
-            <span>
-              Type <span className="text-orange-500">help</span> to see all
-              available commands
-            </span>
-          </span>
+          <div key={crypto.randomUUID()} className="mb-4">
+            <div className="flex items-center gap-2 mb-2">
+              <span className="text-terminal">❯</span>
+              <span className="font-medium text-white">{base}</span>
+              {args.length > 0 && (
+                <span className="text-gray-500">{args.join(" ")}</span>
+              )}
+            </div>
+            <div className="ml-4">
+              <p className="text-red-400">
+                Command not found: <span className="font-medium">{cmd}</span>
+              </p>
+              <p className="text-gray-500 text-sm mt-1">
+                Type <span className="text-terminal">help</span> to see available commands
+              </p>
+            </div>
+          </div>
         );
-        setLastCommandTokens(expandedTokens);
+        setLastCommandTokens(finalTokens);
         setCommandHistory((prev) => {
           const next = [...prev, expandedTokens.join(" ")];
           return next.slice(-50);
@@ -404,10 +503,16 @@ const TerminalHandler = ({ onBufferChange, headless = false }: Props) => {
 
   /* Ensure scrolling when output changes */
   useEffect(() => {
-    const container = bottomRef.current?.parentElement;
-    if (container && container.scrollHeight > container.clientHeight) {
-      bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
-    }
+    requestAnimationFrame(() => {
+      const container = containerRef.current || bottomRef.current?.closest('.overflow-y-auto');
+      if (container) {
+        containerRef.current = container as HTMLElement;
+        container.scrollTo({
+          top: container.scrollHeight,
+          behavior: 'smooth'
+        });
+      }
+    });
   }, [output]);
 
   if (searchMode) {
@@ -419,7 +524,7 @@ const TerminalHandler = ({ onBufferChange, headless = false }: Props) => {
       <>
         <TerminalOutput output={output} prompt={PROMPT} />
         <ReverseSearchPrompt query={query} matchedCommand={match ?? null} />
-        <div ref={bottomRef} />
+        <div ref={bottomRef} className="h-8" />
       </>
     );
   }
@@ -429,7 +534,7 @@ const TerminalHandler = ({ onBufferChange, headless = false }: Props) => {
       <TerminalOutput output={output} prompt={PROMPT} />
       <TerminalPrompt prompt={PROMPT} text={text} cursorPos={cursorPos} />
       <TerminalSuggestions suggestions={suggestions} />
-      <div ref={bottomRef} />
+      <div ref={bottomRef} className="h-8" />
     </>
   );
 };
