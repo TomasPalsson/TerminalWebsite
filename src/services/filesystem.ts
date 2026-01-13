@@ -16,85 +16,135 @@ const STORAGE_KEY = 'terminal-fs'
 const SCHEMA_VERSION = 1
 
 /**
+ * Helper to build filesystem from simple declarations.
+ */
+class FileSystemBuilder {
+  private root: FileSystemNode
+  private now = Date.now()
+
+  constructor() {
+    this.root = {
+      type: 'directory',
+      name: '',
+      children: {},
+      createdAt: this.now,
+      modifiedAt: this.now,
+    }
+  }
+
+  /**
+   * Create a directory (and all parent directories).
+   * Example: dir('/home/user/projects')
+   */
+  dir(path: string): this {
+    const parts = path.split('/').filter(Boolean)
+    let current = this.root
+
+    for (const part of parts) {
+      if (!current.children) current.children = {}
+      if (!current.children[part]) {
+        current.children[part] = {
+          type: 'directory',
+          name: part,
+          children: {},
+          createdAt: this.now,
+          modifiedAt: this.now,
+        }
+      }
+      current = current.children[part]
+    }
+    return this
+  }
+
+  /**
+   * Create a file with content (creates parent directories too).
+   * Example: file('/home/user/.zshrc', 'export EDITOR=vim')
+   */
+  file(path: string, content: string): this {
+    const parts = path.split('/').filter(Boolean)
+    const fileName = parts.pop()!
+
+    // Create parent directories
+    if (parts.length > 0) {
+      this.dir('/' + parts.join('/'))
+    }
+
+    // Navigate to parent
+    let current = this.root
+    for (const part of parts) {
+      current = current.children![part]
+    }
+
+    // Create file
+    if (!current.children) current.children = {}
+    current.children[fileName] = {
+      type: 'file',
+      name: fileName,
+      content,
+      createdAt: this.now,
+      modifiedAt: this.now,
+    }
+    return this
+  }
+
+  build(): FileSystemNode {
+    return this.root
+  }
+}
+
+/**
  * Creates the default filesystem structure.
+ *
+ * To add new directories: .dir('/path/to/folder')
+ * To add new files: .file('/path/to/file.txt', 'content here')
  */
 function createDefaultFileSystem(): FileSystemNode {
-  const now = Date.now()
-  return {
-    type: 'directory',
-    name: '',
-    children: {
-      home: {
-        type: 'directory',
-        name: 'home',
-        children: {
-          user: {
-            type: 'directory',
-            name: 'user',
-            children: {
-              projects: {
-                type: 'directory',
-                name: 'projects',
-                children: {
-                  portfolio: {
-                    type: 'directory',
-                    name: 'portfolio',
-                    children: {
-                      'README.md': {
-                        type: 'file',
-                        name: 'README.md',
-                        content: '# Portfolio\n\nWelcome to my portfolio project.\n',
-                        createdAt: now,
-                        modifiedAt: now,
-                      },
-                    },
-                    createdAt: now,
-                    modifiedAt: now,
-                  },
-                },
-                createdAt: now,
-                modifiedAt: now,
-              },
-              documents: {
-                type: 'directory',
-                name: 'documents',
-                children: {},
-                createdAt: now,
-                modifiedAt: now,
-              },
-              '.zshrc': {
-                type: 'file',
-                name: '.zshrc',
-                content: '# Zsh configuration\nexport PS1="user@terminal $ "\nexport EDITOR="vim"\nexport TERM="xterm-256color"\n',
-                createdAt: now,
-                modifiedAt: now,
-              },
-            },
-            createdAt: now,
-            modifiedAt: now,
-          },
-        },
-        createdAt: now,
-        modifiedAt: now,
-      },
-      etc: {
-        type: 'directory',
-        name: 'etc',
-        children: {},
-        createdAt: now,
-        modifiedAt: now,
-      },
-      tmp: {
-        type: 'directory',
-        name: 'tmp',
-        children: {},
-        createdAt: now,
-        modifiedAt: now,
-      },
-    },
-    createdAt: now,
-    modifiedAt: now,
-  }
+  return new FileSystemBuilder()
+    // Directories
+    .dir('/home/user/projects')
+    .dir('/home/user/documents')
+    .dir('/etc')
+    .dir('/tmp')
+
+    // Files
+    .file('/home/user/.zshrc', `# Zsh configuration
+export PS1="user@terminal $ "
+export EDITOR="vim"
+export TERM="xterm-256color"
+`)
+    .file('/home/user/projects/README.md', `# Projects
+
+A collection of things I've built.
+
+## Canvas App
+AI-powered LMS client built with Flutter.
+Helps students manage assignments and deadlines.
+
+## Language Compiler
+A compiler written in Rust that compiles a custom
+language down to machine code. Includes lexer,
+parser, and code generator.
+
+## Terminal Portfolio
+You're looking at it! A terminal-themed portfolio
+with vim, git, and a mock filesystem.
+`)
+    .file('/home/user/projects/hello.py', `#!/usr/bin/env python3
+"""A simple Python script."""
+
+def greet(name: str) -> str:
+    return f"Hello, {name}!"
+
+if __name__ == "__main__":
+    print(greet("World"))
+    print("Welcome to my terminal portfolio!")
+`)
+    .file('/etc/passwd', `# Why are you looking here? ;)
+root:x:0:0:root:/root:/bin/bash
+user:x:1000:1000:Tómas:/home/user:/bin/zsh
+guest:x:1001:1001:Guest User:/home/guest:/bin/false
+`)
+    .build()
 }
 
 /**
