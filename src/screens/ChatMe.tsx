@@ -222,9 +222,9 @@ export default function ChatMe() {
   const messageCount = messages.length
 
   return (
-    <div className="flex flex-col h-screen bg-black text-white">
+    <div className="flex flex-col h-[calc(100vh-40px)] bg-black text-white">
       {/* Header */}
-      <div className="fixed top-0 inset-x-0 z-10 flex items-center justify-between px-4 py-3 bg-neutral-900/95 backdrop-blur-sm border-b border-neutral-800">
+      <div className="flex items-center justify-between px-4 py-3 bg-neutral-900/95 border-b border-neutral-800">
         <div className="flex items-center gap-3">
           <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-terminal/10 border border-terminal/30">
             <MessageSquare size={16} className="text-terminal" />
@@ -250,7 +250,7 @@ export default function ChatMe() {
       {/* Messages */}
       <div
         ref={scrollRef}
-        className="flex-1 min-h-0 overflow-y-auto px-4 pt-20 pb-32"
+        className="flex-1 min-h-0 overflow-y-auto px-4 pt-4 pb-4"
         style={{ scrollbarWidth: 'thin', scrollbarColor: '#22c55e20 transparent' }}
       >
         <div className="max-w-3xl mx-auto">
@@ -380,58 +380,56 @@ export default function ChatMe() {
       </div>
 
       {/* Input Area */}
-      <div className="fixed inset-x-0 bottom-0">
-        <div className="bg-gradient-to-t from-black via-black to-transparent pt-8">
-          <div className="max-w-3xl mx-auto px-4 pb-4">
-            <form
-              onSubmit={(e: FormEvent) => {
-                e.preventDefault()
-                send()
-              }}
-            >
-              <div className="flex items-end gap-2 p-2 rounded-lg bg-neutral-900 border border-neutral-800 focus-within:border-terminal/50 transition">
-                <textarea
-                  ref={inputRef}
-                  value={input}
-                  onChange={(e) => setInput(e.target.value)}
-                  onKeyDown={(e: KeyboardEvent) => {
-                    if (e.key === 'Enter' && !e.shiftKey) {
-                      e.preventDefault()
-                      send()
-                    }
-                  }}
-                  rows={1}
-                  placeholder="Type a message..."
-                  className="flex-1 py-2 px-2 overflow-hidden font-mono text-sm bg-transparent outline-none resize-none placeholder-gray-600 text-white leading-relaxed max-h-32"
-                  style={{ minHeight: '40px' }}
-                />
-                <button
-                  type="submit"
-                  disabled={!input.trim() || isTyping}
-                  className="flex items-center justify-center w-9 h-9 text-terminal rounded-lg hover:bg-terminal/10 active:scale-95 disabled:opacity-30 disabled:cursor-not-allowed transition"
-                >
-                  <Send size={16} />
-                </button>
-              </div>
-            </form>
-          </div>
+      <div className="px-4 py-3 bg-neutral-900/80 border-t border-neutral-800">
+        <div className="max-w-3xl mx-auto">
+          <form
+            onSubmit={(e: FormEvent) => {
+              e.preventDefault()
+              send()
+            }}
+          >
+            <div className="flex items-end gap-2 p-2 rounded-lg bg-black border border-neutral-800 focus-within:border-terminal/50 transition">
+              <textarea
+                ref={inputRef}
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                onKeyDown={(e: KeyboardEvent) => {
+                  if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault()
+                    send()
+                  }
+                }}
+                rows={1}
+                placeholder="Type a message..."
+                className="flex-1 py-2 px-2 overflow-hidden font-mono text-sm bg-transparent outline-none resize-none placeholder-gray-600 text-white leading-relaxed max-h-32"
+                style={{ minHeight: '40px' }}
+              />
+              <button
+                type="submit"
+                disabled={!input.trim() || isTyping}
+                className="flex items-center justify-center w-9 h-9 text-terminal rounded-lg hover:bg-terminal/10 active:scale-95 disabled:opacity-30 disabled:cursor-not-allowed transition"
+              >
+                <Send size={16} />
+              </button>
+            </div>
+          </form>
         </div>
+      </div>
 
-        {/* Status Bar */}
-        <div className="flex items-center justify-between px-4 py-1.5 bg-neutral-900/80 border-t border-neutral-800 text-[10px] font-mono">
-          <div className="flex items-center gap-4">
-            <span className="text-gray-600">{messageCount} messages</span>
-            {isTyping && (
-              <span className="flex items-center gap-1.5 text-terminal">
-                <Zap size={10} />
-                streaming
-              </span>
-            )}
-          </div>
-          <div className="flex items-center gap-4">
-            <span className="text-gray-600">tomasp.me</span>
-            <span className="text-terminal">●</span>
-          </div>
+      {/* Status Bar */}
+      <div className="flex items-center justify-between px-4 py-1.5 bg-neutral-900/80 border-t border-neutral-800 text-[10px] font-mono">
+        <div className="flex items-center gap-4">
+          <span className="text-gray-600">{messageCount} messages</span>
+          {isTyping && (
+            <span className="flex items-center gap-1.5 text-terminal">
+              <Zap size={10} />
+              streaming
+            </span>
+          )}
+        </div>
+        <div className="flex items-center gap-4">
+          <span className="text-gray-600">tomasp.me</span>
+          <span className="text-terminal">●</span>
         </div>
       </div>
     </div>
