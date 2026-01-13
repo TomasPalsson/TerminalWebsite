@@ -1,63 +1,71 @@
-import React from "react";
-import { Command } from "./Command";
-import { KeyPressContextType } from "../../context/KeypressedContext";
+import React from 'react'
+import { Command } from './Command'
+import { KeyPressContextType } from '../../context/KeypressedContext'
+import { Calculator, Equal } from 'lucide-react'
 
 const calculate = (expression: string): number | null => {
   try {
-    // Remove any whitespace
-    const cleanExpr = expression.replace(/\s+/g, '');
-    
-    // Basic validation - only allow numbers and basic operators
+    const cleanExpr = expression.replace(/\s+/g, '')
     if (!/^[0-9+\-*/().]+$/.test(cleanExpr)) {
-      return null;
+      return null
     }
-    
-    // Use Function constructor to safely evaluate the expression
-    // This is safer than eval() but still needs the validation above
-    return new Function(`return ${cleanExpr}`)();
-  } catch (error) {
-    return null;
+    return new Function(`return ${cleanExpr}`)()
+  } catch {
+    return null
   }
-};
+}
 
 export const CalcCommand: Command = {
-  name: "calc",
-  description: "perform basic arithmetic calculations",
+  name: 'calc',
+  description: 'Perform basic arithmetic calculations',
   usage: (
-    <>
-      <p className="font-bold text-terminal">Usage:</p>
-      <p>calc [expression]</p>
-      <br />
-      <p className="font-bold text-terminal">Description:</p>
-      <p>Perform basic arithmetic calculations</p>
-    </>
+    <div className="font-mono text-sm">
+      <p className="text-terminal mb-2">Usage:</p>
+      <p className="text-gray-400 mb-3">calc [expression]</p>
+      <p className="text-terminal mb-2">Supported:</p>
+      <div className="flex flex-wrap gap-2">
+        {['+', '-', '*', '/', '(', ')'].map((op) => (
+          <span key={op} className="px-2 py-1 rounded bg-neutral-900 border border-neutral-800 text-gray-400">
+            {op}
+          </span>
+        ))}
+      </div>
+    </div>
   ),
   args: [],
   run: async (args: string[], context: KeyPressContextType) => {
-    if (!args) {
+    if (!args || args.length === 0) {
       return (
-        <p className="text-red-500">
-          Usage: calc [expression]<br/>
-          Example: calc 2 + 2<br/>
-          Supported operations: +, -, *, /, ( )
-        </p>
-      );
+        <div className="font-mono text-sm">
+          <p className="text-red-400">No expression provided</p>
+          <p className="text-gray-500 mt-1">
+            Example: <span className="text-terminal">calc 2 + 2 * 3</span>
+          </p>
+        </div>
+      )
     }
 
-    const result = calculate(args.join(" "));
-    
+    const expression = args.join(' ')
+    const result = calculate(expression)
+
     if (result === null) {
       return (
-        <p className="text-red-500">
-          Invalid expression. Please use only numbers and basic operators (+, -, *, /, ( ))
-        </p>
-      );
+        <div className="font-mono text-sm">
+          <p className="text-red-400">Invalid expression</p>
+          <p className="text-gray-500 mt-1">Use only numbers and operators: +, -, *, /, (, )</p>
+        </div>
+      )
     }
 
     return (
-      <p>
-        <span className="text-terminal">{"> "}{result}</span>
-      </p>
-    );
+      <div className="font-mono text-sm">
+        <div className="inline-flex items-center gap-3 px-4 py-3 rounded-lg bg-neutral-900/50 border border-neutral-800">
+          <Calculator size={16} className="text-terminal" />
+          <span className="text-gray-400">{expression}</span>
+          <Equal size={14} className="text-gray-600" />
+          <span className="text-terminal font-medium text-base">{result}</span>
+        </div>
+      </div>
+    )
   }
-};
+}

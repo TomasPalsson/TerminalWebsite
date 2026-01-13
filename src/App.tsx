@@ -82,35 +82,35 @@ function App() {
         </div>
 
         {/* Content */}
-        <div className="relative z-10 text-center">
-          {/* Terminal-style container */}
-          <div className="inline-block">
-            {/* Top decoration */}
-            <div className="flex items-center justify-center gap-2 mb-4">
-              <span className="w-12 h-px bg-gradient-to-r from-transparent to-terminal/50" />
-              <span className="font-mono text-xs text-terminal/60 tracking-widest">WELCOME</span>
-              <span className="w-12 h-px bg-gradient-to-l from-transparent to-terminal/50" />
-            </div>
+        <div className="relative z-10 w-full max-w-4xl mx-auto">
+          {/* Top decoration */}
+          <div className="flex items-center justify-center gap-2 mb-4">
+            <span className="w-12 h-px bg-gradient-to-r from-transparent to-terminal/50" />
+            <span className="font-mono text-xs text-terminal/60 tracking-widest">WELCOME</span>
+            <span className="w-12 h-px bg-gradient-to-l from-transparent to-terminal/50" />
+          </div>
 
-            {/* Name */}
+          {/* Name - invisible spacer on left balances cursor on right */}
+          <div className="flex justify-center items-center mb-3">
+            <span className="text-5xl sm:text-6xl lg:text-7xl opacity-0 select-none">___</span>
             <TypingAnimation
               text="Tómas Ari Pálsson"
               speed={50}
-              className="font-mono text-5xl sm:text-6xl lg:text-7xl font-bold text-terminal mb-3 tracking-tight"
+              className="font-mono text-5xl sm:text-6xl lg:text-7xl font-bold text-terminal tracking-tight"
             />
+          </div>
 
-            {/* Tagline */}
-            <div className="flex items-center justify-center gap-3 mb-8">
-              <span className="w-8 h-px bg-neutral-800" />
-              <p className="font-mono text-gray-500 text-sm sm:text-base">
-                <span className="text-terminal/60">//</span> Software Dev
-              </p>
-              <span className="w-8 h-px bg-neutral-800" />
-            </div>
+          {/* Tagline */}
+          <div className="flex items-center justify-center gap-3 mb-8">
+            <span className="w-8 h-px bg-neutral-800" />
+            <p className="font-mono text-gray-500 text-sm sm:text-base">
+              <span className="text-terminal/60">//</span> Software Dev
+            </p>
+            <span className="w-8 h-px bg-neutral-800" />
           </div>
 
           {/* CTA Buttons */}
-          <div className="flex flex-wrap justify-center gap-3">
+          <div className="flex flex-wrap justify-center gap-3 mb-8">
             <MainButton link="/terminal" variant="primary">
               <Terminal size={18} />
               <span>Open Terminal</span>
@@ -119,6 +119,24 @@ function App() {
               <BookOpen size={18} />
               <span>About Me</span>
             </MainButton>
+          </div>
+
+          {/* Social Links */}
+          <div className="flex items-center justify-center gap-4">
+            <a
+              href="https://t0mas.io/github"
+              target="_blank"
+              rel="noreferrer"
+              className="text-gray-600 hover:text-terminal transition"
+            >
+              <Github size={20} />
+            </a>
+            <a
+              href="mailto:tomas@p5.is"
+              className="text-gray-600 hover:text-terminal transition"
+            >
+              <Mail size={20} />
+            </a>
           </div>
         </div>
 

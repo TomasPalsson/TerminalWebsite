@@ -1,7 +1,7 @@
-import React from 'react';
+import React from 'react'
 
-export default function Cursor({cursor = "|"}: {cursor?: string}) {
+export default function Cursor() {
   return (
-    <span className="inline-block h-5 bg-current animate-cursor">{cursor}</span>
-  );
-};
+    <span className="inline-block w-2 h-4 bg-terminal animate-cursor align-middle -mb-0.5" />
+  )
+}
