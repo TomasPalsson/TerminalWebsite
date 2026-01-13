@@ -224,7 +224,7 @@ export default function ChatMe() {
   return (
     <div className="flex flex-col h-screen bg-black text-white">
       {/* Header */}
-      <div className="flex items-center justify-between px-4 py-3 bg-neutral-900/95 border-b border-neutral-800">
+      <div className="fixed top-0 inset-x-0 z-10 flex items-center justify-between px-4 py-3 bg-neutral-900/95 backdrop-blur-sm border-b border-neutral-800">
         <div className="flex items-center gap-3">
           <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-terminal/10 border border-terminal/30">
             <MessageSquare size={16} className="text-terminal" />
@@ -250,7 +250,7 @@ export default function ChatMe() {
       {/* Messages */}
       <div
         ref={scrollRef}
-        className="flex-1 min-h-0 overflow-y-auto px-4 pt-4 pb-32"
+        className="flex-1 min-h-0 overflow-y-auto px-4 pt-20 pb-32"
         style={{ scrollbarWidth: 'thin', scrollbarColor: '#22c55e20 transparent' }}
       >
         <div className="max-w-3xl mx-auto">
