@@ -85,6 +85,10 @@ export default function ChatMe() {
       let buffer = ''
       let firstChunkTime: number | null = null
       let tools: ToolCall[] = []
+      // Track content block index to tool index mapping
+      const blockToToolIndex: Record<number, number> = {}
+      // Accumulate tool input JSON strings
+      const toolInputBuffers: Record<number, string> = {}
 
       // Add placeholder assistant message
       setMessages((m) => [...m, {
@@ -134,72 +138,224 @@ export default function ChatMe() {
               const rawData = trimmed.slice(5).trim()
               if (!rawData || rawData === '[DONE]') continue
 
-              // Data comes as a quoted JSON string - use JSON.parse to properly decode it
-              let data: string
-              try {
-                // First parse: decode the outer string wrapper
-                data = JSON.parse(rawData)
-              } catch {
-                // Not a quoted string, use as-is
-                data = rawData
+              // Filter Python repr strings (Strands agent objects)
+              if (rawData.includes('<strands.') || rawData.includes('object at 0x')) {
+                continue
               }
 
-              // Now check if the decoded data is a JSON object
-              if (typeof data === 'string' && data.startsWith('{')) {
-                try {
-                  const parsed = JSON.parse(data)
+              // Parse JSON - all Strands events are JSON
+              let parsed: Record<string, unknown>
+              try {
+                parsed = JSON.parse(rawData)
+              } catch {
+                // Not valid JSON, skip
+                continue
+              }
 
-                  // Skip session ID
-                  if (parsed.sessionId) continue
+              // Handle control events (skip them)
+              if (parsed.init_event_loop || parsed.start || parsed.start_event_loop ||
+                  parsed.end_event_loop || parsed.complete) {
+                continue
+              }
 
-                  // Handle done
-                  if (parsed.done) {
-                    done = true
+              // Skip session ID and done
+              if (parsed.sessionId) continue
+              if (parsed.done) {
+                done = true
+                continue
+              }
+
+              // Handle legacy tool_start format (backward compatibility)
+              // Skip if tool already exists from Strands events (avoid duplicates)
+              if (parsed.type === 'tool_start') {
+                const toolName = parsed.tool as string
+                const existingTool = tools.find(t => t.tool === toolName)
+                if (!existingTool) {
+                  const newTool: ToolCall = {
+                    tool: toolName,
+                    input: parsed.input as Record<string, unknown>,
+                    status: 'running'
+                  }
+                  tools = [...tools, newTool]
+                  assistantContent += `\n::tool::${tools.length - 1}::\n`
+                  updateAssistant({ content: assistantContent, tools: [...tools] })
+                }
+                continue
+              }
+
+              // Handle legacy tool_end format (backward compatibility)
+              // Find tool by name (may or may not have toolUseId from Strands events)
+              if (parsed.type === 'tool_end') {
+                const toolName = parsed.tool as string
+                const toolIndex = tools.findIndex(t => t.tool === toolName && t.status === 'running')
+                if (toolIndex >= 0) {
+                  tools[toolIndex] = {
+                    ...tools[toolIndex],
+                    result: parsed.result as string,
+                    status: parsed.status === 'success' ? 'success' : 'error'
+                  }
+                  updateAssistant({ tools: [...tools] })
+                }
+                continue
+              }
+
+              // Handle Strands event wrapper
+              if (parsed.event && typeof parsed.event === 'object') {
+                const event = parsed.event as Record<string, unknown>
+
+                // Text content from contentBlockDelta
+                const contentBlockDelta = event.contentBlockDelta as Record<string, unknown> | undefined
+                if (contentBlockDelta?.delta && typeof contentBlockDelta.delta === 'object') {
+                  const delta = contentBlockDelta.delta as Record<string, unknown>
+                  if (typeof delta.text === 'string') {
+                    if (firstChunkTime === null) {
+                      firstChunkTime = performance.now()
+                    }
+                    assistantContent += delta.text
+                    updateAssistant({ content: assistantContent })
                     continue
                   }
+                }
 
-                  // Handle tool_start
-                  if (parsed.type === 'tool_start') {
+                // Tool start from contentBlockStart
+                const contentBlockStart = event.contentBlockStart as Record<string, unknown> | undefined
+                if (contentBlockStart && typeof contentBlockStart === 'object') {
+                  const blockIndex = contentBlockStart.contentBlockIndex as number
+                  const start = contentBlockStart.start as Record<string, unknown> | undefined
+
+                  // Handle toolUse start
+                  if (start?.toolUse && typeof start.toolUse === 'object') {
+                    const toolUse = start.toolUse as Record<string, unknown>
                     const newTool: ToolCall = {
-                      tool: parsed.tool,
-                      input: parsed.input,
-                      status: 'running'
+                      tool: (toolUse.name as string) || 'unknown',
+                      input: {},
+                      status: 'running',
+                      toolUseId: toolUse.toolUseId as string
                     }
                     tools = [...tools, newTool]
+                    blockToToolIndex[blockIndex] = tools.length - 1
+                    toolInputBuffers[blockIndex] = ''
                     assistantContent += `\n::tool::${tools.length - 1}::\n`
                     updateAssistant({ content: assistantContent, tools: [...tools] })
                     continue
                   }
 
-                  // Handle tool_end - find tool by name since tools can complete out of order
-                  if (parsed.type === 'tool_end') {
-                    const toolIndex = tools.findIndex(t => t.tool === parsed.tool && t.status === 'running')
+                  // Handle toolResult start
+                  if (start?.toolResult && typeof start.toolResult === 'object') {
+                    const toolResult = start.toolResult as Record<string, unknown>
+                    const toolUseId = toolResult.toolUseId as string
+                    const toolIndex = tools.findIndex(t => t.toolUseId === toolUseId)
                     if (toolIndex >= 0) {
-                      tools[toolIndex] = {
-                        ...tools[toolIndex],
-                        result: parsed.result,
-                        status: parsed.status === 'success' ? 'success' : 'error'
-                      }
-                      updateAssistant({ tools: [...tools] })
+                      blockToToolIndex[blockIndex] = toolIndex
+                      toolInputBuffers[blockIndex] = '' // Reuse for result accumulation
+                    }
+                    continue
+                  }
+                }
+
+                // Tool input/result delta from contentBlockDelta
+                if (contentBlockDelta && typeof contentBlockDelta === 'object') {
+                  const blockIndex = contentBlockDelta.contentBlockIndex as number
+                  const delta = contentBlockDelta.delta as Record<string, unknown> | undefined
+
+                  // Accumulate tool input
+                  if (delta?.toolUse && typeof delta.toolUse === 'object') {
+                    const toolUseDelta = delta.toolUse as Record<string, unknown>
+                    if (typeof toolUseDelta.input === 'string') {
+                      toolInputBuffers[blockIndex] = (toolInputBuffers[blockIndex] || '') + toolUseDelta.input
                     }
                     continue
                   }
 
-                  // Some other JSON object, skip it
+                  // Accumulate tool result
+                  if (delta?.toolResult && typeof delta.toolResult === 'object') {
+                    const toolResultDelta = delta.toolResult as Record<string, unknown>
+                    if (typeof toolResultDelta.content === 'string') {
+                      toolInputBuffers[blockIndex] = (toolInputBuffers[blockIndex] || '') + toolResultDelta.content
+                    }
+                    continue
+                  }
+                }
+
+                // Tool end from contentBlockStop
+                const contentBlockStop = event.contentBlockStop as Record<string, unknown> | undefined
+                if (contentBlockStop && typeof contentBlockStop === 'object') {
+                  const blockIndex = contentBlockStop.contentBlockIndex as number
+                  const toolIndex = blockToToolIndex[blockIndex]
+
+                  if (toolIndex !== undefined && tools[toolIndex]) {
+                    const accumulatedData = toolInputBuffers[blockIndex] || ''
+
+                    // Check if this was a toolUse block (parse input) or toolResult block
+                    if (tools[toolIndex].status === 'running' && !tools[toolIndex].result) {
+                      // This is the end of toolUse block - parse accumulated input
+                      if (accumulatedData) {
+                        try {
+                          tools[toolIndex] = {
+                            ...tools[toolIndex],
+                            input: JSON.parse(accumulatedData)
+                          }
+                        } catch {
+                          // Input wasn't valid JSON, keep as empty
+                        }
+                      }
+                    } else {
+                      // This is the end of toolResult block - set the result
+                      tools[toolIndex] = {
+                        ...tools[toolIndex],
+                        result: accumulatedData,
+                        status: 'success'
+                      }
+                    }
+                    updateAssistant({ tools: [...tools] })
+                  }
                   continue
-                } catch {
-                  // Not valid JSON, treat as text
+                }
+
+                // Skip metadata, messageStart, messageStop
+                if (event.metadata || event.messageStart || event.messageStop) {
+                  continue
                 }
               }
 
-              // Regular text content
-              if (typeof data !== 'string' || !data) continue
-
-              if (firstChunkTime === null) {
-                firstChunkTime = performance.now()
+              // Extract tool results from complete message objects
+              if (parsed.message && typeof parsed.message === 'object') {
+                const message = parsed.message as Record<string, unknown>
+                const content = message.content as Array<Record<string, unknown>> | undefined
+                if (Array.isArray(content)) {
+                  for (const block of content) {
+                    // Look for toolResult blocks
+                    if (block.toolResult && typeof block.toolResult === 'object') {
+                      const toolResult = block.toolResult as Record<string, unknown>
+                      const toolUseId = toolResult.toolUseId as string
+                      const toolIndex = tools.findIndex(t => t.toolUseId === toolUseId)
+                      if (toolIndex >= 0 && tools[toolIndex].status === 'running') {
+                        // Extract content from toolResult
+                        let resultContent = ''
+                        const resultContentArray = toolResult.content as Array<Record<string, unknown>> | undefined
+                        if (Array.isArray(resultContentArray)) {
+                          for (const item of resultContentArray) {
+                            if (item.text && typeof item.text === 'string') {
+                              resultContent += item.text
+                            }
+                          }
+                        } else if (typeof toolResult.content === 'string') {
+                          resultContent = toolResult.content
+                        }
+                        if (resultContent) {
+                          tools[toolIndex] = {
+                            ...tools[toolIndex],
+                            result: resultContent,
+                            status: 'success'
+                          }
+                          updateAssistant({ tools: [...tools] })
+                        }
+                      }
+                    }
+                  }
+                }
+                continue
               }
-              assistantContent += data
-              updateAssistant({ content: assistantContent })
             }
           }
         }

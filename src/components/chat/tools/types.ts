@@ -5,6 +5,7 @@ export type ToolCall = {
   input?: Record<string, unknown>
   result?: string
   status?: 'running' | 'success' | 'error'
+  toolUseId?: string
 }
 
 export type ToolRendererProps = {
