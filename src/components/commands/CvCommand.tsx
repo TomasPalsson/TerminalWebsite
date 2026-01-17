@@ -19,7 +19,7 @@ export const CvCommand: Command = {
     return (
       <div className="font-mono text-sm">
         <a
-          href="https://api.tomasp.me/cv"
+          href="https://api.tomas.im/cv"
           target="_blank"
           rel="noopener noreferrer"
           className="inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-terminal/10 border border-terminal/30 text-terminal hover:bg-terminal/20 transition"

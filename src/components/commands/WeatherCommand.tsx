@@ -16,7 +16,7 @@ export const WeatherCommand: Command = {
   args: [],
   run: async (args: string[], context: KeyPressContextType) => {
     try {
-      const response = await fetch('https://api.tomasp.me/weather')
+      const response = await fetch('https://api.tomas.im/weather')
 
       if (!response.ok) {
         throw new Error('Failed to fetch weather')

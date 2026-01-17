@@ -47,7 +47,7 @@ export default function AboutMe() {
             </p>
           </div>
           <a
-            href="https://api.tomasp.me/cv"
+            href="https://api.tomas.im/cv"
             target="_blank"
             rel="noopener noreferrer"
             className="flex items-center gap-2 px-3 py-1.5 font-mono text-xs rounded-lg border border-terminal/30 text-gray-400 hover:text-terminal hover:border-terminal/50 transition"

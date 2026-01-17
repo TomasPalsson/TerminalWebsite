@@ -340,7 +340,7 @@ export default function IdeaGenerator() {
 }
 
 async function generateIdea(idea: string, size: string) {
-  const url = 'https://api.tomasp.me/idea-generator'
+  const url = 'https://api.tomas.im/idea-generator'
   const body = {
     idea: 'Project Size: ' + size.toUpperCase() + '\n' + 'Idea: ' + idea,
   }

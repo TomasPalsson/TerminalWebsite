@@ -16,7 +16,7 @@ export const IpCommand: Command = {
   args: [],
   run: async (args: string[], context: KeyPressContextType) => {
     try {
-      const response = await fetch('https://api.tomasp.me/ip')
+      const response = await fetch('https://api.tomas.im/ip')
       const info = await response.json()
 
       return (
