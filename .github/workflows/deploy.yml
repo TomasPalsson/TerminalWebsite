@@ -30,23 +30,23 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Install SST CLI
-        run: curl -fsSL https://sst.dev/install | bash
-
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
           aws-region: us-east-1
 
+      - name: Clean SST cache
+        run: rm -rf .sst
+
       - name: Deploy to Production
         if: github.ref == 'refs/heads/main'
-        run: ~/.sst/bin/sst deploy --stage production
+        run: npm exec sst deploy -- --stage production
         env:
           AWS_PROFILE: ''
 
       - name: Deploy to Dev
         if: github.ref != 'refs/heads/main'
-        run: ~/.sst/bin/sst deploy --stage dev
+        run: npm exec sst deploy -- --stage dev
         env:
           AWS_PROFILE: ''
