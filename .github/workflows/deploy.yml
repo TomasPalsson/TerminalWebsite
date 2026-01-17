@@ -36,8 +36,10 @@ jobs:
           role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
           aws-region: us-east-1
 
-      - name: Clean SST cache
-        run: rm -rf .sst
+      - name: Clean SST cache and remove global Pulumi
+        run: |
+          rm -rf .sst
+          sudo rm -f /usr/local/bin/pulumi* || true
 
       - name: Deploy to Production
         if: github.ref == 'refs/heads/main'
