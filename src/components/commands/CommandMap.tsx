@@ -30,6 +30,9 @@ import { GrepCommand } from "./fs/GrepCommand";
 import { GitCommand } from "./git/GitCommand";
 // Vim editor
 import { VimCommand } from "./vim/VimCommand";
+// Code execution
+import { NodeCommand } from "./NodeCommand";
+import { PythonCommand } from "./PythonCommand";
 
 export const commandMap = new Map<string, Command>();
 commandMap.set(AliasCommand.name, AliasCommand);
@@ -65,3 +68,6 @@ commandMap.set(GrepCommand.name, GrepCommand);
 commandMap.set(GitCommand.name, GitCommand);
 // Vim editor
 commandMap.set(VimCommand.name, VimCommand);
+// Code execution
+commandMap.set(NodeCommand.name, NodeCommand);
+commandMap.set(PythonCommand.name, PythonCommand);

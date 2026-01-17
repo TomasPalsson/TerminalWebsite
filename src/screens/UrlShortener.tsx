@@ -108,24 +108,33 @@ export default function UrlShortener() {
   const canSubmit = url.trim() && isValidUrl(url.trim()) && !isGenerating && (customSlug === '' || slugAvailable !== false)
 
   return (
-    <div className="flex flex-col min-h-screen bg-black text-white">
+    <div className="flex flex-col h-[calc(100vh-40px)] bg-black text-white">
       {/* Header */}
-      <div className="w-full max-w-4xl px-4 pt-6 mx-auto">
-        <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between px-4 py-3 bg-neutral-900/95 border-b border-neutral-800">
+        <div className="flex items-center gap-3">
+          <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-terminal/10 border border-terminal/30">
+            <Link2 size={16} className="text-terminal" />
+          </div>
           <div>
-            <h1 className="flex items-center gap-2 font-mono text-sm text-terminal">
-              <Link2 size={14} />
-              URL Shortener
-            </h1>
-            <p className="font-mono text-xs text-gray-600 mt-0.5">
+            <div className="flex items-center gap-2">
+              <span className="font-mono text-sm text-white">url shortener</span>
+              <span className="font-mono text-xs text-gray-600">—</span>
+              <span className="font-mono text-xs text-gray-500">t0mas.io</span>
+            </div>
+            <p className="font-mono text-[10px] text-gray-600 mt-0.5">
               Create short, memorable links
             </p>
           </div>
         </div>
+        <div className="flex items-center gap-2">
+          <span className="px-2 py-0.5 font-mono text-[10px] rounded bg-terminal/10 text-terminal border border-terminal/20">
+            api
+          </span>
+        </div>
       </div>
 
       {/* Main Content */}
-      <div className="flex-1 w-full max-w-4xl px-4 mx-auto mt-8 pb-8">
+      <div className="flex-1 min-h-0 overflow-y-auto w-full max-w-4xl px-4 mx-auto py-8">
         {/* Input Section */}
         <div className="relative">
           {/* Glow effect */}

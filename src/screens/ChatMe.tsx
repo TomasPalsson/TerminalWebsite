@@ -34,17 +34,20 @@ export default function ChatMe() {
   const lastMessageCount = useRef(0)
 
   useEffect(() => {
-    if (messages.length !== lastMessageCount.current) {
-      lastMessageCount.current = messages.length
-      scrollRef.current?.scrollTo({
-        top: scrollRef.current.scrollHeight,
-        behavior: 'smooth',
-      })
-    } else {
-      scrollRef.current?.scrollTo({
-        top: scrollRef.current.scrollHeight,
-      })
-    }
+    // Use requestAnimationFrame to ensure DOM has updated
+    requestAnimationFrame(() => {
+      if (scrollRef.current) {
+        if (messages.length !== lastMessageCount.current) {
+          lastMessageCount.current = messages.length
+          scrollRef.current.scrollTo({
+            top: scrollRef.current.scrollHeight,
+            behavior: 'smooth',
+          })
+        } else {
+          scrollRef.current.scrollTop = scrollRef.current.scrollHeight
+        }
+      }
+    })
   }, [messages])
 
   useEffect(() => {
@@ -82,6 +85,10 @@ export default function ChatMe() {
       let buffer = ''
       let firstChunkTime: number | null = null
       let tools: ToolCall[] = []
+      // Track content block index to tool index mapping
+      const blockToToolIndex: Record<number, number> = {}
+      // Accumulate tool input JSON strings
+      const toolInputBuffers: Record<number, string> = {}
 
       // Add placeholder assistant message
       setMessages((m) => [...m, {
@@ -131,72 +138,224 @@ export default function ChatMe() {
               const rawData = trimmed.slice(5).trim()
               if (!rawData || rawData === '[DONE]') continue
 
-              // Data comes as a quoted JSON string - use JSON.parse to properly decode it
-              let data: string
-              try {
-                // First parse: decode the outer string wrapper
-                data = JSON.parse(rawData)
-              } catch {
-                // Not a quoted string, use as-is
-                data = rawData
+              // Filter Python repr strings (Strands agent objects)
+              if (rawData.includes('<strands.') || rawData.includes('object at 0x')) {
+                continue
               }
 
-              // Now check if the decoded data is a JSON object
-              if (typeof data === 'string' && data.startsWith('{')) {
-                try {
-                  const parsed = JSON.parse(data)
+              // Parse JSON - all Strands events are JSON
+              let parsed: Record<string, unknown>
+              try {
+                parsed = JSON.parse(rawData)
+              } catch {
+                // Not valid JSON, skip
+                continue
+              }
 
-                  // Skip session ID
-                  if (parsed.sessionId) continue
+              // Handle control events (skip them)
+              if (parsed.init_event_loop || parsed.start || parsed.start_event_loop ||
+                  parsed.end_event_loop || parsed.complete) {
+                continue
+              }
 
-                  // Handle done
-                  if (parsed.done) {
-                    done = true
+              // Skip session ID and done
+              if (parsed.sessionId) continue
+              if (parsed.done) {
+                done = true
+                continue
+              }
+
+              // Handle legacy tool_start format (backward compatibility)
+              // Skip if tool already exists from Strands events (avoid duplicates)
+              if (parsed.type === 'tool_start') {
+                const toolName = parsed.tool as string
+                const existingTool = tools.find(t => t.tool === toolName)
+                if (!existingTool) {
+                  const newTool: ToolCall = {
+                    tool: toolName,
+                    input: parsed.input as Record<string, unknown>,
+                    status: 'running'
+                  }
+                  tools = [...tools, newTool]
+                  assistantContent += `\n::tool::${tools.length - 1}::\n`
+                  updateAssistant({ content: assistantContent, tools: [...tools] })
+                }
+                continue
+              }
+
+              // Handle legacy tool_end format (backward compatibility)
+              // Find tool by name (may or may not have toolUseId from Strands events)
+              if (parsed.type === 'tool_end') {
+                const toolName = parsed.tool as string
+                const toolIndex = tools.findIndex(t => t.tool === toolName && t.status === 'running')
+                if (toolIndex >= 0) {
+                  tools[toolIndex] = {
+                    ...tools[toolIndex],
+                    result: parsed.result as string,
+                    status: parsed.status === 'success' ? 'success' : 'error'
+                  }
+                  updateAssistant({ tools: [...tools] })
+                }
+                continue
+              }
+
+              // Handle Strands event wrapper
+              if (parsed.event && typeof parsed.event === 'object') {
+                const event = parsed.event as Record<string, unknown>
+
+                // Text content from contentBlockDelta
+                const contentBlockDelta = event.contentBlockDelta as Record<string, unknown> | undefined
+                if (contentBlockDelta?.delta && typeof contentBlockDelta.delta === 'object') {
+                  const delta = contentBlockDelta.delta as Record<string, unknown>
+                  if (typeof delta.text === 'string') {
+                    if (firstChunkTime === null) {
+                      firstChunkTime = performance.now()
+                    }
+                    assistantContent += delta.text
+                    updateAssistant({ content: assistantContent })
                     continue
                   }
+                }
 
-                  // Handle tool_start
-                  if (parsed.type === 'tool_start') {
+                // Tool start from contentBlockStart
+                const contentBlockStart = event.contentBlockStart as Record<string, unknown> | undefined
+                if (contentBlockStart && typeof contentBlockStart === 'object') {
+                  const blockIndex = contentBlockStart.contentBlockIndex as number
+                  const start = contentBlockStart.start as Record<string, unknown> | undefined
+
+                  // Handle toolUse start
+                  if (start?.toolUse && typeof start.toolUse === 'object') {
+                    const toolUse = start.toolUse as Record<string, unknown>
                     const newTool: ToolCall = {
-                      tool: parsed.tool,
-                      input: parsed.input,
-                      status: 'running'
+                      tool: (toolUse.name as string) || 'unknown',
+                      input: {},
+                      status: 'running',
+                      toolUseId: toolUse.toolUseId as string
                     }
                     tools = [...tools, newTool]
+                    blockToToolIndex[blockIndex] = tools.length - 1
+                    toolInputBuffers[blockIndex] = ''
                     assistantContent += `\n::tool::${tools.length - 1}::\n`
                     updateAssistant({ content: assistantContent, tools: [...tools] })
                     continue
                   }
 
-                  // Handle tool_end - find tool by name since tools can complete out of order
-                  if (parsed.type === 'tool_end') {
-                    const toolIndex = tools.findIndex(t => t.tool === parsed.tool && t.status === 'running')
+                  // Handle toolResult start
+                  if (start?.toolResult && typeof start.toolResult === 'object') {
+                    const toolResult = start.toolResult as Record<string, unknown>
+                    const toolUseId = toolResult.toolUseId as string
+                    const toolIndex = tools.findIndex(t => t.toolUseId === toolUseId)
                     if (toolIndex >= 0) {
-                      tools[toolIndex] = {
-                        ...tools[toolIndex],
-                        result: parsed.result,
-                        status: parsed.status === 'success' ? 'success' : 'error'
-                      }
-                      updateAssistant({ tools: [...tools] })
+                      blockToToolIndex[blockIndex] = toolIndex
+                      toolInputBuffers[blockIndex] = '' // Reuse for result accumulation
+                    }
+                    continue
+                  }
+                }
+
+                // Tool input/result delta from contentBlockDelta
+                if (contentBlockDelta && typeof contentBlockDelta === 'object') {
+                  const blockIndex = contentBlockDelta.contentBlockIndex as number
+                  const delta = contentBlockDelta.delta as Record<string, unknown> | undefined
+
+                  // Accumulate tool input
+                  if (delta?.toolUse && typeof delta.toolUse === 'object') {
+                    const toolUseDelta = delta.toolUse as Record<string, unknown>
+                    if (typeof toolUseDelta.input === 'string') {
+                      toolInputBuffers[blockIndex] = (toolInputBuffers[blockIndex] || '') + toolUseDelta.input
                     }
                     continue
                   }
 
-                  // Some other JSON object, skip it
+                  // Accumulate tool result
+                  if (delta?.toolResult && typeof delta.toolResult === 'object') {
+                    const toolResultDelta = delta.toolResult as Record<string, unknown>
+                    if (typeof toolResultDelta.content === 'string') {
+                      toolInputBuffers[blockIndex] = (toolInputBuffers[blockIndex] || '') + toolResultDelta.content
+                    }
+                    continue
+                  }
+                }
+
+                // Tool end from contentBlockStop
+                const contentBlockStop = event.contentBlockStop as Record<string, unknown> | undefined
+                if (contentBlockStop && typeof contentBlockStop === 'object') {
+                  const blockIndex = contentBlockStop.contentBlockIndex as number
+                  const toolIndex = blockToToolIndex[blockIndex]
+
+                  if (toolIndex !== undefined && tools[toolIndex]) {
+                    const accumulatedData = toolInputBuffers[blockIndex] || ''
+
+                    // Check if this was a toolUse block (parse input) or toolResult block
+                    if (tools[toolIndex].status === 'running' && !tools[toolIndex].result) {
+                      // This is the end of toolUse block - parse accumulated input
+                      if (accumulatedData) {
+                        try {
+                          tools[toolIndex] = {
+                            ...tools[toolIndex],
+                            input: JSON.parse(accumulatedData)
+                          }
+                        } catch {
+                          // Input wasn't valid JSON, keep as empty
+                        }
+                      }
+                    } else {
+                      // This is the end of toolResult block - set the result
+                      tools[toolIndex] = {
+                        ...tools[toolIndex],
+                        result: accumulatedData,
+                        status: 'success'
+                      }
+                    }
+                    updateAssistant({ tools: [...tools] })
+                  }
                   continue
-                } catch {
-                  // Not valid JSON, treat as text
+                }
+
+                // Skip metadata, messageStart, messageStop
+                if (event.metadata || event.messageStart || event.messageStop) {
+                  continue
                 }
               }
 
-              // Regular text content
-              if (typeof data !== 'string' || !data) continue
-
-              if (firstChunkTime === null) {
-                firstChunkTime = performance.now()
+              // Extract tool results from complete message objects
+              if (parsed.message && typeof parsed.message === 'object') {
+                const message = parsed.message as Record<string, unknown>
+                const content = message.content as Array<Record<string, unknown>> | undefined
+                if (Array.isArray(content)) {
+                  for (const block of content) {
+                    // Look for toolResult blocks
+                    if (block.toolResult && typeof block.toolResult === 'object') {
+                      const toolResult = block.toolResult as Record<string, unknown>
+                      const toolUseId = toolResult.toolUseId as string
+                      const toolIndex = tools.findIndex(t => t.toolUseId === toolUseId)
+                      if (toolIndex >= 0 && tools[toolIndex].status === 'running') {
+                        // Extract content from toolResult
+                        let resultContent = ''
+                        const resultContentArray = toolResult.content as Array<Record<string, unknown>> | undefined
+                        if (Array.isArray(resultContentArray)) {
+                          for (const item of resultContentArray) {
+                            if (item.text && typeof item.text === 'string') {
+                              resultContent += item.text
+                            }
+                          }
+                        } else if (typeof toolResult.content === 'string') {
+                          resultContent = toolResult.content
+                        }
+                        if (resultContent) {
+                          tools[toolIndex] = {
+                            ...tools[toolIndex],
+                            result: resultContent,
+                            status: 'success'
+                          }
+                          updateAssistant({ tools: [...tools] })
+                        }
+                      }
+                    }
+                  }
+                }
+                continue
               }
-              assistantContent += data
-              updateAssistant({ content: assistantContent })
             }
           }
         }
@@ -222,7 +381,7 @@ export default function ChatMe() {
   const messageCount = messages.length
 
   return (
-    <div className="flex flex-col h-screen bg-black text-white">
+    <div className="flex flex-col h-[calc(100vh-40px)] bg-black text-white">
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-3 bg-neutral-900/95 border-b border-neutral-800">
         <div className="flex items-center gap-3">
@@ -250,7 +409,7 @@ export default function ChatMe() {
       {/* Messages */}
       <div
         ref={scrollRef}
-        className="flex-1 min-h-0 overflow-y-auto px-4 pt-4 pb-32"
+        className="flex-1 min-h-0 overflow-y-auto px-4 pt-4 pb-4"
         style={{ scrollbarWidth: 'thin', scrollbarColor: '#22c55e20 transparent' }}
       >
         <div className="max-w-3xl mx-auto">
@@ -380,58 +539,56 @@ export default function ChatMe() {
       </div>
 
       {/* Input Area */}
-      <div className="fixed inset-x-0 bottom-0">
-        <div className="bg-gradient-to-t from-black via-black to-transparent pt-8">
-          <div className="max-w-3xl mx-auto px-4 pb-4">
-            <form
-              onSubmit={(e: FormEvent) => {
-                e.preventDefault()
-                send()
-              }}
-            >
-              <div className="flex items-end gap-2 p-2 rounded-lg bg-neutral-900 border border-neutral-800 focus-within:border-terminal/50 transition">
-                <textarea
-                  ref={inputRef}
-                  value={input}
-                  onChange={(e) => setInput(e.target.value)}
-                  onKeyDown={(e: KeyboardEvent) => {
-                    if (e.key === 'Enter' && !e.shiftKey) {
-                      e.preventDefault()
-                      send()
-                    }
-                  }}
-                  rows={1}
-                  placeholder="Type a message..."
-                  className="flex-1 py-2 px-2 overflow-hidden font-mono text-sm bg-transparent outline-none resize-none placeholder-gray-600 text-white leading-relaxed max-h-32"
-                  style={{ minHeight: '40px' }}
-                />
-                <button
-                  type="submit"
-                  disabled={!input.trim() || isTyping}
-                  className="flex items-center justify-center w-9 h-9 text-terminal rounded-lg hover:bg-terminal/10 active:scale-95 disabled:opacity-30 disabled:cursor-not-allowed transition"
-                >
-                  <Send size={16} />
-                </button>
-              </div>
-            </form>
-          </div>
+      <div className="px-4 pt-3 pb-5">
+        <div className="max-w-3xl mx-auto">
+          <form
+            onSubmit={(e: FormEvent) => {
+              e.preventDefault()
+              send()
+            }}
+          >
+            <div className="flex items-end gap-2 p-2 rounded-lg border border-neutral-800 focus-within:border-terminal/50 transition">
+              <textarea
+                ref={inputRef}
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                onKeyDown={(e: KeyboardEvent) => {
+                  if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault()
+                    send()
+                  }
+                }}
+                rows={1}
+                placeholder="Type a message..."
+                className="flex-1 py-2 px-2 overflow-hidden font-mono text-sm bg-transparent outline-none resize-none placeholder-gray-600 text-white leading-relaxed max-h-32"
+                style={{ minHeight: '40px' }}
+              />
+              <button
+                type="submit"
+                disabled={!input.trim() || isTyping}
+                className="flex items-center justify-center w-9 h-9 text-terminal rounded-lg hover:bg-terminal/10 active:scale-95 disabled:opacity-30 disabled:cursor-not-allowed transition"
+              >
+                <Send size={16} />
+              </button>
+            </div>
+          </form>
         </div>
+      </div>
 
-        {/* Status Bar */}
-        <div className="flex items-center justify-between px-4 py-1.5 bg-neutral-900/80 border-t border-neutral-800 text-[10px] font-mono">
-          <div className="flex items-center gap-4">
-            <span className="text-gray-600">{messageCount} messages</span>
-            {isTyping && (
-              <span className="flex items-center gap-1.5 text-terminal">
-                <Zap size={10} />
-                streaming
-              </span>
-            )}
-          </div>
-          <div className="flex items-center gap-4">
-            <span className="text-gray-600">tomasp.me</span>
-            <span className="text-terminal">●</span>
-          </div>
+      {/* Status Bar */}
+      <div className="flex items-center justify-between px-4 py-1.5 border-t border-neutral-800 text-[10px] font-mono">
+        <div className="flex items-center gap-4">
+          <span className="text-gray-600">{messageCount} messages</span>
+          {isTyping && (
+            <span className="flex items-center gap-1.5 text-terminal">
+              <Zap size={10} />
+              streaming
+            </span>
+          )}
+        </div>
+        <div className="flex items-center gap-4">
+          <span className="text-gray-600">tomasp.me</span>
+          <span className="text-terminal">●</span>
         </div>
       </div>
     </div>

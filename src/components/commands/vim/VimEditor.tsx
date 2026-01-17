@@ -1,14 +1,103 @@
-import React, { useEffect, useRef, useState, useCallback } from 'react'
+import React, { useEffect, useRef, useState, useCallback, useMemo } from 'react'
 import CodeMirror, { ReactCodeMirrorRef } from '@uiw/react-codemirror'
 import { vim, Vim, getCM } from '@replit/codemirror-vim'
 import { EditorView } from '@codemirror/view'
+import { Extension } from '@codemirror/state'
 import { VimEditorProps, VimMode } from './types'
 
-// Dark theme matching terminal aesthetic
+// Language support imports
+import { python } from '@codemirror/lang-python'
+import { javascript } from '@codemirror/lang-javascript'
+import { json } from '@codemirror/lang-json'
+import { markdown } from '@codemirror/lang-markdown'
+import { html } from '@codemirror/lang-html'
+import { css } from '@codemirror/lang-css'
+import { rust } from '@codemirror/lang-rust'
+import { java } from '@codemirror/lang-java'
+import { cpp } from '@codemirror/lang-cpp'
+
+// Map file extensions to language support
+function getLanguageExtension(filename: string | null): Extension | null {
+  if (!filename) return null
+  const ext = filename.split('.').pop()?.toLowerCase()
+  if (!ext) return null
+
+  switch (ext) {
+    case 'py':
+      return python()
+    case 'js':
+    case 'mjs':
+      return javascript()
+    case 'ts':
+      return javascript({ typescript: true })
+    case 'jsx':
+      return javascript({ jsx: true })
+    case 'tsx':
+      return javascript({ jsx: true, typescript: true })
+    case 'json':
+      return json()
+    case 'md':
+      return markdown()
+    case 'html':
+    case 'htm':
+      return html()
+    case 'css':
+      return css()
+    case 'rs':
+      return rust()
+    case 'java':
+      return java()
+    case 'c':
+    case 'h':
+      return cpp()
+    case 'cpp':
+    case 'cc':
+    case 'cxx':
+    case 'hpp':
+      return cpp()
+    default:
+      return null
+  }
+}
+
+// Dark theme matching terminal aesthetic with syntax highlighting
+import { HighlightStyle, syntaxHighlighting } from '@codemirror/language'
+import { tags } from '@lezer/highlight'
+
+// Syntax highlighting colors
+const syntaxColors = HighlightStyle.define([
+  { tag: tags.keyword, color: '#c792ea' },           // purple for keywords
+  { tag: tags.operator, color: '#89ddff' },          // cyan for operators
+  { tag: tags.special(tags.variableName), color: '#eeffff' },
+  { tag: tags.typeName, color: '#ffcb6b' },          // yellow for types
+  { tag: tags.atom, color: '#f78c6c' },              // orange for atoms/booleans
+  { tag: tags.number, color: '#f78c6c' },            // orange for numbers
+  { tag: tags.definition(tags.variableName), color: '#82aaff' }, // blue for definitions
+  { tag: tags.string, color: '#c3e88d' },            // green for strings
+  { tag: tags.special(tags.string), color: '#c3e88d' },
+  { tag: tags.comment, color: '#676e95', fontStyle: 'italic' }, // gray italic for comments
+  { tag: tags.variableName, color: '#eeffff' },      // white for variables
+  { tag: tags.function(tags.variableName), color: '#82aaff' }, // blue for functions
+  { tag: tags.labelName, color: '#f07178' },         // red for labels
+  { tag: tags.className, color: '#ffcb6b' },         // yellow for classes
+  { tag: tags.definition(tags.propertyName), color: '#82aaff' },
+  { tag: tags.propertyName, color: '#eeffff' },
+  { tag: tags.meta, color: '#ffcb6b' },
+  { tag: tags.tagName, color: '#f07178' },           // red for HTML tags
+  { tag: tags.attributeName, color: '#c792ea' },    // purple for attributes
+  { tag: tags.attributeValue, color: '#c3e88d' },   // green for attribute values
+  { tag: tags.self, color: '#f07178' },              // red for self/this
+  { tag: tags.bool, color: '#f78c6c' },              // orange for booleans
+  { tag: tags.null, color: '#f78c6c' },              // orange for null
+  { tag: tags.regexp, color: '#c3e88d' },            // green for regex
+  { tag: tags.escape, color: '#89ddff' },            // cyan for escape sequences
+  { tag: tags.bracket, color: '#89ddff' },           // cyan for brackets
+])
+
 const darkTheme = EditorView.theme({
   '&': {
     backgroundColor: '#000000',
-    color: '#ffffff',
+    color: '#eeffff',
     height: '100%',
     fontSize: '14px',
   },
@@ -56,6 +145,11 @@ const darkTheme = EditorView.theme({
   },
   '&.cm-focused': {
     outline: 'none',
+  },
+  // Matching bracket highlight
+  '.cm-matchingBracket': {
+    backgroundColor: 'rgba(34, 197, 94, 0.3)',
+    color: '#22c55e',
   },
 }, { dark: true })
 
@@ -232,6 +326,23 @@ export function VimEditor({ filename, initialContent, onSave, onClose }: VimEdit
     }
   }
 
+  // Memoize extensions to avoid recreating on every render
+  const extensions = useMemo(() => {
+    const exts: Extension[] = [
+      vim(),
+      darkTheme,
+      syntaxHighlighting(syntaxColors),
+    ]
+
+    // Add language support based on filename
+    const langExt = getLanguageExtension(currentFilename)
+    if (langExt) {
+      exts.push(langExt)
+    }
+
+    return exts
+  }, [currentFilename])
+
   return (
     <div className="flex flex-col h-full bg-black font-mono">
       {/* Editor */}
@@ -242,10 +353,7 @@ export function VimEditor({ filename, initialContent, onSave, onClose }: VimEdit
           onChange={handleChange}
           onUpdate={handleUpdate}
           theme="dark"
-          extensions={[
-            vim(),
-            darkTheme,
-          ]}
+          extensions={extensions}
           basicSetup={{
             lineNumbers: true,
             highlightActiveLine: true,

@@ -18,6 +18,8 @@ export type KeyPressContextType = {
   // Vim editor overlay state
   vimEditor: VimEditorConfig | null
   setVimEditor: React.Dispatch<React.SetStateAction<VimEditorConfig | null>>
+  // Headless mode flag (for 3D terminal)
+  headless?: boolean
 }
 
 export const KeyPressContext = createContext<KeyPressContextType | null>(null);
@@ -25,9 +27,10 @@ export const KeyPressContext = createContext<KeyPressContextType | null>(null);
 export type KeyPressProviderProps = {
   children: React.ReactNode;
   onKeyPress?: (key: string, event: KeyboardEvent) => void;
+  headless?: boolean;
 };
 
-export const KeyPressProvider = ({ children, onKeyPress }: KeyPressProviderProps) => {
+export const KeyPressProvider = ({ children, onKeyPress, headless = false }: KeyPressProviderProps) => {
   const [text, setText] = useState("");
   const [cursorPos, setCursorPos] = useState(0);
   const textRef = useRef("");
@@ -164,7 +167,7 @@ export const KeyPressProvider = ({ children, onKeyPress }: KeyPressProviderProps
   }, [cursorPos]);
 
   return (
-    <KeyPressContext.Provider value={{ text, setText, clearText, cursorPos, setCursorPos, shortcut, clearShortcut, vimEditor, setVimEditor }}>
+    <KeyPressContext.Provider value={{ text, setText, clearText, cursorPos, setCursorPos, shortcut, clearShortcut, vimEditor, setVimEditor, headless }}>
       {children}
     </KeyPressContext.Provider>
   );

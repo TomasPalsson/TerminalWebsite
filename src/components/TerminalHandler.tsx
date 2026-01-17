@@ -21,7 +21,7 @@ import {
 } from "./terminal";
 
 // Commands that accept filesystem paths as arguments
-const fsCommands = ['cd', 'ls', 'cat', 'touch', 'mkdir', 'rm', 'rmdir', 'cp', 'mv', 'find', 'grep'];
+const fsCommands = ['cd', 'ls', 'cat', 'touch', 'mkdir', 'rm', 'rmdir', 'cp', 'mv', 'find', 'grep', 'vim'];
 
 type Props = {
   onBufferChange?: (lines: string[]) => void;
@@ -68,9 +68,11 @@ const TerminalHandler = ({ onBufferChange, headless = false }: Props) => {
     const split = extracted
       .split(/\r?\n/) // break on \n
       .filter(Boolean); // toss empties
+    // All output lines from pushLine are command output, not command prompts
+    // The actual command prompt is added in the buffer effect with PROMPT prefix
     setPlainLines((prev) => [
       ...prev,
-      ...split.map((t, idx) => ({ text: t, command: idx === 0 })),
+      ...split.map((t) => ({ text: t, command: false })),
     ]);
 
     // Scroll to bottom after state updates
@@ -196,7 +198,11 @@ const TerminalHandler = ({ onBufferChange, headless = false }: Props) => {
       if (shouldCompletePath) {
         // Filesystem path completion
         fileSystem.initialize();
-        const basePrefix = tabState?.prefix ?? lastArg;
+
+        // Always use the current argument as the base prefix for path completion
+        // This ensures that after completing 'projects' to 'projects/', the next Tab
+        // fetches completions for 'projects/' (its contents) instead of using cached ones
+        const basePrefix = lastArg;
         let candidates =
           tabState && tabState.prefix === basePrefix ? tabState.candidates : null;
 
@@ -489,8 +495,10 @@ const TerminalHandler = ({ onBufferChange, headless = false }: Props) => {
   useEffect(() => {
     if (!onBufferChange) return;
     const live = text.replace(/\n$/, ""); // strip trailing newline while typing
+    // Map plain lines - the extracted text already contains visual prompts from React output
+    // Replace the visual prompt character (❯) with the standard prompt ($) for 3D mode
     const mapped = plainLines.map((l) =>
-      l.command ? PROMPT + l.text : l.text
+      l.text.startsWith('❯ ') ? PROMPT + l.text.slice(2) : l.text
     );
     const liveWithPrompt = PROMPT + live;
     onBufferChange([...mapped, liveWithPrompt]);
