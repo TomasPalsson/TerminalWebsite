@@ -155,6 +155,16 @@ export default function ChatMe() {
                     continue
                   }
 
+                  // Handle text content
+                  if (parsed.type === 'text' && typeof parsed.content === 'string') {
+                    if (firstChunkTime === null) {
+                      firstChunkTime = performance.now()
+                    }
+                    assistantContent += parsed.content
+                    updateAssistant({ content: assistantContent })
+                    continue
+                  }
+
                   // Handle tool_start
                   if (parsed.type === 'tool_start') {
                     const newTool: ToolCall = {
@@ -380,7 +390,7 @@ export default function ChatMe() {
       </div>
 
       {/* Input Area */}
-      <div className="px-4 py-3 bg-neutral-900/80 border-t border-neutral-800">
+      <div className="px-4 pt-3 pb-5">
         <div className="max-w-3xl mx-auto">
           <form
             onSubmit={(e: FormEvent) => {
@@ -417,7 +427,7 @@ export default function ChatMe() {
       </div>
 
       {/* Status Bar */}
-      <div className="flex items-center justify-between px-4 py-1.5 bg-neutral-900/80 border-t border-neutral-800 text-[10px] font-mono">
+      <div className="flex items-center justify-between px-4 py-1.5 border-t border-neutral-800 text-[10px] font-mono">
         <div className="flex items-center gap-4">
           <span className="text-gray-600">{messageCount} messages</span>
           {isTyping && (
