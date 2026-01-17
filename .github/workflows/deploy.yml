@@ -30,6 +30,9 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Install SST CLI
+        run: curl -fsSL https://sst.dev/install | bash
+
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
@@ -38,12 +41,12 @@ jobs:
 
       - name: Deploy to Production
         if: github.ref == 'refs/heads/main'
-        run: npx sst deploy --stage production
+        run: ~/.sst/bin/sst deploy --stage production
         env:
           AWS_PROFILE: ''
 
       - name: Deploy to Dev
         if: github.ref != 'refs/heads/main'
-        run: npx sst deploy --stage dev
+        run: ~/.sst/bin/sst deploy --stage dev
         env:
           AWS_PROFILE: ''
