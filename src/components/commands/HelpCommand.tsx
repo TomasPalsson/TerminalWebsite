@@ -1,5 +1,5 @@
 import React from 'react'
-import { Command } from './Command'
+import Command from './Command'
 import { commandMap } from './CommandMap'
 import { HelpCircle, Terminal, ChevronRight, AlertCircle } from 'lucide-react'
 

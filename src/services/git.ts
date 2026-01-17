@@ -88,7 +88,7 @@ class GitService {
   /**
    * Reset git state to default (uninitialized).
    */
-  reset(): void {
+  clearState(): void {
     this.state = createDefaultGitState()
     this.lastSnapshot = {}
     this.initialized = false

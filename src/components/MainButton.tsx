@@ -1,5 +1,5 @@
 import React from 'react'
-import { Link } from 'react-router'
+import Link from 'next/link'
 
 type MainButtonProps = {
   children: React.ReactNode
@@ -16,7 +16,7 @@ export function MainButton({ children, link, variant = 'secondary' }: MainButton
   }
 
   return (
-    <Link to={link}>
+    <Link href={link}>
       <button className={`${baseClasses} ${variantClasses[variant]}`}>
         {children}
       </button>

@@ -1,6 +1,8 @@
+'use client'
+
 import { OrbitControls, useGLTF } from '@react-three/drei'
 import { Canvas, useThree } from '@react-three/fiber'
-import React, { useMemo, useEffect, useRef, useCallback } from 'react'
+import React, { useMemo, useEffect, useRef, useCallback, useState } from 'react'
 import * as THREE from 'three'
 import { EffectComposer } from '@react-three/postprocessing'
 import CRTEffects from './CRTEffects'
@@ -12,7 +14,13 @@ import type { TerminalSceneProps, CameraConfig } from '../../types/terminal3d'
  * Hook that returns a CanvasTexture driven by terminal lines
  */
 export function useTerminalTexture(lines: string[]) {
+  const [color, setColor] = useState('#0f0')
+
   const { canvas, ctx, texture } = useMemo(() => {
+    // Guard for SSR - return dummy values that will be replaced on client
+    if (typeof document === 'undefined') {
+      return { canvas: null as HTMLCanvasElement | null, ctx: null as CanvasRenderingContext2D | null, texture: new THREE.CanvasTexture(new ImageData(1, 1)) }
+    }
     const canvas = document.createElement('canvas')
     canvas.width = 1024
     canvas.height = 768
@@ -27,18 +35,22 @@ export function useTerminalTexture(lines: string[]) {
   const visibleHeight = 768
   const margin = 20
   const lineHeight = 42
-  const maxWidth = canvas.width - margin * 2
+  const maxWidth = canvas ? canvas.width - margin * 2 : 1024 - margin * 2
 
   const cursorPosRef = useRef<{ x: number; y: number; visible: boolean }>({ x: 0, y: 0, visible: true })
   const cursorVisibleRef = useRef(true)
   const linesRef = useRef<string[]>([])
 
-  const color = useMemo(() => {
-    const c = getComputedStyle(document.documentElement).getPropertyValue('--terminal').trim() || '#0f0'
-    return c === '#22c55e' ? '#0f0' : c
+  // Get terminal color on client side
+  useEffect(() => {
+    if (typeof document !== 'undefined') {
+      const c = getComputedStyle(document.documentElement).getPropertyValue('--terminal').trim() || '#0f0'
+      setColor(c === '#22c55e' ? '#0f0' : c)
+    }
   }, [])
 
   useEffect(() => {
+    if (!canvas || !ctx) return
     linesRef.current = lines
 
     ctx.clearRect(0, 0, canvas.width, canvas.height)
@@ -107,6 +119,8 @@ export function useTerminalTexture(lines: string[]) {
   }, [lines, color, canvas, ctx, texture, maxWidth])
 
   useEffect(() => {
+    if (!canvas || !ctx) return
+
     const cursorWidth = 15
     const cursorHeight = lineHeight
 
@@ -230,8 +244,22 @@ export default function TerminalScene({
   cameraConfig: customConfig,
   onDoubleClick,
 }: TerminalSceneProps) {
+  const [mounted, setMounted] = useState(false)
   const screenTexture = useTerminalTexture(buffer)
   const cameraConfig = { ...DEFAULT_CAMERA_CONFIG, ...customConfig }
+
+  // Wait for client-side mount before rendering Canvas
+  useEffect(() => {
+    setMounted(true)
+  }, [])
+
+  if (!mounted) {
+    return (
+      <div className="absolute inset-0 flex items-center justify-center bg-black">
+        <span className="font-mono text-terminal animate-pulse">Initializing WebGL...</span>
+      </div>
+    )
+  }
 
   return (
     <Canvas

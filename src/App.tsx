@@ -1,4 +1,7 @@
-import React, { useEffect, useRef, useState } from 'react'
+'use client'
+
+import React from 'react'
+import Link from 'next/link'
 import './App.css'
 import { MainButton } from './components/MainButton'
 import TypingAnimation from './components/TypingAnimation'
@@ -51,25 +54,6 @@ function App() {
     },
   ]
 
-  const marqueeRef = useRef<HTMLDivElement>(null)
-  const [isPaused, setIsPaused] = useState(false)
-
-  useEffect(() => {
-    const el = marqueeRef.current
-    if (!el) return
-    const speed = 0.5
-    const tickMs = 32
-    const id = window.setInterval(() => {
-      if (!marqueeRef.current || isPaused) return
-      const half = marqueeRef.current.scrollWidth / 2
-      if (half <= marqueeRef.current.clientWidth) return
-      marqueeRef.current.scrollLeft += speed
-      if (marqueeRef.current.scrollLeft >= half) {
-        marqueeRef.current.scrollLeft -= half
-      }
-    }, tickMs)
-    return () => window.clearInterval(id)
-  }, [isPaused])
 
   return (
     <div className="min-h-screen bg-black text-white">
@@ -182,21 +166,18 @@ function App() {
               <Code2 size={14} className="text-gray-500" />
               <span className="font-mono text-xs text-gray-500 uppercase tracking-wider">Skills & Tools</span>
             </div>
-            <div
-              ref={marqueeRef}
-              className="flex gap-2 overflow-x-auto scrollbar-hide cursor-grab active:cursor-grabbing select-none py-1"
-              onMouseEnter={() => setIsPaused(true)}
-              onMouseLeave={() => setIsPaused(false)}
-            >
-              {[...tools, ...tools].map((tool, idx) => (
-                <div
-                  key={`${tool.label}-${idx}`}
-                  className="flex items-center gap-2 px-3 py-2 font-mono text-xs rounded-lg bg-neutral-900 border border-neutral-800 text-gray-400 whitespace-nowrap hover:border-terminal/30 hover:text-terminal transition shrink-0"
-                >
-                  <span className="text-terminal">{tool.icon}</span>
-                  <span>{tool.label}</span>
-                </div>
-              ))}
+            <div className="overflow-hidden py-1">
+              <div className="flex gap-2 animate-marquee w-max">
+                {[...tools, ...tools].map((tool, idx) => (
+                  <div
+                    key={`${tool.label}-${idx}`}
+                    className="flex items-center gap-2 px-3 py-2 font-mono text-xs rounded-lg bg-neutral-900 border border-neutral-800 text-gray-400 whitespace-nowrap hover:border-terminal/30 hover:text-terminal transition shrink-0"
+                  >
+                    <span className="text-terminal">{tool.icon}</span>
+                    <span>{tool.label}</span>
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
 
@@ -246,13 +227,13 @@ function App() {
                     </div>
                     <h3 className="font-mono text-base font-medium text-white">Recent Projects</h3>
                   </div>
-                  <a
+                  <Link
                     href="/aboutme"
                     className="font-mono text-xs text-gray-500 hover:text-terminal transition flex items-center gap-1"
                   >
                     View all
                     <ArrowRight size={12} />
-                  </a>
+                  </Link>
                 </div>
                 <div className="space-y-2">
                   {projects.map((project, idx) => (
@@ -284,14 +265,14 @@ function App() {
               <p className="font-mono text-sm text-gray-500">
                 Want to learn more about my work?
               </p>
-              <a
+              <Link
                 href="/aboutme"
                 className="inline-flex items-center gap-2 px-4 py-2.5 font-mono text-sm rounded-lg bg-terminal text-black hover:bg-terminal/90 transition"
               >
                 <BookOpen size={16} />
                 View Full Profile
                 <ArrowRight size={14} />
-              </a>
+              </Link>
             </div>
           </div>
         </div>

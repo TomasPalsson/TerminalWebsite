@@ -1,3 +1,5 @@
+'use client'
+
 import React, { useEffect, useRef, useState, useCallback, useMemo } from 'react'
 import CodeMirror, { ReactCodeMirrorRef } from '@uiw/react-codemirror'
 import { vim, Vim, getCM } from '@replit/codemirror-vim'
@@ -222,7 +224,8 @@ export function VimEditor({ filename, initialContent, onSave, onClose }: VimEdit
     })
 
     // :q - Quit (with :q! support via bang parameter)
-    Vim.defineEx('quit', 'q', (_cm: any, params: { bang?: boolean }) => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    Vim.defineEx('quit', 'q', (_cm: any, params: any) => {
       // :q! - force quit without saving
       if (params?.bang) {
         onClose()
@@ -273,7 +276,8 @@ export function VimEditor({ filename, initialContent, onSave, onClose }: VimEdit
       if (editorRef.current?.view) {
         const cm = getCM(editorRef.current.view)
         if (cm && cm.state && cm.state.vim) {
-          const vimState = cm.state.vim
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const vimState = cm.state.vim as any
           let newMode: VimMode = 'normal'
           if (vimState.insertMode) {
             newMode = 'insert'

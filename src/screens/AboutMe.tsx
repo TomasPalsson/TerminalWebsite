@@ -1,4 +1,7 @@
+'use client'
+
 import React, { useState } from 'react'
+import { useRouter } from 'next/navigation'
 import {
   User,
   GraduationCap,
@@ -19,7 +22,6 @@ import { FaGithub, FaRust, FaAws, FaReact, FaPython } from 'react-icons/fa'
 import { TbBrandThreejs } from 'react-icons/tb'
 import { SiAssemblyscript, SiOpenai } from 'react-icons/si'
 import { FaDartLang, FaFlutter } from 'react-icons/fa6'
-import { useNavigate } from 'react-router'
 
 const TABS = [
   { id: 'education', name: 'Education', icon: GraduationCap },
@@ -30,7 +32,7 @@ const TABS = [
 
 export default function AboutMe() {
   const [activeTab, setActiveTab] = useState('education')
-  const navigate = useNavigate()
+  const router = useRouter()
 
   return (
     <div className="flex flex-col min-h-screen bg-black text-white">
@@ -82,7 +84,7 @@ export default function AboutMe() {
       <div className="flex-1 w-full max-w-5xl px-4 mx-auto mt-6 pb-8">
         {activeTab === 'education' && <EducationTab />}
         {activeTab === 'projects' && <ProjectsTab />}
-        {activeTab === 'explore' && <ExploreTab navigate={navigate} />}
+        {activeTab === 'explore' && <ExploreTab navigate={(path: string) => router.push(path)} />}
         {activeTab === 'contact' && <ContactTab />}
       </div>
     </div>

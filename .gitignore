@@ -22,3 +22,11 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# SST
+.sst
+.open-next
+
+# Next.js
+.next
+out

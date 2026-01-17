@@ -1,3 +1,5 @@
+'use client'
+
 import React, { useState, useEffect, createContext, useRef } from "react";
 
 export type VimEditorConfig = {
@@ -56,6 +58,13 @@ export const KeyPressProvider = ({ children, onKeyPress, headless = false }: Key
   const handleKeyDown = (e: KeyboardEvent) => {
     // Skip terminal key handling when vim editor is active
     if (vimEditorRef.current) return;
+
+    // Skip terminal key handling for input elements (chat, forms, etc.)
+    const target = e.target as HTMLElement;
+    const tagName = target.tagName?.toUpperCase();
+    if (tagName === 'INPUT' || tagName === 'TEXTAREA' || target.isContentEditable || target.closest('textarea, input, [contenteditable="true"]')) {
+      return;
+    }
 
     if (e.code === "Space") {
       e.preventDefault();
@@ -134,6 +143,13 @@ export const KeyPressProvider = ({ children, onKeyPress, headless = false }: Key
   const handlePaste = (e: ClipboardEvent) => {
     // Skip terminal paste handling when vim editor is active
     if (vimEditorRef.current) return;
+
+    // Skip terminal paste handling for input elements (chat, forms, etc.)
+    const target = e.target as HTMLElement;
+    const tagName = target.tagName?.toUpperCase();
+    if (tagName === 'INPUT' || tagName === 'TEXTAREA' || target.isContentEditable || target.closest('textarea, input, [contenteditable="true"]')) {
+      return;
+    }
 
     e.preventDefault();
     const pasted = e.clipboardData?.getData("text");

@@ -66,7 +66,7 @@ export const ClearFsCommand: Command = {
     // Perform reset
     gitService.initialize()
     fileSystem.reset()
-    gitService.reset()
+    gitService.clearState()
     envService.reset()
 
     return (

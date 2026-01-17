@@ -53,7 +53,6 @@ class MockWebGLRenderingContext {
       36347: 1024, // MAX_VERTEX_UNIFORM_VECTORS
       36348: 256, // MAX_VARYING_VECTORS
       36349: 224, // MAX_FRAGMENT_UNIFORM_VECTORS
-      7936: 'Mock', // VENDOR
     };
     return params[param] ?? 0;
   });

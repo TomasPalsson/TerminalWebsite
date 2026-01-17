@@ -1,3 +1,5 @@
+'use client'
+
 import React, {
   ReactNode,
   useContext,
@@ -5,9 +7,9 @@ import React, {
   useRef,
   useState,
 } from "react";
+import { useRouter } from "next/navigation";
 import { KeyPressContext } from "../context/KeypressedContext";
 import { commandMap } from "./commands/CommandMap";
-import { useNavigate } from "react-router";
 import { extractText } from "../utils/textExtraction";
 import { loadPersistedColor } from "../utils/colorPersistence";
 import { fileSystem } from "../services/filesystem";
@@ -32,7 +34,7 @@ const PROMPT = "$ ";
 
 const TerminalHandler = ({ onBufferChange, headless = false }: Props) => {
   const context = useContext(KeyPressContext);
-  const navigate = useNavigate();
+  const router = useRouter();
 
   if (!context)
     throw new Error("TerminalHandler must be used within KeyPressProvider");
@@ -436,7 +438,7 @@ const TerminalHandler = ({ onBufferChange, headless = false }: Props) => {
       if (command) {
 
         const result = await command.run(args, context);
-        if (command.name === "exit") setTimeout(() => navigate("/"), 1000);
+        if (command.name === "exit") setTimeout(() => router.push("/"), 1000);
         if (result) {
           pushLine(
             <div key={crypto.randomUUID()} className="mb-4">

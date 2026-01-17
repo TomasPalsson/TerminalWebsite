@@ -1,0 +1,18 @@
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,100..800;1,100..800&family=Winky+Sans:ital,wght@0,300..900;1,300..900&display=swap');
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+    --terminal: #22c55e;
+    --selection-color: rgb(from var(--terminal) r g b / 0.4);
+}
+
+::selection {
+    background-color: var(--selection-color);
+}
+
+html, body {
+    height: 100%;
+    width: 100%;
+}

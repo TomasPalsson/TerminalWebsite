@@ -1,5 +1,5 @@
 import React from 'react'
-import { Command } from './Command'
+import Command from './Command'
 import { KeyPressContextType } from '../../context/KeypressedContext'
 import { Palette, Check, RotateCcw, Eye } from 'lucide-react'
 

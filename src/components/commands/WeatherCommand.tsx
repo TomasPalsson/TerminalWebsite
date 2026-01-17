@@ -1,5 +1,5 @@
 import React from 'react'
-import { Command } from './Command'
+import Command from './Command'
 import { KeyPressContextType } from '../../context/KeypressedContext'
 import { Cloud, Thermometer, Wind, Droplets, Sun, MapPin, AlertCircle } from 'lucide-react'
 

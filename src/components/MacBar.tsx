@@ -1,16 +1,21 @@
+'use client'
+
 import React, { useEffect, useState } from 'react'
+import Link from 'next/link'
 import { Maximize2, Minimize2, X, Terminal } from 'lucide-react'
 import ColorWheel from './ColorWheel'
-import { Link } from 'react-router'
 
 type MacBarProps = {
-  fullscreenRef: React.RefObject<HTMLDivElement>
+  fullscreenRef: React.RefObject<HTMLDivElement | null>
 }
 
 export default function MacBar({ fullscreenRef }: MacBarProps) {
   const [isFullscreen, setIsFullscreen] = useState(false)
+  const [hostname, setHostname] = useState('')
 
   useEffect(() => {
+    setHostname(window.location.hostname)
+
     const handleChange = () => {
       setIsFullscreen(document.fullscreenElement !== null)
     }
@@ -35,7 +40,7 @@ export default function MacBar({ fullscreenRef }: MacBarProps) {
     <div className="fixed top-0 left-0 z-50 flex items-center w-full gap-2 px-3 py-2 bg-neutral-900/95 backdrop-blur-sm border-b border-neutral-800">
       {/* Window controls */}
       <div className="flex items-center gap-2">
-        <Link to="/">
+        <Link href="/">
           <button className="group flex items-center justify-center w-3 h-3 bg-red-500 rounded-full hover:bg-red-400 transition">
             <X className="w-2 h-2 text-red-900 opacity-0 group-hover:opacity-100 transition" strokeWidth={3} />
           </button>
@@ -59,7 +64,7 @@ export default function MacBar({ fullscreenRef }: MacBarProps) {
       <div className="absolute left-1/2 -translate-x-1/2 flex items-center gap-2">
         <Terminal size={14} className="text-terminal" />
         <span className="font-mono text-sm text-gray-400">
-          {window.location.hostname}
+          {hostname}
         </span>
       </div>
 
