@@ -1,3 +1,5 @@
+'use client'
+
 /**
  * Tool Renderer System
  *

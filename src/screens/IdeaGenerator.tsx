@@ -1,8 +1,10 @@
+'use client'
+
 import Loader from '../components/Loader'
 import React from 'react'
 import { useState } from 'react'
+import { useRouter } from 'next/navigation'
 import ReactMarkdown from 'react-markdown'
-import { useNavigate } from 'react-router'
 import { Lightbulb, Sparkles, Star, Zap, ArrowRight, Command } from 'lucide-react'
 
 export type SavedIdea = { id: string; idea: string; description: string; savedAt: number }
@@ -22,7 +24,7 @@ const EXAMPLE_PROMPTS = [
 ]
 
 export default function IdeaGenerator() {
-  const navigate = useNavigate()
+  const router = useRouter()
 
   const [idea, setIdea] = useState('')
   const [description, setDescription] = useState('')
@@ -153,7 +155,7 @@ export default function IdeaGenerator() {
         <div className="flex items-center gap-2">
           <button
             className="flex items-center gap-2 px-3 py-1.5 font-mono text-xs rounded-lg border border-neutral-800 text-gray-400 hover:text-terminal hover:border-terminal/50 transition"
-            onClick={() => navigate('/ideas')}
+            onClick={() => router.push('/ideas')}
           >
             <Star size={12} />
             Saved

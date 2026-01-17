@@ -14,7 +14,7 @@ export type Msg = {
   tools?: ToolCall[]
 }
 
-const API_ENDPOINT = 'https://4tbqtollh37e7h22fwcwwrj7pa0kwbhe.lambda-url.eu-west-1.on.aws/'
+const API_ENDPOINT = process.env.NEXT_PUBLIC_LAMBDA_ENDPOINT || 'https://4tbqtollh37e7h22fwcwwrj7pa0kwbhe.lambda-url.eu-west-1.on.aws/'
 
 const SUGGESTED_PROMPTS = [
   { label: 'background', prompt: 'Tell me about your background and experience' },

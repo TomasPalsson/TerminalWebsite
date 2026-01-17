@@ -1,3 +1,5 @@
+'use client'
+
 import React, { useRef, useEffect, useState, useContext } from 'react'
 import TerminalHandler from '../components/TerminalHandler'
 import { KeyPressProvider, KeyPressContext } from '../context/KeypressedContext'

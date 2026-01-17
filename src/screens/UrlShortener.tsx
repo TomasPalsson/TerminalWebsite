@@ -1,3 +1,5 @@
+'use client'
+
 import React, { useState, useEffect } from 'react'
 import Loader from '../components/Loader'
 import { Link2, Sparkles, Copy, Check, ExternalLink, AlertCircle, CheckCircle, Loader2, Hash } from 'lucide-react'

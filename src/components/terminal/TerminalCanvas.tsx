@@ -1,3 +1,5 @@
+'use client'
+
 import React, { useState, useCallback, useEffect } from 'react'
 import { isMobile } from 'react-device-detect'
 import { Monitor, Zap, ZapOff, ExternalLink } from 'lucide-react'

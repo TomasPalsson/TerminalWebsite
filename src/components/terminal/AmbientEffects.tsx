@@ -1,3 +1,5 @@
+'use client'
+
 import React, { useRef, useMemo } from 'react'
 import { useFrame } from '@react-three/fiber'
 import * as THREE from 'three'
@@ -53,7 +55,7 @@ function DustParticles() {
   const particlesRef = useRef<THREE.Points>(null)
   const particleCount = 50
 
-  const { positions, velocities } = useMemo(() => {
+  const { geometry, velocities } = useMemo(() => {
     const positions = new Float32Array(particleCount * 3)
     const velocities = new Float32Array(particleCount * 3)
 
@@ -73,7 +75,10 @@ function DustParticles() {
       velocities[i * 3 + 2] = (Math.random() - 0.5) * 0.001
     }
 
-    return { positions, velocities }
+    const geometry = new THREE.BufferGeometry()
+    geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3))
+
+    return { geometry, velocities }
   }, [])
 
   useFrame(() => {
@@ -101,15 +106,7 @@ function DustParticles() {
   })
 
   return (
-    <points ref={particlesRef}>
-      <bufferGeometry>
-        <bufferAttribute
-          attach="attributes-position"
-          count={particleCount}
-          array={positions}
-          itemSize={3}
-        />
-      </bufferGeometry>
+    <points ref={particlesRef} geometry={geometry}>
       <pointsMaterial
         size={0.003}
         color="#22c55e"

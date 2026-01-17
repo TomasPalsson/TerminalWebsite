@@ -1,11 +1,13 @@
+'use client'
+
 import React from 'react'
+import { useRouter } from 'next/navigation'
 import ReactMarkdown from 'react-markdown'
 import { SavedIdea } from './IdeaGenerator'
-import { useNavigate } from 'react-router'
 import { Star, Lightbulb, Trash2, ArrowLeft, Clock, Sparkles, ChevronRight } from 'lucide-react'
 
 export default function IdeaLibrary() {
-  const navigate = useNavigate()
+  const router = useRouter()
   const [ideas, setIdeas] = React.useState<SavedIdea[]>([])
   const [selectedId, setSelectedId] = React.useState<string | null>(null)
   const [isDeleting, setIsDeleting] = React.useState<string | null>(null)
@@ -77,7 +79,7 @@ export default function IdeaLibrary() {
         <div className="flex items-center gap-2">
           <button
             className="flex items-center gap-2 px-3 py-1.5 font-mono text-xs rounded-lg border border-neutral-800 text-gray-400 hover:text-terminal hover:border-terminal/50 transition"
-            onClick={() => navigate('/idea-generator')}
+            onClick={() => router.push('/idea-generator')}
           >
             <Lightbulb size={12} />
             Generator
@@ -101,7 +103,7 @@ export default function IdeaLibrary() {
               Generate some project ideas and save the ones you like to build your collection
             </p>
             <button
-              onClick={() => navigate('/idea-generator')}
+              onClick={() => router.push('/idea-generator')}
               className="flex items-center gap-2 px-4 py-2.5 font-mono text-sm rounded-lg bg-terminal text-black hover:bg-terminal/90 transition"
             >
               <Sparkles size={16} />
@@ -214,7 +216,7 @@ export default function IdeaLibrary() {
                     {/* Footer Actions */}
                     <div className="flex items-center gap-3 mt-8 pt-6 border-t border-neutral-800">
                       <button
-                        onClick={() => navigate('/idea-generator')}
+                        onClick={() => router.push('/idea-generator')}
                         className="flex items-center gap-2 px-3 py-1.5 font-mono text-xs rounded-lg border border-terminal/30 text-terminal hover:bg-terminal/10 transition"
                       >
                         <Sparkles size={12} />

@@ -1,3 +1,5 @@
+'use client'
+
 import React, { useState, useEffect, useCallback } from 'react'
 import type { BootSequenceProps, BootPhase } from '../../types/terminal3d'
 
@@ -94,7 +96,7 @@ export default function BootSequence({ onComplete, skip = false }: BootSequenceP
   return (
     <div
       className="absolute inset-0 z-50 flex items-center justify-center bg-black transition-opacity duration-300"
-      style={{ opacity: phase === 'ready' ? 0 : 1 - brightness * 0.7 }}
+      style={{ opacity: 1 - brightness * 0.7 }}
     >
       {/* CRT warm-up glow */}
       {(phase === 'warming' || phase === 'booting') && (
