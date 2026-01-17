@@ -92,7 +92,7 @@ function App() {
 
           {/* Name - invisible spacer on left balances cursor on right */}
           <div className="flex justify-center items-center mb-3">
-            <span className="text-5xl sm:text-6xl lg:text-7xl opacity-0 select-none">___</span>
+            <span className="text-5xl sm:text-6xl lg:text-7xl opacity-0 select-none">__</span>
             <TypingAnimation
               text="Tómas Ari Pálsson"
               speed={50}
