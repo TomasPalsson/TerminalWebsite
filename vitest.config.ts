@@ -1,9 +1,8 @@
 /// <reference types="vitest" />
-import { defineConfig } from 'vite';
-import react from '@vitejs/plugin-react';
+import { defineConfig } from 'vitest/config'
+import path from 'path'
 
 export default defineConfig({
-  plugins: [react()],
   test: {
     // Test environment
     environment: 'jsdom',
@@ -24,6 +23,7 @@ export default defineConfig({
     exclude: [
       'node_modules',
       'dist',
+      '.next',
       '.idea',
       '.git',
       '.cache',
@@ -38,15 +38,13 @@ export default defineConfig({
         'src/components/**/*.{ts,tsx}',
         'src/context/**/*.{ts,tsx}',
         'src/hooks/**/*.{ts,tsx}',
+        'src/utils/**/*.{ts,tsx}',
       ],
       exclude: [
         'src/**/*.test.{ts,tsx}',
         'src/**/*.spec.{ts,tsx}',
         'src/**/__tests__/**',
         'src/test/**',
-        'src/main.tsx',
-        'src/App.tsx', // Entry points typically have low coverage value
-        'src/vite-env.d.ts',
       ],
       thresholds: {
         global: {
@@ -65,7 +63,7 @@ export default defineConfig({
     hookTimeout: 10000,
 
     // Watch mode exclude
-    watchExclude: ['node_modules', 'dist'],
+    watchExclude: ['node_modules', 'dist', '.next'],
 
     // Reporter configuration
     reporters: ['verbose'],
@@ -89,4 +87,11 @@ export default defineConfig({
       },
     },
   },
-});
+
+  // Path aliases to match tsconfig/Next.js
+  resolve: {
+    alias: {
+      '@': path.resolve(__dirname, './src'),
+    },
+  },
+})

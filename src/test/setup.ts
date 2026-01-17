@@ -356,18 +356,27 @@ vi.mock('three', async () => {
 });
 
 // ============================================================================
-// React Router Mock
+// Next.js Navigation Mock
 // ============================================================================
 
-vi.mock('react-router', async () => {
-  const actual = await vi.importActual('react-router');
-  return {
-    ...actual,
-    useNavigate: vi.fn(() => vi.fn()),
-    useLocation: vi.fn(() => ({ pathname: '/', search: '', hash: '' })),
-    useParams: vi.fn(() => ({})),
-  };
-});
+vi.mock('next/navigation', () => ({
+  useRouter: vi.fn(() => ({
+    push: vi.fn(),
+    replace: vi.fn(),
+    prefetch: vi.fn(),
+    back: vi.fn(),
+    forward: vi.fn(),
+  })),
+  usePathname: vi.fn(() => '/'),
+  useSearchParams: vi.fn(() => new URLSearchParams()),
+  useParams: vi.fn(() => ({})),
+}));
+
+vi.mock('next/link', () => ({
+  default: vi.fn(({ children, href }: { children: React.ReactNode; href: string }) => {
+    return children;
+  }),
+}));
 
 // ============================================================================
 // Device Detection Mock
