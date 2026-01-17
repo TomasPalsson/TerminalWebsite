@@ -143,10 +143,18 @@ export default function ChatMe() {
                 continue
               }
 
-              // Parse JSON - all Strands events are JSON
+              // Parse JSON - data may be double-encoded (quoted JSON string)
               let parsed: Record<string, unknown>
               try {
-                parsed = JSON.parse(rawData)
+                let data = JSON.parse(rawData)
+                // If result is a string that looks like JSON, parse again
+                if (typeof data === 'string' && data.startsWith('{')) {
+                  data = JSON.parse(data)
+                }
+                if (typeof data !== 'object' || data === null) {
+                  continue
+                }
+                parsed = data as Record<string, unknown>
               } catch {
                 // Not valid JSON, skip
                 continue
