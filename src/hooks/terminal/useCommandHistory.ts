@@ -1,5 +1,6 @@
 import { useState, useCallback } from "react";
 
+// Cap history to prevent unbounded memory growth in long sessions
 const MAX_HISTORY_SIZE = 50;
 
 export interface UseCommandHistoryResult {
@@ -26,6 +27,7 @@ export function useCommandHistory(): UseCommandHistoryResult {
   const navigateUp = useCallback((): string | null => {
     if (!commandHistory.length) return null;
 
+    // First up arrow starts at most recent; subsequent ones go further back
     const nextIndex =
       historyIndex === null
         ? commandHistory.length - 1
@@ -38,6 +40,7 @@ export function useCommandHistory(): UseCommandHistoryResult {
   const navigateDown = useCallback((): string | null => {
     if (historyIndex === null) return null;
 
+    // When reaching the end of history, return to empty input (null index)
     const nextIndex =
       historyIndex >= commandHistory.length - 1 ? null : historyIndex + 1;
 

@@ -13,6 +13,8 @@ import {
 } from '../types/filesystem'
 
 const STORAGE_KEY = 'terminal-fs'
+// Increment this when changing the FileSystemState structure
+// Old data with mismatched version will be discarded and replaced with defaults
 const SCHEMA_VERSION = 1
 
 /**
@@ -378,7 +380,7 @@ class FileSystemService {
       })
     }
 
-    // Sort: directories first, then alphabetically
+    // Unix convention: directories first, then alphabetical within each group
     entries.sort((a, b) => {
       if (a.type !== b.type) {
         return a.type === 'directory' ? -1 : 1
@@ -560,9 +562,9 @@ class FileSystemService {
       }
     }
 
-    // Check if we're deleting the current directory or a parent of it
+    // If deleting cwd or an ancestor, move cwd up to avoid orphaned state
+    // e.g., if cwd is /home/user/projects and we delete /home/user
     if (this.state.cwd === normalized || this.state.cwd.startsWith(normalized + '/')) {
-      // Reset cwd to parent of deleted directory
       this.state.cwd = parentPath
     }
 
@@ -781,6 +783,7 @@ class FileSystemService {
     }
 
     const matches: string[] = []
+    // Convert glob pattern to regex: * -> .* (any chars), ? -> . (single char)
     const regex = new RegExp(pattern.replace(/\*/g, '.*').replace(/\?/g, '.'))
 
     const search = (node: FileSystemNode, currentPath: string) => {

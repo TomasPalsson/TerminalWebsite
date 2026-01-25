@@ -1,5 +1,16 @@
 import { useCallback, useRef } from "react";
 
+/**
+ * Bash-style history expansion for terminal commands.
+ *
+ * Supports:
+ * - `!!` - Repeat the entire last command
+ * - `!$` - Last argument of the previous command
+ * - `!*` - All arguments of the previous command (excluding the command itself)
+ *
+ * These are expanded inline as the user types, not at execution time.
+ */
+
 export interface UseHistoryExpansionResult {
   expandHistory: (text: string, lastCommandTokens: string[]) => {
     expanded: string;

@@ -1,6 +1,12 @@
 import { useState, useCallback } from "react";
 import { commandMap } from "../../components/commands/CommandMap";
 
+/**
+ * Tab state tracks the current completion session.
+ * - prefix: Original text user typed before any completions
+ * - candidates: All matching commands for this prefix
+ * - index: Current position in candidates (-1 means LCP was applied, 0+ means cycling)
+ */
 interface TabState {
   prefix: string;
   candidates: string[];
@@ -58,7 +64,10 @@ export function useTabCompletion(): UseTabCompletionResult {
         return null;
       }
 
-      // First tab for this prefix: extend to longest common prefix
+      // First tab for this prefix: extend to longest common prefix (LCP)
+      // LCP algorithm: find the longest string that ALL candidates start with
+      // e.g., candidates ["help", "history"] -> LCP is "h"
+      // This mimics bash/zsh behavior where first tab completes as far as unambiguous
       if (!tabState || tabState.prefix !== basePrefix) {
         const lcp = candidates.reduce((prev, curr) => {
           let p = prev;

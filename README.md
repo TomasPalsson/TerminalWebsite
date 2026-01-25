@@ -6,21 +6,21 @@
 ```
 
 <p align="center">
+  <img src="https://img.shields.io/badge/Next.js-16-22c55e?style=flat-square&logo=next.js&logoColor=white" alt="Next.js 16"/>
   <img src="https://img.shields.io/badge/React-19-22c55e?style=flat-square&logo=react&logoColor=white" alt="React 19"/>
   <img src="https://img.shields.io/badge/TypeScript-5.0-22c55e?style=flat-square&logo=typescript&logoColor=white" alt="TypeScript"/>
   <img src="https://img.shields.io/badge/Three.js-r177-22c55e?style=flat-square&logo=three.js&logoColor=white" alt="Three.js"/>
-  <img src="https://img.shields.io/badge/Tailwind-3.4-22c55e?style=flat-square&logo=tailwindcss&logoColor=white" alt="Tailwind CSS"/>
-  <img src="https://img.shields.io/badge/AWS-Serverless-22c55e?style=flat-square&logo=amazonaws&logoColor=white" alt="AWS"/>
+  <img src="https://img.shields.io/badge/SST-3.x-22c55e?style=flat-square&logo=amazonaws&logoColor=white" alt="SST"/>
 </p>
 
 <p align="center">
-  <strong>An interactive terminal portfolio with AI-powered tools & 3D experiences</strong>
+  <strong>An interactive terminal portfolio with AI-powered tools and 3D experiences</strong>
 </p>
 
 <p align="center">
-  <a href="https://tomasp.me">Live Demo</a> ·
-  <a href="#features">Features</a> ·
-  <a href="#quick-start">Quick Start</a> ·
+  <a href="https://tomasp.me">Live Demo</a> |
+  <a href="#features">Features</a> |
+  <a href="#quick-start">Quick Start</a> |
   <a href="#architecture">Architecture</a>
 </p>
 
@@ -31,26 +31,36 @@
 A terminal-themed portfolio that combines CLI nostalgia with modern web tech. Features an interactive terminal emulator, AI chat with streaming responses, project idea generator, and a 3D retro computer rendered with Three.js.
 
 ```
-┌─────────────────────────────────────────────────────────────┐
-│  ● ○ ○  tomasp.me                                           │
-├─────────────────────────────────────────────────────────────┤
-│                                                             │
-│  $ whoami                                                   │
-│  Tómas Ari Pálsson // Software Dev                          │
-│                                                             │
-│  $ cat skills.txt                                           │
-│  AWS · Python · Rust · Flutter · Serverless · LLMs          │
-│                                                             │
-└─────────────────────────────────────────────────────────────┘
++-------------------------------------------------------------+
+|  * o o  tomasp.me                                           |
++-------------------------------------------------------------+
+|                                                             |
+|  $ whoami                                                   |
+|  Tomas Ari Palsson // Software Dev                          |
+|                                                             |
+|  $ cat skills.txt                                           |
+|  AWS - Python - Rust - Flutter - Serverless - LLMs          |
+|                                                             |
++-------------------------------------------------------------+
 ```
 
 ---
 
 ## `$ ls features/`
 
-### `terminal/` — Interactive CLI
+| Feature | Description |
+|---------|-------------|
+| **terminal/** | Full CLI with history, tab completion, reverse search (Ctrl+R) |
+| **filesystem/** | Persistent virtual filesystem with localStorage backing |
+| **vim/** | Vim-style editor powered by CodeMirror 6 |
+| **git/** | Version control with staging, commits, branches, and diffs |
+| **shell/** | Environment variables and command aliases |
+| **chat/** | Streaming AI chat powered by AWS Bedrock |
+| **ideas/** | LLM-powered project brainstorming with favorites |
+| **3d/** | Three.js retro terminal with CRT effects |
+| **code/** | In-browser JavaScript and Python execution |
 
-Full-featured terminal with command parsing, history navigation, tab completion, and reverse search (Ctrl+R).
+### `terminal/` - Interactive CLI
 
 ```bash
 $ help              # List commands
@@ -61,9 +71,7 @@ $ calc 2+2*3        # Math expressions
 $ color #ff6b6b     # Change theme
 ```
 
-### `filesystem/` — Mock Unix Filesystem
-
-Persistent virtual filesystem with localStorage backing. Supports all common file operations.
+### `filesystem/` - Mock Unix Filesystem
 
 ```bash
 $ pwd                    # Print working directory
@@ -80,22 +88,21 @@ $ find . -name "*.txt"   # Find files by pattern
 $ grep "TODO" .          # Search file contents
 ```
 
-### `vim/` — Built-in Text Editor
-
-Vim-style editor powered by CodeMirror 6 with essential keybindings for editing files.
+### `vim/` - Built-in Text Editor
 
 ```bash
 $ vim file.txt           # Open/create file in editor
 ```
 
-**Navigation**: `h` `j` `k` `l` · `w` `b` `e` · `0` `$` · `gg` `G`
-**Modes**: `i` `a` `o` `O` (insert) · `v` (visual) · `Esc` (normal)
-**Editing**: `x` `dd` `yy` `p` `u`
-**Ex Commands**: `:w` (save) · `:q` (quit) · `:wq` (save & quit) · `:q!` (force quit)
+| Mode | Keys |
+|------|------|
+| Navigation | `h` `j` `k` `l` / `w` `b` `e` / `0` `$` / `gg` `G` |
+| Insert | `i` `a` `o` `O` |
+| Visual | `v` |
+| Editing | `x` `dd` `yy` `p` `u` |
+| Ex Commands | `:w` `:q` `:wq` `:q!` |
 
-### `git/` — Version Control
-
-Git-like version control for the virtual filesystem with staging, commits, branches, and diffs.
+### `git/` - Version Control
 
 ```bash
 $ git init               # Initialize repository
@@ -109,40 +116,12 @@ $ git checkout -b feat   # Create and switch branch
 $ git merge feat         # Merge branch
 ```
 
-### `shell/` — Environment & Aliases
-
-Shell customization with environment variables and command aliases.
+### `code/` - In-Browser Execution
 
 ```bash
-$ export EDITOR=vim      # Set environment variable
-$ echo $EDITOR           # Use variable (expanded automatically)
-$ unset EDITOR           # Remove variable
-$ alias ll="ls -la"      # Create alias
-$ alias                  # List all aliases
+$ node script.js         # Run JavaScript
+$ python script.py       # Run Python (via Pyodide)
 ```
-
-Variables can also be defined in `~/.zshrc`:
-```bash
-$ cat ~/.zshrc
-export EDITOR="vim"
-export TERM="xterm-256color"
-```
-
-### `chat/` — AI Assistant
-
-Streaming AI chat powered by AWS Bedrock with session persistence and tool integrations.
-
-### `ideas/` — Idea Generator
-
-LLM-powered brainstorming with scalable project sizes (XS → Large), favorites system, and idea library.
-
-### `3d/` — Retro Terminal
-
-Three.js-powered 3D experience with real-time terminal output rendered on a CRT screen texture.
-
-### `shorten/` — URL Shortener
-
-Create short links with custom slugs and instant clipboard copy.
 
 ---
 
@@ -160,17 +139,22 @@ npm install
 npm run dev
 ```
 
-Opens at `http://localhost:5173`
+Opens at `http://localhost:3000`
 
-### Commands
+---
+
+## `$ cat scripts.json`
 
 | Script | Description |
 |--------|-------------|
-| `npm run dev` | Development server |
+| `npm run dev` | Development server (Next.js) |
 | `npm run build` | Production build |
-| `npm run preview` | Preview build |
+| `npm run start` | Start production server |
 | `npm run lint` | Code linting |
-| `npm run test` | Run tests |
+| `npm run test` | Run Vitest tests |
+| `npm run test:coverage` | Run tests with coverage |
+| `npm run deploy` | Deploy to production (SST) |
+| `npm run deploy:dev` | Deploy to dev stage |
 
 ---
 
@@ -178,28 +162,44 @@ Opens at `http://localhost:5173`
 
 ```
 src/
-├── screens/
-│   ├── Terminal.tsx        # CLI interface
-│   ├── ChatMe.tsx          # AI chat
-│   ├── IdeaGenerator.tsx   # Idea tool
-│   ├── IdeaLibrary.tsx     # Saved ideas
-│   ├── UrlShortener.tsx    # URL shortener
-│   └── AboutMe.tsx         # Bio page
-├── components/
-│   ├── commands/           # CLI commands
-│   │   ├── fs/             # Filesystem commands
-│   │   ├── git/            # Git commands
-│   │   └── vim/            # Vim editor
-│   ├── terminal/           # Terminal UI components
-│   └── TerminalHandler.tsx # Command parser
-├── services/
-│   ├── filesystem.ts       # Virtual filesystem
-│   ├── git.ts              # Git implementation
-│   ├── env.ts              # Environment variables
-│   └── alias.ts            # Command aliases
-├── types/                  # TypeScript definitions
-├── context/                # State management
-└── hooks/                  # Custom hooks
++-- screens/
+|   +-- Terminal.tsx        # CLI interface
+|   +-- ChatMe.tsx          # AI chat
+|   +-- IdeaGenerator.tsx   # Idea tool
+|   +-- IdeaLibrary.tsx     # Saved ideas
+|   +-- UrlShortener.tsx    # URL shortener
+|   +-- AboutMe.tsx         # Bio page
++-- components/
+|   +-- commands/           # CLI commands
+|   |   +-- fs/             # Filesystem commands
+|   |   +-- git/            # Git commands
+|   |   +-- vim/            # Vim editor
+|   +-- terminal/           # Terminal UI components
+|   +-- chat/               # Chat UI and tool renderers
+|   +-- TerminalHandler.tsx # Command parser
++-- services/
+|   +-- filesystem.ts       # Virtual filesystem
+|   +-- git.ts              # Git implementation
+|   +-- env.ts              # Environment variables
+|   +-- alias.ts            # Command aliases
+|   +-- executor/           # JS/Python execution
++-- context/                # React context
++-- hooks/                  # Custom hooks
++-- types/                  # TypeScript definitions
+```
+
+```
+app/                        # Next.js App Router
++-- page.tsx                # Landing page
++-- terminal/page.tsx       # /terminal
++-- chat/page.tsx           # /chat
++-- idea-generator/page.tsx # /idea-generator
++-- ideas/page.tsx          # /ideas
++-- shorten/page.tsx        # /shorten
++-- blob/page.tsx           # /blob (3D)
++-- aboutme/page.tsx        # /aboutme
++-- layout.tsx              # Root layout
++-- providers.tsx           # Context providers
 ```
 
 ---
@@ -209,25 +209,25 @@ src/
 ```json
 {
   "frontend": {
-    "framework": "React 19",
-    "language": "TypeScript",
-    "styling": "Tailwind CSS",
-    "routing": "React Router 7",
-    "build": "Vite 6"
+    "framework": "Next.js 16",
+    "language": "TypeScript 5",
+    "styling": "Tailwind CSS 3.4",
+    "state": "React Context"
   },
   "terminal": {
     "editor": "CodeMirror 6",
-    "vim": "@replit/codemirror-vim"
+    "vim": "@replit/codemirror-vim",
+    "python": "Pyodide"
   },
   "3d": {
-    "engine": "Three.js",
+    "engine": "Three.js r177",
     "bindings": "React Three Fiber",
     "helpers": "React Three Drei"
   },
-  "backend": {
-    "compute": "AWS Lambda",
-    "ai": "AWS Bedrock",
-    "iac": "Serverless Framework"
+  "infrastructure": {
+    "iac": "SST 3.x",
+    "hosting": "AWS S3 + CloudFront",
+    "ai": "AWS Bedrock"
   }
 }
 ```
@@ -249,19 +249,94 @@ src/
 
 ---
 
-## `$ cat deploy.txt`
+## Architecture
 
+```mermaid
+graph TD
+    subgraph Client
+        A[Next.js App] --> B[Terminal Screen]
+        A --> C[Chat Screen]
+        A --> D[Idea Generator]
+        A --> E[3D Blob]
+        B --> F[Command Parser]
+        F --> G[Filesystem Service]
+        F --> H[Git Service]
+        F --> I[Code Executor]
+    end
+
+    subgraph AWS
+        J[CloudFront CDN]
+        K[S3 Static Site]
+        L[API Gateway]
+        M[Lambda]
+        N[Bedrock LLM]
+    end
+
+    A --> J
+    J --> K
+    C --> L
+    D --> L
+    L --> M
+    M --> N
 ```
-        CloudFront (CDN)
-              │
-       ┌──────┴──────┐
-       │             │
-      S3         API Gateway
-  (static)           │
-                  Lambda
-                     │
-                  Bedrock
+
+### Deployment Flow
+
+```mermaid
+flowchart LR
+    A[GitHub Push] --> B[GitHub Actions]
+    B --> C[npm run build]
+    C --> D[SST Deploy]
+    D --> E[S3 Upload]
+    D --> F[CloudFront Invalidation]
+    E --> G[Live Site]
+    F --> G
 ```
+
+### Command Execution
+
+```mermaid
+sequenceDiagram
+    participant U as User
+    participant T as Terminal
+    participant P as Parser
+    participant C as Command
+    participant S as Service
+
+    U->>T: Type command
+    T->>P: Parse input
+    P->>C: Execute command
+    C->>S: Call service (fs/git/etc)
+    S-->>C: Return result
+    C-->>T: Render output
+    T-->>U: Display result
+```
+
+---
+
+## Adding Commands
+
+Commands follow the `Command` interface in `src/components/commands/Command.tsx`:
+
+```typescript
+interface Command {
+  name: string;
+  description: string;
+  usage?: React.ReactNode;
+  args: string[];
+  run: (args: string[], context: KeyPressContextType) => Promise<React.ReactNode | null>;
+}
+```
+
+Register new commands in `src/components/commands/CommandMap.tsx`.
+
+---
+
+## Environment Variables
+
+| Variable | Description | Required |
+|----------|-------------|----------|
+| `NEXT_PUBLIC_API_URL` | API Gateway URL | For chat/ideas |
 
 ---
 
@@ -274,5 +349,5 @@ src/
 ---
 
 <p align="center">
-  <code>// Built by Tómas Ari Pálsson</code>
+  <code>// Built by Tomas Ari Palsson</code>
 </p>

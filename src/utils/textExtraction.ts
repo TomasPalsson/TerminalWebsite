@@ -1,7 +1,11 @@
 import React from "react";
 
 /**
- * Extracts plain text from React nodes, preserving layout.
+ * Extracts plain text from React nodes for the 3D terminal canvas.
+ *
+ * The HTML terminal renders rich React components (icons, colored text, layouts)
+ * but the WebGL-based 3D terminal can only display plain text. This function
+ * converts the React output to text while preserving visual structure.
  * Converts block elements to newlines and handles special cases like lists and links.
  *
  * Handles:
@@ -44,7 +48,8 @@ export function extractText(node: React.ReactNode): string {
       return "";
     }
 
-    // Skip lucide-react icons (function components with icon-like names)
+    // Skip lucide-react icons - they render as SVG with no meaningful text content
+    // Pattern matches common icon component names to avoid traversing their children
     if (typeof node.type === "function") {
       const name = (node.type as any).displayName || (node.type as any).name || "";
       if (name.includes('Icon') || /^(ChevronRight|HelpCircle|Terminal|AlertCircle|Monitor|Zap|ZapOff|ExternalLink|Github|Linkedin|Mail|MapPin|Building|Calendar|GraduationCap|Award|Briefcase|Code|Globe|Download|FileText|Star|GitFork|Eye|ChevronDown|ChevronUp|Search|X|Menu|Home|User|Folder|File|Settings|LogOut|Plus|Minus|Check|Copy|Clipboard|Edit|Trash|Save|RefreshCw|Upload|Play|Pause|Stop|SkipForward|SkipBack|Volume|VolumeX|Volume1|Volume2|Maximize|Minimize|ArrowLeft|ArrowRight|ArrowUp|ArrowDown)$/.test(name)) {
@@ -94,16 +99,18 @@ export function extractText(node: React.ReactNode): string {
       return trimmed ? `${trimmed}\n` : "";
     }
 
-    // Custom React components (function or class) - try to render and extract
+    // Custom React components - try to execute and extract their output
+    // This handles components that render text dynamically
     if (typeof node.type === "function") {
-      // Try to call the component function to get its rendered output
       try {
+        // Call component function directly (works for simple functional components)
+        // May fail for components with hooks or complex state - that's ok
         const rendered = (node.type as any)(element.props);
         if (rendered) {
           return extractText(rendered);
         }
       } catch {
-        // If rendering fails, fall back to children
+        // Component execution failed, fall back to any static children
       }
       return children;
     }

@@ -23,6 +23,7 @@ import {
 } from "./terminal";
 
 // Commands that accept filesystem paths as arguments
+// Used to enable filesystem path completion instead of command completion
 const fsCommands = ['cd', 'ls', 'cat', 'touch', 'mkdir', 'rm', 'rmdir', 'cp', 'mv', 'find', 'grep', 'vim'];
 
 type Props = {
@@ -90,13 +91,15 @@ const TerminalHandler = ({ onBufferChange, headless = false }: Props) => {
     });
   };
 
-  /* inline history expansion (!!, !$, !*) */
+  /* Inline history expansion (!!, !$, !*) - expands as user types */
   useEffect(() => {
+    // Clear suggestions when user types (unless it was a tab completion edit)
     if (!tabEditRef.current) {
       setSuggestions(null);
       if (tabState) setTabState(null);
     }
     tabEditRef.current = false;
+    // Prevent infinite loop: skip if we just did an expansion
     if (expandingRef.current) {
       expandingRef.current = false;
       return;
@@ -192,18 +195,16 @@ const TerminalHandler = ({ onBufferChange, headless = false }: Props) => {
         return;
       }
 
-      // Check if we should do filesystem completion (command is fs command and has args)
+      // Filesystem path completion for commands like cd, ls, cat, etc.
       const isFsCommand = fsCommands.includes(first);
       const lastArg = rest[rest.length - 1] || '';
       const shouldCompletePath = isFsCommand && rest.length > 0;
 
       if (shouldCompletePath) {
-        // Filesystem path completion
         fileSystem.initialize();
 
-        // Always use the current argument as the base prefix for path completion
-        // This ensures that after completing 'projects' to 'projects/', the next Tab
-        // fetches completions for 'projects/' (its contents) instead of using cached ones
+        // Use current argument as prefix - this allows completing into directories
+        // e.g., "projects/" -> "projects/README.md" on subsequent tabs
         const basePrefix = lastArg;
         let candidates =
           tabState && tabState.prefix === basePrefix ? tabState.candidates : null;
@@ -331,14 +332,17 @@ const TerminalHandler = ({ onBufferChange, headless = false }: Props) => {
     tabState,
   ]);
 
-  /* accept reverse search result on Enter (newline) */
+  /* Accept reverse search result on Enter
+     Ctrl+R search is case-insensitive and searches from most recent to oldest */
   useEffect(() => {
     if (!searchMode) return;
     if (!text.endsWith("\n")) return;
     const query = text.replace(/\n$/, "");
+    // Search history from newest to oldest (reverse order)
     const match = [...commandHistory].reverse().find((cmd) =>
       cmd.toLowerCase().includes(query.toLowerCase())
     );
+    // Fall back to the query itself if no match found
     const resolved = match ?? query;
     setSearchMode(false);
     setText(resolved);
@@ -493,12 +497,11 @@ const TerminalHandler = ({ onBufferChange, headless = false }: Props) => {
     processCommand();
   }, [text]);
 
-  /* ship plain lines (plus live typing) to the CRT canvas */
+  /* Sync terminal buffer to 3D CRT canvas for headless mode */
   useEffect(() => {
     if (!onBufferChange) return;
-    const live = text.replace(/\n$/, ""); // strip trailing newline while typing
-    // Map plain lines - the extracted text already contains visual prompts from React output
-    // Replace the visual prompt character (❯) with the standard prompt ($) for 3D mode
+    const live = text.replace(/\n$/, ""); // Strip trailing newline while typing
+    // Normalize prompt characters for 3D mode (❯ -> $)
     const mapped = plainLines.map((l) =>
       l.text.startsWith('❯ ') ? PROMPT + l.text.slice(2) : l.text
     );

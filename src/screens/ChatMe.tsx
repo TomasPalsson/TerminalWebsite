@@ -78,16 +78,19 @@ export default function ChatMe() {
         throw new Error(`HTTP ${res.status}`)
       }
 
+      // Stream response using ReadableStream API
+      // The backend sends SSE (Server-Sent Events) format with various event types
       const reader = res.body.getReader()
       const decoder = new TextDecoder()
       let done = false
       let assistantContent = ''
-      let buffer = ''
+      let buffer = '' // Accumulates partial lines across chunks
       let firstChunkTime: number | null = null
       let tools: ToolCall[] = []
-      // Track content block index to tool index mapping
+      // Maps Anthropic content block indices to our tools array indices
+      // Needed because tool input/result deltas only reference block index
       const blockToToolIndex: Record<number, number> = {}
-      // Accumulate tool input JSON strings
+      // Tool inputs arrive as streamed JSON fragments that must be accumulated
       const toolInputBuffers: Record<number, string> = {}
 
       // Add placeholder assistant message
@@ -116,9 +119,9 @@ export default function ChatMe() {
         if (result.value) {
           buffer += decoder.decode(result.value, { stream: !done })
 
-          // Process line by line
+          // Process complete lines; keep partial line in buffer for next chunk
           const lines = buffer.split('\n')
-          buffer = lines.pop() || ''
+          buffer = lines.pop() || '' // Last element may be incomplete
 
           for (const line of lines) {
             const trimmed = line.trim()
@@ -138,16 +141,18 @@ export default function ChatMe() {
               const rawData = trimmed.slice(5).trim()
               if (!rawData || rawData === '[DONE]') continue
 
-              // Filter Python repr strings (Strands agent objects)
+              // Skip debug output from Python Strands agent framework
+              // These are internal object representations, not user-facing content
               if (rawData.includes('<strands.') || rawData.includes('object at 0x')) {
                 continue
               }
 
-              // Parse JSON - data may be double-encoded (quoted JSON string)
+              // Parse JSON - may be double-encoded when Lambda serializes twice
+              // e.g., '"{\"type\":\"text\"}"' instead of '{"type":"text"}'
               let parsed: Record<string, unknown>
               try {
                 let data = JSON.parse(rawData)
-                // If result is a string that looks like JSON, parse again
+                // Unwrap double-encoded JSON strings
                 if (typeof data === 'string' && data.startsWith('{')) {
                   data = JSON.parse(data)
                 }
@@ -173,8 +178,8 @@ export default function ChatMe() {
                 continue
               }
 
-              // Handle legacy tool_start format (backward compatibility)
-              // Skip if tool already exists from Strands events (avoid duplicates)
+              // Handle legacy tool_start format from older backend version
+              // New Strands-based backend uses contentBlockStart events instead
               if (parsed.type === 'tool_start') {
                 const toolName = parsed.tool as string
                 const existingTool = tools.find(t => t.tool === toolName)
@@ -217,7 +222,8 @@ export default function ChatMe() {
                 continue
               }
 
-              // Handle Strands event wrapper
+              // Handle Anthropic/Strands event wrapper format
+              // Events follow Anthropic's streaming API structure with contentBlock* events
               if (parsed.event && typeof parsed.event === 'object') {
                 const event = parsed.event as Record<string, unknown>
 

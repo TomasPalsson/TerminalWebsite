@@ -56,20 +56,25 @@ export const KeyPressProvider = ({ children, onKeyPress, headless = false }: Key
   const clearShortcut = () => setShortcut(null);
 
   const handleKeyDown = (e: KeyboardEvent) => {
-    // Skip terminal key handling when vim editor is active
+    // Skip terminal key handling when vim editor overlay is active
+    // Vim has its own key handling via CodeMirror
     if (vimEditorRef.current) return;
 
-    // Skip terminal key handling for input elements (chat, forms, etc.)
+    // Skip terminal key handling for native input elements
+    // This allows chat textarea, forms, and other inputs to work normally
+    // without the terminal capturing their keystrokes
     const target = e.target as HTMLElement;
     const tagName = target.tagName?.toUpperCase();
     if (tagName === 'INPUT' || tagName === 'TEXTAREA' || target.isContentEditable || target.closest('textarea, input, [contenteditable="true"]')) {
       return;
     }
 
+    // Prevent space from scrolling the page (default browser behavior)
     if (e.code === "Space") {
       e.preventDefault();
     }
 
+    // Allow Ctrl+V to pass through so browser paste event fires
     if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "v") {
       return;
     }

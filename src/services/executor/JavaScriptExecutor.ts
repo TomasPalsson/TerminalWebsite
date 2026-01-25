@@ -88,11 +88,12 @@ export class JavaScriptExecutor implements CodeExecutor {
     return new Promise((resolve) => {
       const id = Date.now()
 
-      // Set up timeout
+      // Set up timeout with worker termination
+      // Unlike Pyodide, Web Workers can be forcefully terminated to stop infinite loops
       const timeoutId = setTimeout(() => {
         if (this.pendingExecution) {
           this.pendingExecution = null
-          // Terminate and recreate worker on timeout
+          // Terminate stuck worker and create fresh one for next execution
           this.terminate()
           this.initialize()
           resolve(createTimeoutResult('', '', opts.timeout))

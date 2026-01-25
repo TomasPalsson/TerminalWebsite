@@ -6,12 +6,18 @@
  */
 
 /**
- * Worker code as a string to be converted to a Blob
+ * Worker code as a string to be converted to a Blob.
  * This runs in complete isolation from the main thread.
+ *
+ * Security model:
+ * - Web Workers already run in a separate thread with no DOM access
+ * - We shadow dangerous globals with undefined to prevent network/storage access
+ * - Function constructor is used instead of eval for slightly better isolation
+ * - User code cannot escape the sandbox or access the parent page
  */
 export const workerCode = `
 // Sandboxed JavaScript execution environment
-// Block access to dangerous globals by shadowing them
+// Shadow dangerous globals to prevent network requests, storage access, and worker imports
 const self = undefined
 const window = undefined
 const document = undefined
@@ -88,7 +94,8 @@ onmessage = function(e) {
   const startTime = performance.now()
 
   try {
-    // Use Function constructor for slightly better isolation than eval
+    // Function constructor creates code in global scope rather than local closure,
+    // preventing access to variables in this worker's scope (like postMessage)
     const fn = new Function(code)
     fn()
 

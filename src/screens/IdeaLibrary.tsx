@@ -3,14 +3,17 @@
 import React from 'react'
 import { useRouter } from 'next/navigation'
 import ReactMarkdown from 'react-markdown'
+import remarkGfm from 'remark-gfm'
 import { SavedIdea } from './IdeaGenerator'
-import { Star, Lightbulb, Trash2, ArrowLeft, Clock, Sparkles, ChevronRight } from 'lucide-react'
+import { Star, Lightbulb, Trash2, Clock, Sparkles, ChevronRight, Copy, Check } from 'lucide-react'
+import { markdownComponents } from '../components/MarkdownComponents'
 
 export default function IdeaLibrary() {
   const router = useRouter()
   const [ideas, setIdeas] = React.useState<SavedIdea[]>([])
   const [selectedId, setSelectedId] = React.useState<string | null>(null)
   const [isDeleting, setIsDeleting] = React.useState<string | null>(null)
+  const [copied, setCopied] = React.useState(false)
 
   React.useEffect(() => {
     try {
@@ -36,6 +39,14 @@ export default function IdeaLibrary() {
       }
       setIsDeleting(null)
     }, 200)
+  }
+
+  const handleCopyMarkdown = async () => {
+    if (!selected) return
+    const markdown = `# ${selected.idea}\n\n${selected.description}`
+    await navigator.clipboard.writeText(markdown)
+    setCopied(true)
+    setTimeout(() => setCopied(false), 2000)
   }
 
   const selected = ideas.find((i) => i.id === selectedId) || null
@@ -210,7 +221,9 @@ export default function IdeaLibrary() {
 
                     {/* Description */}
                     <div className="font-mono text-sm text-gray-300 leading-relaxed prose prose-invert prose-sm max-w-none prose-p:my-3 prose-headings:text-white prose-headings:font-mono prose-headings:mt-6 prose-headings:mb-3 prose-ul:my-3 prose-li:my-1 prose-code:text-terminal prose-code:bg-neutral-800 prose-code:px-1.5 prose-code:py-0.5 prose-code:rounded prose-code:before:content-[''] prose-code:after:content-[''] prose-strong:text-white prose-hr:border-neutral-700">
-                      <ReactMarkdown>{selected.description}</ReactMarkdown>
+                      <ReactMarkdown remarkPlugins={[remarkGfm]} components={markdownComponents}>
+                        {selected.description}
+                      </ReactMarkdown>
                     </div>
 
                     {/* Footer Actions */}
@@ -221,6 +234,13 @@ export default function IdeaLibrary() {
                       >
                         <Sparkles size={12} />
                         Generate more ideas
+                      </button>
+                      <button
+                        onClick={handleCopyMarkdown}
+                        className="flex items-center gap-2 px-3 py-1.5 font-mono text-xs rounded-lg border border-neutral-700 text-gray-400 hover:text-white hover:border-neutral-600 transition"
+                      >
+                        {copied ? <Check size={12} /> : <Copy size={12} />}
+                        {copied ? 'Copied!' : 'Copy Markdown'}
                       </button>
                     </div>
                   </div>

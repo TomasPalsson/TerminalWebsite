@@ -169,6 +169,8 @@ export function VimEditor({ filename, initialContent, onSave, onClose }: VimEdit
   const [statusMessage, setStatusMessage] = useState<string | null>(null)
 
   // Store callbacks in refs to avoid stale closures in Vim.defineEx
+  // Ex commands are defined once on mount, so they capture initial state
+  // Using refs ensures they always access current values
   const contentRef = useRef(content)
   const currentFilenameRef = useRef(currentFilename)
   const isModifiedRef = useRef(isModified)
@@ -270,7 +272,9 @@ export function VimEditor({ filename, initialContent, onSave, onClose }: VimEdit
     })
   }, []) // Empty deps - only run once on mount
 
-  // Track mode changes
+  // Track mode changes via polling
+  // WORKAROUND: codemirror-vim doesn't expose mode change events, so we poll
+  // the internal vim state to update our status bar display
   useEffect(() => {
     const checkMode = () => {
       if (editorRef.current?.view) {
@@ -291,7 +295,7 @@ export function VimEditor({ filename, initialContent, onSave, onClose }: VimEdit
       }
     }
 
-    // Check mode periodically (vim mode changes aren't exposed via events)
+    // 100ms polling is a reasonable trade-off between responsiveness and CPU usage
     const interval = setInterval(checkMode, 100)
     return () => clearInterval(interval)
   }, [])

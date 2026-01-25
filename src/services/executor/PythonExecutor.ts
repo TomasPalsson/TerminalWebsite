@@ -53,7 +53,11 @@ export class PythonExecutor implements CodeExecutor {
         (text) => this.stderrBuffer.push(text)
       )
 
-      // Wrap execution in a timeout
+      // Wrap execution with timeout protection
+      // NOTE: This timeout is best-effort - runPython is synchronous and blocks
+      // the main thread. The timeout will only trigger if the code yields control
+      // (which Python code rarely does). True infinite loop protection would require
+      // running Pyodide in a Web Worker, but that adds complexity.
       const executeWithTimeout = async (): Promise<ExecutionResult> => {
         return new Promise((resolve) => {
           const timeoutId = setTimeout(() => {
@@ -64,9 +68,7 @@ export class PythonExecutor implements CodeExecutor {
             ))
           }, opts.timeout)
 
-          // Run the code
           try {
-            // Use runPython for synchronous execution with timeout
             pyodide.runPython(code)
 
             clearTimeout(timeoutId)
@@ -108,8 +110,9 @@ export class PythonExecutor implements CodeExecutor {
   }
 
   terminate(): void {
-    // Pyodide doesn't support termination like Web Workers
-    // Clear buffers as cleanup
+    // Pyodide runs in the main thread and cannot be forcefully terminated
+    // Unlike the JS executor which uses Web Workers, we can only clear buffers
+    // Infinite loops will block the main thread until timeout completes
     this.stdoutBuffer = []
     this.stderrBuffer = []
   }
