@@ -41,6 +41,9 @@ export default function Loader({ phrases }: { phrases: string[] }) {
   }, [text, deleting, index, sub, phrases]);
 
   return (
-    <p className="pt-8 font-mono text-lg text-terminal">{text}</p>
+    <span className="font-mono text-sm text-gray-300">
+      {text}
+      <span className="animate-cursor text-terminal">_</span>
+    </span>
   );
 }

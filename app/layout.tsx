@@ -4,8 +4,11 @@ import { LayoutWrapper } from './layout-wrapper'
 import './globals.css'
 
 export const metadata: Metadata = {
-  title: 'Terminal Portfolio',
+  title: 'Tómas Ari Pálsson',
   description: 'Interactive terminal-themed portfolio with LLM-powered tools and 3D experiences',
+  icons: {
+    icon: '/icon.png',
+  },
 }
 
 export default function RootLayout({

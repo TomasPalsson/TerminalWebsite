@@ -11,6 +11,7 @@ import {
   BookOpen,
   Mail,
   Github,
+  Linkedin,
   ChevronDown,
   ExternalLink,
   ArrowRight,
@@ -115,6 +116,14 @@ function App() {
               <Github size={20} />
             </a>
             <a
+              href="https://www.linkedin.com/in/t%C3%B3mas-p%C3%A1lsson-2278613a7/"
+              target="_blank"
+              rel="noreferrer"
+              className="text-gray-600 hover:text-terminal transition"
+            >
+              <Linkedin size={20} />
+            </a>
+            <a
               href="mailto:tomas@p5.is"
               className="text-gray-600 hover:text-terminal transition"
             >
@@ -211,6 +220,16 @@ function App() {
                     <span className="font-mono text-sm text-gray-300 group-hover/link:text-white transition">t0mas.io/github</span>
                     <ExternalLink size={12} className="ml-auto text-gray-600" />
                   </a>
+                  <a
+                    href="https://www.linkedin.com/in/t%C3%B3mas-p%C3%A1lsson-2278613a7/"
+                    target="_blank"
+                    rel="noreferrer"
+                    className="flex items-center gap-3 p-3 rounded-lg bg-black/50 border border-neutral-800 hover:border-terminal/30 transition group/link"
+                  >
+                    <Linkedin size={16} className="text-gray-500 group-hover/link:text-terminal transition" />
+                    <span className="font-mono text-sm text-gray-300 group-hover/link:text-white transition">LinkedIn</span>
+                    <ExternalLink size={12} className="ml-auto text-gray-600" />
+                  </a>
                 </div>
               </div>
             </div>
@@ -288,6 +307,14 @@ function App() {
               className="text-gray-600 hover:text-terminal transition"
             >
               <Github size={18} />
+            </a>
+            <a
+              href="https://www.linkedin.com/in/t%C3%B3mas-p%C3%A1lsson-2278613a7/"
+              target="_blank"
+              rel="noreferrer"
+              className="text-gray-600 hover:text-terminal transition"
+            >
+              <Linkedin size={18} />
             </a>
             <a
               href="mailto:tomas@p5.is"

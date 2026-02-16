@@ -17,6 +17,7 @@ import {
   Lightbulb,
   ChevronRight,
   Github,
+  Linkedin,
 } from 'lucide-react'
 import { FaGithub, FaRust, FaAws, FaReact, FaPython } from 'react-icons/fa'
 import { TbBrandThreejs } from 'react-icons/tb'
@@ -345,6 +346,12 @@ function ContactTab() {
       value: 'TomasPalsson',
       href: 'https://t0mas.io/github',
       icon: Github,
+    },
+    {
+      type: 'LinkedIn',
+      value: 'Tómas Pálsson',
+      href: 'https://www.linkedin.com/in/t%C3%B3mas-p%C3%A1lsson-2278613a7/',
+      icon: Linkedin,
     },
     {
       type: 'Location',

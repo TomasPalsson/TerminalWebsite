@@ -19,8 +19,9 @@ export default $config({
         $app.stage === 'production'
           ? {
               name: 'tomas.im',
+              aliases: ['tomasp.me'],
               dns: false as const,
-              cert: 'arn:aws:acm:us-east-1:519689943567:certificate/09c69540-dffc-4cfa-8f70-bdc716268a33',
+              cert: 'arn:aws:acm:us-east-1:519689943567:certificate/bf532d5d-2883-42f6-bf5e-efe89890214a',
             }
           : $app.stage === 'dev'
             ? { name: 'dev.tomas.im', dns: false as const }
