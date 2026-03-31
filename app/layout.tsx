@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import { Providers } from './providers'
 import { LayoutWrapper } from './layout-wrapper'
+import { DatadogInit } from './datadog-init'
 import './globals.css'
 
 export const metadata: Metadata = {
@@ -19,6 +20,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className="bg-neutral-950 h-full">
+        <DatadogInit />
         <Providers>
           <LayoutWrapper>{children}</LayoutWrapper>
         </Providers>
