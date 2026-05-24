@@ -110,12 +110,18 @@ export default function ChatMe() {
       const decoder = new TextDecoder()
       const parser = createAguiParser()
       let streamState: ChatStreamState = initialChatStreamState
-      let firstChunkAt: number | null = null
+      let timeToFirstByte: string | null = null
       let done = false
 
       while (!done) {
         const result = await reader.read()
         done = result.done
+        // Capture TTFB on the first non-empty chunk off the wire — that's
+        // what the indicator should reflect, not total stream duration.
+        if (timeToFirstByte === null && result.value && result.value.byteLength > 0) {
+          timeToFirstByte = ((performance.now() - start) / 1000).toFixed(2) + 's'
+          updateAssistant({ time_taken: timeToFirstByte })
+        }
         const events = result.value
           ? parser.push(decoder.decode(result.value, { stream: !done }))
           : []
@@ -124,9 +130,6 @@ export default function ChatMe() {
 
         for (const event of events) {
           streamState = reduceAguiEvent(streamState, event)
-          if (firstChunkAt === null && (streamState.content || streamState.tools.length)) {
-            firstChunkAt = performance.now()
-          }
           if (streamState.doneCause !== null) done = true
         }
         updateAssistant({
@@ -135,16 +138,13 @@ export default function ChatMe() {
         })
       }
 
-      const elapsed = firstChunkAt !== null
-        ? ((firstChunkAt - start) / 1000).toFixed(2)
-        : '0.00'
       const finalContent =
         streamState.doneCause === 'error' && !streamState.content
           ? `Error: ${streamState.errorMessage ?? 'Unknown error'}`
           : streamState.content
       updateAssistant({
         content: finalContent,
-        time_taken: `${elapsed}s`,
+        time_taken: timeToFirstByte ?? '0.00s',
         isStreaming: false,
       })
     } catch (err) {
@@ -241,7 +241,7 @@ export default function ChatMe() {
                       <span className={`font-mono text-xs ${isUser ? 'text-terminal' : 'text-gray-500'}`}>
                         {isUser ? 'you' : 'assistant'}
                       </span>
-                      {!isUser && !isStreaming && (
+                      {!isUser && time_taken && time_taken !== '...' && (
                         <span className="font-mono text-[10px] text-gray-600">
                           {time_taken}
                         </span>
