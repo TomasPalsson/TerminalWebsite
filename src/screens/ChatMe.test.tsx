@@ -53,8 +53,14 @@ describe('ChatMe AGUI integration', () => {
       { timeout: 3000 },
     )
 
-    // Tool card for get_all_projects must render — its formatted name comes
-    // from the renderer registry's formatToolName helper.
-    expect(screen.getByText(/get all projects/i)).toBeInTheDocument()
+    // Tool card for get_all_projects must render. AllProjectsRenderer shows
+    // a "Projects" label + a `(N)` count badge in collapsed mode — the count
+    // proves the TOOL_CALL_RESULT content was JSON-parsed by the renderer
+    // (one project in the fixture).
+    expect(screen.getByText('Projects', { exact: true })).toBeInTheDocument()
+    expect(screen.getByText('(1)')).toBeInTheDocument()
+
+    // The raw inline marker must NOT leak into the rendered DOM
+    expect(screen.queryByText(/::tool::0::/)).not.toBeInTheDocument()
   })
 })
