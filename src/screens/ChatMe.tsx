@@ -131,7 +131,7 @@ export default function ChatMe() {
         }
         updateAssistant({
           content: streamState.content,
-          tools: streamState.tools as ToolCall[],
+          tools: streamState.tools,
         })
       }
 
