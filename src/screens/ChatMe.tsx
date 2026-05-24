@@ -84,16 +84,9 @@ export default function ChatMe() {
         throw new Error(`HTTP ${res.status}`)
       }
 
-      // Stream response is AGUI SSE. We pipe bytes through a stateful parser
-      // that yields typed events, then fold each event into a pure reducer.
-      // The React message state is just a projection of that reducer state.
-      const reader = res.body.getReader()
-      const decoder = new TextDecoder()
-      const parser = createAguiParser()
-      let streamState: ChatStreamState = initialChatStreamState
-      let firstChunkTime: number | null = null
-      let done = false
-
+      // Stream response is AGUI SSE. Bytes flow into a stateful parser that
+      // yields typed events; each event folds into a pure reducer; the
+      // assistant message is a projection of that reducer state.
       setMessages((m) => [...m, {
         role: 'assistant',
         content: '',
@@ -113,10 +106,12 @@ export default function ChatMe() {
         })
       }
 
-      const projectToMsg = (s: ChatStreamState): Partial<Msg> => ({
-        content: s.content,
-        tools: s.tools as ToolCall[],
-      })
+      const reader = res.body.getReader()
+      const decoder = new TextDecoder()
+      const parser = createAguiParser()
+      let streamState: ChatStreamState = initialChatStreamState
+      let firstChunkAt: number | null = null
+      let done = false
 
       while (!done) {
         const result = await reader.read()
@@ -129,36 +124,29 @@ export default function ChatMe() {
 
         for (const event of events) {
           streamState = reduceAguiEvent(streamState, event)
-          if (
-            firstChunkTime === null &&
-            (streamState.content.length > 0 || streamState.tools.length > 0)
-          ) {
-            firstChunkTime = performance.now()
+          if (firstChunkAt === null && (streamState.content || streamState.tools.length)) {
+            firstChunkAt = performance.now()
           }
-          if (streamState.doneCause !== null) {
-            done = true
-          }
+          if (streamState.doneCause !== null) done = true
         }
-        updateAssistant(projectToMsg(streamState))
+        updateAssistant({
+          content: streamState.content,
+          tools: streamState.tools as ToolCall[],
+        })
       }
 
-      const elapsed = firstChunkTime !== null
-        ? ((firstChunkTime - start) / 1000).toFixed(2)
+      const elapsed = firstChunkAt !== null
+        ? ((firstChunkAt - start) / 1000).toFixed(2)
         : '0.00'
-
-      if (streamState.doneCause === 'error') {
-        const message = streamState.errorMessage ?? 'Unknown error'
-        updateAssistant({
-          content: streamState.content || `Error: ${message}`,
-          time_taken: `${elapsed}s`,
-          isStreaming: false,
-        })
-      } else {
-        updateAssistant({
-          time_taken: `${elapsed}s`,
-          isStreaming: false,
-        })
-      }
+      const finalContent =
+        streamState.doneCause === 'error' && !streamState.content
+          ? `Error: ${streamState.errorMessage ?? 'Unknown error'}`
+          : streamState.content
+      updateAssistant({
+        content: finalContent,
+        time_taken: `${elapsed}s`,
+        isStreaming: false,
+      })
     } catch (err) {
       console.error(err)
       setMessages((m) => [...m, { role: 'assistant', content: 'Error talking to the model', time_taken: '0s' }])
