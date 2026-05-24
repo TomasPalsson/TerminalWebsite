@@ -5,6 +5,12 @@ import { Send, Bot, User, MessageSquare, Zap } from 'lucide-react'
 import React from 'react'
 import ReactMarkdown from 'react-markdown'
 import { ToolRenderer, ToolCall } from '../components/chat/tools'
+import {
+  createAguiParser,
+  reduceAguiEvent,
+  initialChatStreamState,
+  ChatStreamState,
+} from '../services/aguiStream'
 
 export type Msg = {
   role: 'user' | 'assistant'
@@ -14,7 +20,7 @@ export type Msg = {
   tools?: ToolCall[]
 }
 
-const API_ENDPOINT = process.env.NEXT_PUBLIC_LAMBDA_ENDPOINT || 'https://4tbqtollh37e7h22fwcwwrj7pa0kwbhe.lambda-url.eu-west-1.on.aws/'
+const API_ENDPOINT = process.env.NEXT_PUBLIC_LAMBDA_ENDPOINT || 'https://tk4rj7rqjfd52eebfmomftqeau0izagf.lambda-url.eu-west-1.on.aws/'
 
 const SUGGESTED_PROMPTS = [
   { label: 'background', prompt: 'Tell me about your background and experience' },
@@ -78,22 +84,16 @@ export default function ChatMe() {
         throw new Error(`HTTP ${res.status}`)
       }
 
-      // Stream response using ReadableStream API
-      // The backend sends SSE (Server-Sent Events) format with various event types
+      // Stream response is AGUI SSE. We pipe bytes through a stateful parser
+      // that yields typed events, then fold each event into a pure reducer.
+      // The React message state is just a projection of that reducer state.
       const reader = res.body.getReader()
       const decoder = new TextDecoder()
-      let done = false
-      let assistantContent = ''
-      let buffer = '' // Accumulates partial lines across chunks
+      const parser = createAguiParser()
+      let streamState: ChatStreamState = initialChatStreamState
       let firstChunkTime: number | null = null
-      let tools: ToolCall[] = []
-      // Maps Anthropic content block indices to our tools array indices
-      // Needed because tool input/result deltas only reference block index
-      const blockToToolIndex: Record<number, number> = {}
-      // Tool inputs arrive as streamed JSON fragments that must be accumulated
-      const toolInputBuffers: Record<number, string> = {}
+      let done = false
 
-      // Add placeholder assistant message
       setMessages((m) => [...m, {
         role: 'assistant',
         content: '',
@@ -113,286 +113,52 @@ export default function ChatMe() {
         })
       }
 
+      const projectToMsg = (s: ChatStreamState): Partial<Msg> => ({
+        content: s.content,
+        tools: s.tools as ToolCall[],
+      })
+
       while (!done) {
         const result = await reader.read()
         done = result.done
-        if (result.value) {
-          buffer += decoder.decode(result.value, { stream: !done })
+        const events = result.value
+          ? parser.push(decoder.decode(result.value, { stream: !done }))
+          : []
+        if (done) events.push(...parser.flush())
+        if (events.length === 0) continue
 
-          // Process complete lines; keep partial line in buffer for next chunk
-          const lines = buffer.split('\n')
-          buffer = lines.pop() || '' // Last element may be incomplete
-
-          for (const line of lines) {
-            const trimmed = line.trim()
-            if (!trimmed) continue
-
-            // Check for SSE events
-            if (trimmed === 'event: done') {
-              done = true
-              continue
-            }
-            if (trimmed === 'event: meta') {
-              continue
-            }
-
-            // Process data chunks
-            if (trimmed.startsWith('data:')) {
-              const rawData = trimmed.slice(5).trim()
-              if (!rawData || rawData === '[DONE]') continue
-
-              // Skip debug output from Python Strands agent framework
-              // These are internal object representations, not user-facing content
-              if (rawData.includes('<strands.') || rawData.includes('object at 0x')) {
-                continue
-              }
-
-              // Parse JSON - may be double-encoded when Lambda serializes twice
-              // e.g., '"{\"type\":\"text\"}"' instead of '{"type":"text"}'
-              let parsed: Record<string, unknown>
-              try {
-                let data = JSON.parse(rawData)
-                // Unwrap double-encoded JSON strings
-                if (typeof data === 'string' && data.startsWith('{')) {
-                  data = JSON.parse(data)
-                }
-                if (typeof data !== 'object' || data === null) {
-                  continue
-                }
-                parsed = data as Record<string, unknown>
-              } catch {
-                // Not valid JSON, skip
-                continue
-              }
-
-              // Handle control events (skip them)
-              if (parsed.init_event_loop || parsed.start || parsed.start_event_loop ||
-                  parsed.end_event_loop || parsed.complete) {
-                continue
-              }
-
-              // Skip session ID and done
-              if (parsed.sessionId) continue
-              if (parsed.done) {
-                done = true
-                continue
-              }
-
-              // Handle legacy tool_start format from older backend version
-              // New Strands-based backend uses contentBlockStart events instead
-              if (parsed.type === 'tool_start') {
-                const toolName = parsed.tool as string
-                const existingTool = tools.find(t => t.tool === toolName)
-                if (!existingTool) {
-                  const newTool: ToolCall = {
-                    tool: toolName,
-                    input: parsed.input as Record<string, unknown>,
-                    status: 'running'
-                  }
-                  tools = [...tools, newTool]
-                  assistantContent += `\n::tool::${tools.length - 1}::\n`
-                  updateAssistant({ content: assistantContent, tools: [...tools] })
-                }
-                continue
-              }
-
-              // Handle legacy tool_end format (backward compatibility)
-              // Find tool by name (may or may not have toolUseId from Strands events)
-              if (parsed.type === 'tool_end') {
-                const toolName = parsed.tool as string
-                const toolIndex = tools.findIndex(t => t.tool === toolName && t.status === 'running')
-                if (toolIndex >= 0) {
-                  tools[toolIndex] = {
-                    ...tools[toolIndex],
-                    result: parsed.result as string,
-                    status: parsed.status === 'success' ? 'success' : 'error'
-                  }
-                  updateAssistant({ tools: [...tools] })
-                }
-                continue
-              }
-
-              // Handle text content
-              if (parsed.type === 'text' && typeof parsed.content === 'string') {
-                if (firstChunkTime === null) {
-                  firstChunkTime = performance.now()
-                }
-                assistantContent += parsed.content
-                updateAssistant({ content: assistantContent })
-                continue
-              }
-
-              // Handle Anthropic/Strands event wrapper format
-              // Events follow Anthropic's streaming API structure with contentBlock* events
-              if (parsed.event && typeof parsed.event === 'object') {
-                const event = parsed.event as Record<string, unknown>
-
-                // Text content from contentBlockDelta
-                const contentBlockDelta = event.contentBlockDelta as Record<string, unknown> | undefined
-                if (contentBlockDelta?.delta && typeof contentBlockDelta.delta === 'object') {
-                  const delta = contentBlockDelta.delta as Record<string, unknown>
-                  if (typeof delta.text === 'string') {
-                    if (firstChunkTime === null) {
-                      firstChunkTime = performance.now()
-                    }
-                    assistantContent += delta.text
-                    updateAssistant({ content: assistantContent })
-                    continue
-                  }
-                }
-
-                // Tool start from contentBlockStart
-                const contentBlockStart = event.contentBlockStart as Record<string, unknown> | undefined
-                if (contentBlockStart && typeof contentBlockStart === 'object') {
-                  const blockIndex = contentBlockStart.contentBlockIndex as number
-                  const start = contentBlockStart.start as Record<string, unknown> | undefined
-
-                  // Handle toolUse start
-                  if (start?.toolUse && typeof start.toolUse === 'object') {
-                    const toolUse = start.toolUse as Record<string, unknown>
-                    const newTool: ToolCall = {
-                      tool: (toolUse.name as string) || 'unknown',
-                      input: {},
-                      status: 'running',
-                      toolUseId: toolUse.toolUseId as string
-                    }
-                    tools = [...tools, newTool]
-                    blockToToolIndex[blockIndex] = tools.length - 1
-                    toolInputBuffers[blockIndex] = ''
-                    assistantContent += `\n::tool::${tools.length - 1}::\n`
-                    updateAssistant({ content: assistantContent, tools: [...tools] })
-                    continue
-                  }
-
-                  // Handle toolResult start
-                  if (start?.toolResult && typeof start.toolResult === 'object') {
-                    const toolResult = start.toolResult as Record<string, unknown>
-                    const toolUseId = toolResult.toolUseId as string
-                    const toolIndex = tools.findIndex(t => t.toolUseId === toolUseId)
-                    if (toolIndex >= 0) {
-                      blockToToolIndex[blockIndex] = toolIndex
-                      toolInputBuffers[blockIndex] = '' // Reuse for result accumulation
-                    }
-                    continue
-                  }
-                }
-
-                // Tool input/result delta from contentBlockDelta
-                if (contentBlockDelta && typeof contentBlockDelta === 'object') {
-                  const blockIndex = contentBlockDelta.contentBlockIndex as number
-                  const delta = contentBlockDelta.delta as Record<string, unknown> | undefined
-
-                  // Accumulate tool input
-                  if (delta?.toolUse && typeof delta.toolUse === 'object') {
-                    const toolUseDelta = delta.toolUse as Record<string, unknown>
-                    if (typeof toolUseDelta.input === 'string') {
-                      toolInputBuffers[blockIndex] = (toolInputBuffers[blockIndex] || '') + toolUseDelta.input
-                    }
-                    continue
-                  }
-
-                  // Accumulate tool result
-                  if (delta?.toolResult && typeof delta.toolResult === 'object') {
-                    const toolResultDelta = delta.toolResult as Record<string, unknown>
-                    if (typeof toolResultDelta.content === 'string') {
-                      toolInputBuffers[blockIndex] = (toolInputBuffers[blockIndex] || '') + toolResultDelta.content
-                    }
-                    continue
-                  }
-                }
-
-                // Tool end from contentBlockStop
-                const contentBlockStop = event.contentBlockStop as Record<string, unknown> | undefined
-                if (contentBlockStop && typeof contentBlockStop === 'object') {
-                  const blockIndex = contentBlockStop.contentBlockIndex as number
-                  const toolIndex = blockToToolIndex[blockIndex]
-
-                  if (toolIndex !== undefined && tools[toolIndex]) {
-                    const accumulatedData = toolInputBuffers[blockIndex] || ''
-
-                    // Check if this was a toolUse block (parse input) or toolResult block
-                    if (tools[toolIndex].status === 'running' && !tools[toolIndex].result) {
-                      // This is the end of toolUse block - parse accumulated input
-                      if (accumulatedData) {
-                        try {
-                          tools[toolIndex] = {
-                            ...tools[toolIndex],
-                            input: JSON.parse(accumulatedData)
-                          }
-                        } catch {
-                          // Input wasn't valid JSON, keep as empty
-                        }
-                      }
-                    } else {
-                      // This is the end of toolResult block - set the result
-                      tools[toolIndex] = {
-                        ...tools[toolIndex],
-                        result: accumulatedData,
-                        status: 'success'
-                      }
-                    }
-                    updateAssistant({ tools: [...tools] })
-                  }
-                  continue
-                }
-
-                // Skip metadata, messageStart, messageStop
-                if (event.metadata || event.messageStart || event.messageStop) {
-                  continue
-                }
-              }
-
-              // Extract tool results from complete message objects
-              if (parsed.message && typeof parsed.message === 'object') {
-                const message = parsed.message as Record<string, unknown>
-                const content = message.content as Array<Record<string, unknown>> | undefined
-                if (Array.isArray(content)) {
-                  for (const block of content) {
-                    // Look for toolResult blocks
-                    if (block.toolResult && typeof block.toolResult === 'object') {
-                      const toolResult = block.toolResult as Record<string, unknown>
-                      const toolUseId = toolResult.toolUseId as string
-                      const toolIndex = tools.findIndex(t => t.toolUseId === toolUseId)
-                      if (toolIndex >= 0 && tools[toolIndex].status === 'running') {
-                        // Extract content from toolResult
-                        let resultContent = ''
-                        const resultContentArray = toolResult.content as Array<Record<string, unknown>> | undefined
-                        if (Array.isArray(resultContentArray)) {
-                          for (const item of resultContentArray) {
-                            if (item.text && typeof item.text === 'string') {
-                              resultContent += item.text
-                            }
-                          }
-                        } else if (typeof toolResult.content === 'string') {
-                          resultContent = toolResult.content
-                        }
-                        if (resultContent) {
-                          tools[toolIndex] = {
-                            ...tools[toolIndex],
-                            result: resultContent,
-                            status: 'success'
-                          }
-                          updateAssistant({ tools: [...tools] })
-                        }
-                      }
-                    }
-                  }
-                }
-                continue
-              }
-            }
+        for (const event of events) {
+          streamState = reduceAguiEvent(streamState, event)
+          if (
+            firstChunkTime === null &&
+            (streamState.content.length > 0 || streamState.tools.length > 0)
+          ) {
+            firstChunkTime = performance.now()
+          }
+          if (streamState.doneCause !== null) {
+            done = true
           }
         }
+        updateAssistant(projectToMsg(streamState))
       }
 
       const elapsed = firstChunkTime !== null
         ? ((firstChunkTime - start) / 1000).toFixed(2)
         : '0.00'
 
-      updateAssistant({
-        time_taken: `${elapsed}s`,
-        isStreaming: false
-      })
+      if (streamState.doneCause === 'error') {
+        const message = streamState.errorMessage ?? 'Unknown error'
+        updateAssistant({
+          content: streamState.content || `Error: ${message}`,
+          time_taken: `${elapsed}s`,
+          isStreaming: false,
+        })
+      } else {
+        updateAssistant({
+          time_taken: `${elapsed}s`,
+          isStreaming: false,
+        })
+      }
     } catch (err) {
       console.error(err)
       setMessages((m) => [...m, { role: 'assistant', content: 'Error talking to the model', time_taken: '0s' }])
