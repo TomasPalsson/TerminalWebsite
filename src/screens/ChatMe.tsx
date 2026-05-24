@@ -110,18 +110,12 @@ export default function ChatMe() {
       const decoder = new TextDecoder()
       const parser = createAguiParser()
       let streamState: ChatStreamState = initialChatStreamState
-      let timeToFirstByte: string | null = null
+      let timeToFirstText: string | null = null
       let done = false
 
       while (!done) {
         const result = await reader.read()
         done = result.done
-        // Capture TTFB on the first non-empty chunk off the wire — that's
-        // what the indicator should reflect, not total stream duration.
-        if (timeToFirstByte === null && result.value && result.value.byteLength > 0) {
-          timeToFirstByte = ((performance.now() - start) / 1000).toFixed(2) + 's'
-          updateAssistant({ time_taken: timeToFirstByte })
-        }
         const events = result.value
           ? parser.push(decoder.decode(result.value, { stream: !done }))
           : []
@@ -130,6 +124,18 @@ export default function ChatMe() {
 
         for (const event of events) {
           streamState = reduceAguiEvent(streamState, event)
+          // TTFB = time until the model emits its first user-visible text
+          // delta. Skips SSE keep-alive padding, RUN_STARTED, and any
+          // tool-call preamble — those aren't response latency.
+          if (
+            timeToFirstText === null &&
+            event.type === 'TEXT_MESSAGE_CONTENT' &&
+            typeof event.delta === 'string' &&
+            event.delta.length > 0
+          ) {
+            timeToFirstText = ((performance.now() - start) / 1000).toFixed(2) + 's'
+            updateAssistant({ time_taken: timeToFirstText })
+          }
           if (streamState.doneCause !== null) done = true
         }
         updateAssistant({
@@ -144,7 +150,7 @@ export default function ChatMe() {
           : streamState.content
       updateAssistant({
         content: finalContent,
-        time_taken: timeToFirstByte ?? '0.00s',
+        time_taken: timeToFirstText ?? '0.00s',
         isStreaming: false,
       })
     } catch (err) {
