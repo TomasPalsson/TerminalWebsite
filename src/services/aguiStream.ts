@@ -44,19 +44,38 @@ export const initialChatStreamState: ChatStreamState = {
   doneCause: null,
 }
 
+// Decodes an AGUI data payload. The Lambda emits double-encoded JSON
+// (`data: "{\"type\":...}"`) so we may need a second JSON.parse pass.
+function decodeAguiPayload(payload: string): AguiEvent | null {
+  try {
+    let data: unknown = JSON.parse(payload)
+    if (typeof data === 'string' && data.trimStart().startsWith('{')) {
+      data = JSON.parse(data)
+    }
+    if (
+      data !== null &&
+      typeof data === 'object' &&
+      typeof (data as { type?: unknown }).type === 'string'
+    ) {
+      return data as AguiEvent
+    }
+  } catch {
+    // malformed → silent skip
+  }
+  return null
+}
+
 export function createAguiParser(): AguiStreamParser {
   let buffer = ''
   let pendingEventName: string | null = null
 
   function processLine(rawLine: string): AguiEvent | null {
-    // SSE event boundary — clear the named-event context
     if (rawLine.trim() === '') {
+      // SSE event boundary — clear the named-event context
       pendingEventName = null
       return null
     }
-    // SSE comment line (keep-alive padding)
-    if (rawLine.startsWith(':')) return null
-    // Named event header — remember it for the following data line
+    if (rawLine.startsWith(':')) return null // SSE keep-alive comment
     if (rawLine.startsWith('event:')) {
       pendingEventName = rawLine.slice('event:'.length).trim()
       return null
@@ -64,12 +83,8 @@ export function createAguiParser(): AguiStreamParser {
     if (!rawLine.startsWith('data:')) return null
 
     const payload = rawLine.slice('data:'.length).trim()
-    if (!payload || payload === '[DONE]') {
-      return pendingEventName === 'done' ? { type: 'STREAM_DONE' } : null
-    }
 
     if (pendingEventName === 'done') return { type: 'STREAM_DONE' }
-
     if (pendingEventName === 'meta') {
       try {
         const meta = JSON.parse(payload) as { sessionId?: unknown }
@@ -81,24 +96,8 @@ export function createAguiParser(): AguiStreamParser {
       }
     }
 
-    // Default branch: AGUI event. Payload may be double-encoded
-    // (`data: "{\"type\":...}"` — Lambda JSON-serialises the SDK output twice).
-    try {
-      let data: unknown = JSON.parse(payload)
-      if (typeof data === 'string' && data.trimStart().startsWith('{')) {
-        data = JSON.parse(data)
-      }
-      if (
-        data !== null &&
-        typeof data === 'object' &&
-        typeof (data as { type?: unknown }).type === 'string'
-      ) {
-        return data as AguiEvent
-      }
-    } catch {
-      // malformed → silent skip per spec
-    }
-    return null
+    if (!payload || payload === '[DONE]') return null
+    return decodeAguiPayload(payload)
   }
 
   return {
