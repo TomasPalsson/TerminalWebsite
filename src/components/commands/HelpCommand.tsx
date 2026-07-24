@@ -7,7 +7,7 @@ import { HelpCircle, Terminal, ChevronRight, AlertCircle } from 'lucide-react'
 const commandCategories: Record<string, string[]> = {
   'System': ['clear', 'exit', 'echo', 'color', 'alias', 'export', 'unset'],
   'Info': ['help', 'ip', 'weather'],
-  'Portfolio': ['projects', 'school', 'cv'],
+  'Portfolio': ['projects', 'school', 'cv', 'certs'],
   'Tools': ['calc', 'curl', 'shorten'],
   'Filesystem': ['pwd', 'cd', 'ls', 'touch', 'cat', 'mkdir', 'rm', 'cp', 'mv', 'find', 'grep', 'clearfs'],
   'Git': ['git'],

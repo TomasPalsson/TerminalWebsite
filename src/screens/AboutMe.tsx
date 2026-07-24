@@ -18,6 +18,9 @@ import {
   ChevronRight,
   Github,
   Linkedin,
+  Briefcase,
+  Award,
+  Calendar,
 } from 'lucide-react'
 import { FaGithub, FaRust, FaAws, FaReact, FaPython } from 'react-icons/fa'
 import { TbBrandThreejs } from 'react-icons/tb'
@@ -25,14 +28,16 @@ import { SiAssemblyscript, SiOpenai } from 'react-icons/si'
 import { FaDartLang, FaFlutter } from 'react-icons/fa6'
 
 const TABS = [
+  { id: 'experience', name: 'Experience', icon: Briefcase },
   { id: 'education', name: 'Education', icon: GraduationCap },
   { id: 'projects', name: 'Projects', icon: FolderGit2 },
+  { id: 'certifications', name: 'Certifications', icon: Award },
   { id: 'explore', name: 'Explore', icon: Sparkles },
   { id: 'contact', name: 'Contact', icon: Mail },
 ]
 
 export default function AboutMe() {
-  const [activeTab, setActiveTab] = useState('education')
+  const [activeTab, setActiveTab] = useState('experience')
   const router = useRouter()
 
   return (
@@ -63,31 +68,115 @@ export default function AboutMe() {
 
       {/* Tabs */}
       <div className="w-full max-w-5xl px-4 mx-auto mt-6">
-        <div className="flex gap-1 p-1 rounded-lg bg-neutral-900/80 border border-neutral-800 w-fit">
-          {TABS.map(({ id, name, icon: Icon }) => (
-            <button
-              key={id}
-              onClick={() => setActiveTab(id)}
-              className={`flex items-center gap-2 px-4 py-2 font-mono text-xs rounded-md transition ${
-                activeTab === id
-                  ? 'bg-terminal/10 text-terminal border border-terminal/30'
-                  : 'text-gray-400 hover:text-white border border-transparent'
-              }`}
-            >
-              <Icon size={14} />
-              {name}
-            </button>
-          ))}
+        <div className="overflow-x-auto pb-1 -mb-1">
+          <div className="flex gap-1 p-1 rounded-lg bg-neutral-900/80 border border-neutral-800 w-fit">
+            {TABS.map(({ id, name, icon: Icon }) => (
+              <button
+                key={id}
+                onClick={() => setActiveTab(id)}
+                className={`flex items-center gap-2 px-4 py-2 font-mono text-xs rounded-md transition shrink-0 whitespace-nowrap ${
+                  activeTab === id
+                    ? 'bg-terminal/10 text-terminal border border-terminal/30'
+                    : 'text-gray-400 hover:text-white border border-transparent'
+                }`}
+              >
+                <Icon size={14} />
+                {name}
+              </button>
+            ))}
+          </div>
         </div>
       </div>
 
       {/* Content */}
       <div className="flex-1 w-full max-w-5xl px-4 mx-auto mt-6 pb-8">
+        {activeTab === 'experience' && <ExperienceTab />}
         {activeTab === 'education' && <EducationTab />}
         {activeTab === 'projects' && <ProjectsTab />}
+        {activeTab === 'certifications' && <CertificationsTab />}
         {activeTab === 'explore' && <ExploreTab navigate={(path: string) => router.push(path)} />}
         {activeTab === 'contact' && <ContactTab />}
       </div>
+    </div>
+  )
+}
+
+function ExperienceTab() {
+  const experience = [
+    {
+      company: 'Apró',
+      role: 'Software Engineer · AI Team',
+      period: 'Dec 2025 - Present',
+      location: 'Reykjavík, Iceland',
+      product: 'Apró Vitinn',
+      description: 'Working on Apró’s AI team, building Apró Vitinn — the company’s AI accelerator.',
+      link: 'https://apro.is',
+      current: true,
+    },
+  ]
+
+  return (
+    <div className="space-y-4">
+      {experience.map((exp, index) => (
+        <div key={index} className="relative">
+          {exp.current && (
+            <div className="absolute -inset-0.5 bg-gradient-to-r from-terminal/20 via-terminal/5 to-terminal/20 rounded-xl blur-sm opacity-50" />
+          )}
+          <div className={`relative p-6 rounded-xl border ${
+            exp.current
+              ? 'bg-neutral-900/95 border-terminal/30'
+              : 'bg-neutral-900/50 border-neutral-800'
+          }`}>
+            <div className="flex items-start justify-between gap-4">
+              <div className="flex items-start gap-4">
+                <div className={`flex items-center justify-center w-12 h-12 rounded-xl shrink-0 ${
+                  exp.current
+                    ? 'bg-terminal/10 border border-terminal/30'
+                    : 'bg-neutral-800 border border-neutral-700'
+                }`}>
+                  <Briefcase size={24} className={exp.current ? 'text-terminal' : 'text-gray-500'} />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h3 className="font-mono text-lg font-medium text-white">{exp.company}</h3>
+                    {exp.current && (
+                      <span className="px-2 py-0.5 font-mono text-[10px] rounded-full bg-terminal/20 text-terminal border border-terminal/30">
+                        Current
+                      </span>
+                    )}
+                  </div>
+                  <p className="font-mono text-sm text-terminal mt-0.5">{exp.role}</p>
+                  <div className="flex items-center gap-4 mt-1">
+                    <p className="flex items-center gap-1 font-mono text-xs text-gray-500">
+                      <Calendar size={12} />
+                      {exp.period}
+                    </p>
+                    <p className="flex items-center gap-1 font-mono text-xs text-gray-500">
+                      <MapPin size={12} />
+                      {exp.location}
+                    </p>
+                  </div>
+                  <span className="inline-block mt-2 px-2.5 py-1 font-mono text-xs rounded-md bg-terminal/10 text-terminal border border-terminal/30">
+                    {exp.product}
+                  </span>
+                  <p className="font-mono text-sm text-gray-400 mt-3 leading-relaxed">{exp.description}</p>
+                </div>
+              </div>
+            </div>
+            <div className="mt-4 pt-4 border-t border-neutral-800">
+              <a
+                href={exp.link}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 px-3 py-1.5 font-mono text-xs rounded-lg border border-terminal/30 text-terminal hover:bg-terminal/10 transition"
+              >
+                <ExternalLink size={12} />
+                apro.is
+              </a>
+            </div>
+          </div>
+        </div>
+      ))}
     </div>
   )
 }
@@ -264,6 +353,66 @@ function ProjectsTab() {
                   <span className="font-mono text-xs text-gray-500">{feature}</span>
                 </div>
               ))}
+            </div>
+          </div>
+        </div>
+      ))}
+    </div>
+  )
+}
+
+function CertificationsTab() {
+  const certifications = [
+    {
+      name: 'Claude Certified Architect - Foundations',
+      issuer: 'Anthropic',
+      issued: 'Issued Jul 2026',
+      description: 'The Claude Certified Architect – Foundations credential is designed for solution architects. Earners can design and build production-grade applications with Claude using Claude Code, the Claude Agent SDK, the Claude API, and MCP.',
+      badge: '/claude-certified-architect-foundations.png',
+      link: 'https://www.credly.com/badges/a39e61b9-6494-4f41-b0ec-91f5f7ef1de2/public_url',
+    },
+  ]
+
+  return (
+    <div className="space-y-4">
+      {certifications.map((cert, index) => (
+        <div key={index} className="relative">
+          <div className="absolute -inset-0.5 bg-gradient-to-r from-terminal/20 via-terminal/5 to-terminal/20 rounded-xl blur-sm opacity-50" />
+          <div className="relative p-6 rounded-xl border bg-neutral-900/95 border-terminal/30">
+            <div className="flex flex-col sm:flex-row items-center sm:items-start gap-6">
+              <img
+                src={cert.badge}
+                alt="Claude Certified Architect - Foundations badge"
+                width={128}
+                height={128}
+                loading="lazy"
+                className="w-32 h-32 shrink-0"
+              />
+              <div className="flex-1 text-center sm:text-left">
+                <div className="flex items-center justify-center sm:justify-start gap-2">
+                  <h3 className="font-mono text-lg font-medium text-white">{cert.name}</h3>
+                  <span className="px-2 py-0.5 font-mono text-[10px] rounded-full bg-terminal/20 text-terminal border border-terminal/30">
+                    Verified
+                  </span>
+                </div>
+                <p className="font-mono text-sm text-terminal mt-0.5">{cert.issuer}</p>
+                <p className="flex items-center justify-center sm:justify-start gap-1 font-mono text-xs text-gray-500 mt-1">
+                  <Award size={12} />
+                  {cert.issued}
+                </p>
+                <p className="font-mono text-sm text-gray-400 mt-3 leading-relaxed">{cert.description}</p>
+              </div>
+            </div>
+            <div className="mt-4 pt-4 border-t border-neutral-800">
+              <a
+                href={cert.link}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 px-3 py-1.5 font-mono text-xs rounded-lg border border-terminal/30 text-terminal hover:bg-terminal/10 transition"
+              >
+                <ExternalLink size={12} />
+                Verify on Credly
+              </a>
             </div>
           </div>
         </div>
