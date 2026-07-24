@@ -4,6 +4,7 @@ import { ExportCommand, UnsetCommand } from "./ExportCommand";
 import Command from "./Command"
 import { CalcCommand } from "./CalcCommand";
 import { CvCommand } from "./CvCommand";
+import { CertsCommand } from "./CertsCommand";
 import { EchoCommand } from "./EchoCommand";
 import { ExitCommand } from "./ExitCommand";
 import { HelpCommand } from "./HelpCommand";
@@ -41,6 +42,7 @@ commandMap.set(UnsetCommand.name, UnsetCommand);
 commandMap.set(HelpCommand.name, HelpCommand);
 commandMap.set(ProjectsCommand.name, ProjectsCommand);
 commandMap.set(CvCommand.name, CvCommand);
+commandMap.set(CertsCommand.name, CertsCommand);
 commandMap.set(SchoolCommand.name, SchoolCommand);
 commandMap.set(ExitCommand.name, ExitCommand);
 commandMap.set(IpCommand.name, IpCommand);

@@ -15,9 +15,9 @@ const education: Education[] = [
   {
     school: 'University of Reykjavik',
     degree: 'Software Engineering',
-    status: 'Expected Graduation May 2026',
-    period: 'Sep 2023 - Present',
-    current: true,
+    status: 'Graduated June 2026',
+    period: 'Sep 2023 - Jun 2026',
+    current: false,
   },
   {
     school: 'Menntaskólinn Við Hamrahlíð',
