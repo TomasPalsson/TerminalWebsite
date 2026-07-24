@@ -16,3 +16,17 @@ html, body {
     height: 100%;
     width: 100%;
 }
+
+/* Keyboard focus: a subtle on-brand ring instead of the browser's default
+   outline (which reads as a white border on the black background). Mouse
+   clicks never leave a lingering ring — only keyboard navigation shows it. */
+a:focus,
+button:focus {
+    outline: none;
+}
+a:focus-visible,
+button:focus-visible {
+    outline: 2px solid rgb(from var(--terminal) r g b / 0.7);
+    outline-offset: 2px;
+    border-radius: 6px;
+}

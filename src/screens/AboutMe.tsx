@@ -76,8 +76,8 @@ export default function AboutMe() {
                 onClick={() => setActiveTab(id)}
                 className={`flex items-center gap-2 px-4 py-2 font-mono text-xs rounded-md transition shrink-0 whitespace-nowrap ${
                   activeTab === id
-                    ? 'bg-terminal/10 text-terminal border border-terminal/30'
-                    : 'text-gray-400 hover:text-white border border-transparent'
+                    ? 'bg-terminal/15 text-terminal'
+                    : 'text-gray-400 hover:text-white hover:bg-neutral-800/60'
                 }`}
               >
                 <Icon size={14} />
@@ -187,9 +187,9 @@ function EducationTab() {
       school: 'Háskólinn í Reykjavík',
       degree: 'BSc in Software Engineering',
       period: '2023 - 2026',
-      description: 'Studying software engineering with focus on modern development practices, algorithms, and system design.',
+      description: 'Graduated in June 2026 with a BSc in Software Engineering, focused on modern development practices, algorithms, and system design.',
       link: 'https://www.ru.is/deildir/tolvunarfraedideild/hugbunadarverkfraedi-bsc',
-      current: true,
+      current: false,
     },
     {
       school: 'Menntaskólinn við Hamrahlíð',
