@@ -4,7 +4,9 @@ on:
   push:
     branches:
       - main
-      - '**'
+  # Dev deploys are manual: every branch pushing to the shared dev stage
+  # meant concurrent feature branches raced each other.
+  workflow_dispatch:
 
 concurrency:
   group: deploy-${{ github.ref }}
@@ -34,17 +36,20 @@ jobs:
         uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
-          aws-region: us-east-1
+          # Must match the region holding the SST state (sst-state-ohbbkordfsow).
+          # us-east-1 resolved to a separate, incomplete state, so every deploy
+          # tried to re-create the existing CloudFront distribution.
+          aws-region: eu-west-1
 
 
       - name: Deploy to Production
-        if: github.ref == 'refs/heads/main'
+        if: github.event_name == 'push'
         run: npm exec sst deploy -- --stage production
         env:
           AWS_PROFILE: ''
 
       - name: Deploy to Dev
-        if: github.ref != 'refs/heads/main'
+        if: github.event_name == 'workflow_dispatch'
         run: npm exec sst deploy -- --stage dev
         env:
           AWS_PROFILE: ''
