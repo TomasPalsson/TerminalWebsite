@@ -4,7 +4,9 @@ on:
   push:
     branches:
       - main
-      - '**'
+  # Dev deploys are manual: every branch pushing to the shared dev stage
+  # meant concurrent feature branches raced each other.
+  workflow_dispatch:
 
 concurrency:
   group: deploy-${{ github.ref }}
@@ -38,13 +40,13 @@ jobs:
 
 
       - name: Deploy to Production
-        if: github.ref == 'refs/heads/main'
+        if: github.event_name == 'push'
         run: npm exec sst deploy -- --stage production
         env:
           AWS_PROFILE: ''
 
       - name: Deploy to Dev
-        if: github.ref != 'refs/heads/main'
+        if: github.event_name == 'workflow_dispatch'
         run: npm exec sst deploy -- --stage dev
         env:
           AWS_PROFILE: ''
