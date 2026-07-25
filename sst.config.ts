@@ -24,7 +24,11 @@ export default $config({
               cert: 'arn:aws:acm:us-east-1:519689943567:certificate/bf532d5d-2883-42f6-bf5e-efe89890214a',
             }
           : $app.stage === 'dev'
-            ? { name: 'dev.tomas.im', dns: false as const }
+            ? {
+                name: 'dev.tomas.im',
+                dns: false as const,
+                cert: 'arn:aws:acm:us-east-1:519689943567:certificate/66ce7e53-cee8-405e-8e6c-889adb36176f',
+              }
             : undefined,
     })
 
