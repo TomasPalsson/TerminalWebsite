@@ -26,6 +26,7 @@ import { FaGithub, FaRust, FaAws, FaReact, FaPython } from 'react-icons/fa'
 import { TbBrandThreejs } from 'react-icons/tb'
 import { SiAssemblyscript, SiOpenai } from 'react-icons/si'
 import { FaDartLang, FaFlutter } from 'react-icons/fa6'
+import { certifications } from '@/data/certifications'
 
 const TABS = [
   { id: 'experience', name: 'Experience', icon: Briefcase },
@@ -362,27 +363,16 @@ function ProjectsTab() {
 }
 
 function CertificationsTab() {
-  const certifications = [
-    {
-      name: 'Claude Certified Architect - Foundations',
-      issuer: 'Anthropic',
-      issued: 'Issued Jul 2026',
-      description: 'The Claude Certified Architect – Foundations credential is designed for solution architects. Earners can design and build production-grade applications with Claude using Claude Code, the Claude Agent SDK, the Claude API, and MCP.',
-      badge: '/claude-certified-architect-foundations.png',
-      link: 'https://www.credly.com/badges/a39e61b9-6494-4f41-b0ec-91f5f7ef1de2/public_url',
-    },
-  ]
-
   return (
     <div className="space-y-4">
-      {certifications.map((cert, index) => (
-        <div key={index} className="relative">
+      {certifications.map((cert) => (
+        <div key={cert.link} className="relative">
           <div className="absolute -inset-0.5 bg-gradient-to-r from-terminal/20 via-terminal/5 to-terminal/20 rounded-xl blur-sm opacity-50" />
           <div className="relative p-6 rounded-xl border bg-neutral-900/95 border-terminal/30">
             <div className="flex flex-col sm:flex-row items-center sm:items-start gap-6">
               <img
                 src={cert.badge}
-                alt="Claude Certified Architect - Foundations badge"
+                alt={`${cert.name} badge`}
                 width={128}
                 height={128}
                 loading="lazy"
