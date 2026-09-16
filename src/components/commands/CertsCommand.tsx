@@ -1,8 +1,8 @@
 import React from 'react'
 import Command from './Command'
 import { KeyPressContextType } from '../../context/KeypressedContext'
-import { Award, ExternalLink } from 'lucide-react'
-import { certifications } from '@/data/certifications'
+import { Award, ExternalLink, AlertCircle } from 'lucide-react'
+import { getProfile, formatMonth, visible } from '@/services/profile'
 
 export const CertsCommand: Command = {
   name: 'certs',
@@ -17,48 +17,62 @@ export const CertsCommand: Command = {
   ),
   args: [],
   run: async (args: string[], context: KeyPressContextType) => {
-    return (
-      <div className="font-mono text-sm space-y-3">
-        {certifications.map((cert) => (
-          <div key={cert.link} className="p-4 rounded-lg bg-terminal/5 border border-terminal/30">
-            <div className="flex items-start gap-4">
-              <img
-                src={cert.badge}
-                alt={`${cert.name} badge`}
-                width={64}
-                height={64}
-                loading="lazy"
-                className="w-16 h-16 shrink-0"
-              />
-              <div className="flex-1">
-                <div className="flex items-center gap-2">
-                  <h3 className="font-medium text-white">{cert.name}</h3>
-                  <span className="px-2 py-0.5 text-[10px] rounded-full bg-terminal/20 text-terminal border border-terminal/30">
-                    Verified
-                  </span>
+    try {
+      const profile = await getProfile()
+      const certifications = visible(profile.certifications)
+
+      return (
+        <div className="font-mono text-sm space-y-3">
+          {certifications.map((cert) => (
+            <div key={cert.link} className="p-4 rounded-lg bg-terminal/5 border border-terminal/30">
+              <div className="flex items-start gap-4">
+                <img
+                  src={cert.badge}
+                  alt={`${cert.name} badge`}
+                  width={64}
+                  height={64}
+                  loading="lazy"
+                  className="w-16 h-16 shrink-0"
+                />
+                <div className="flex-1">
+                  <div className="flex items-center gap-2">
+                    <h3 className="font-medium text-white">{cert.name}</h3>
+                    <span className="px-2 py-0.5 text-[10px] rounded-full bg-terminal/20 text-terminal border border-terminal/30">
+                      Verified
+                    </span>
+                  </div>
+                  <p className="text-terminal">{cert.issuer}</p>
+                  <p className="text-gray-500 text-xs flex items-center gap-1">
+                    <Award size={12} />
+                    Issued {formatMonth(cert.issued)}
+                  </p>
+                  <a
+                    href={cert.link}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-2 mt-3 px-3 py-1.5 rounded-lg border border-terminal/30 text-terminal hover:bg-terminal/10 transition"
+                    onClick={(e) => {
+                      e.currentTarget.blur()
+                    }}
+                  >
+                    <span>Verify on Credly</span>
+                    <ExternalLink size={12} />
+                  </a>
                 </div>
-                <p className="text-terminal">{cert.issuer}</p>
-                <p className="text-gray-500 text-xs flex items-center gap-1">
-                  <Award size={12} />
-                  {cert.issued}
-                </p>
-                <a
-                  href={cert.link}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-2 mt-3 px-3 py-1.5 rounded-lg border border-terminal/30 text-terminal hover:bg-terminal/10 transition"
-                  onClick={(e) => {
-                    e.currentTarget.blur()
-                  }}
-                >
-                  <span>Verify on Credly</span>
-                  <ExternalLink size={12} />
-                </a>
               </div>
             </div>
+          ))}
+        </div>
+      )
+    } catch {
+      return (
+        <div className="font-mono text-sm">
+          <div className="inline-flex items-center gap-2 px-4 py-3 rounded-lg bg-red-500/10 border border-red-500/30">
+            <AlertCircle size={14} className="text-red-400" />
+            <span className="text-red-400">Failed to fetch certifications</span>
           </div>
-        ))}
-      </div>
-    )
+        </div>
+      )
+    }
   },
 }
