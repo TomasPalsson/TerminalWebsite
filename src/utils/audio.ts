@@ -1,6 +1,3 @@
-export const CLICK_SAMPLE_URL = '/spacebar-click-keyboard-199448.mp3'
-export const CLICK_DURATION = 0.3 // seconds of the sample to play
-
 /** Keys longer than one character that still make a click (modifiers do not) */
 export const SOUNDED_SPECIAL_KEYS: ReadonlySet<string> = new Set([
   'Enter',
@@ -11,7 +8,7 @@ export const SOUNDED_SPECIAL_KEYS: ReadonlySet<string> = new Set([
 ])
 
 let context: AudioContext | null = null
-let clickBuffer: Promise<AudioBuffer> | null = null
+let noiseBuffer: AudioBuffer | null = null
 
 export function isAudioSupported(): boolean {
   return typeof window !== 'undefined' && !!(window.AudioContext || (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext)
@@ -28,25 +25,22 @@ export function getAudioContext(): AudioContext | null {
   return context
 }
 
-function loadClickBuffer(ctx: AudioContext): Promise<AudioBuffer> {
-  if (!clickBuffer) {
-    clickBuffer = fetch(CLICK_SAMPLE_URL)
-      .then(response => response.arrayBuffer())
-      .then(data => ctx.decodeAudioData(data))
-      .catch(err => {
-        clickBuffer = null
-        throw err
-      })
+/** 60 ms of white noise, built once; the raw material for every click transient */
+function getNoise(ctx: AudioContext): AudioBuffer {
+  if (!noiseBuffer) {
+    const length = Math.floor(ctx.sampleRate * 0.06)
+    noiseBuffer = ctx.createBuffer(1, length, ctx.sampleRate)
+    const data = noiseBuffer.getChannelData(0)
+    for (let i = 0; i < length; i++) data[i] = Math.random() * 2 - 1
   }
-
-  return clickBuffer
+  return noiseBuffer
 }
 
+/** Creates the context and the noise buffer ahead of the first keypress; swallows all errors */
 export function warmUp(): void {
   try {
     const ctx = getAudioContext()
-    if (!ctx) return
-    loadClickBuffer(ctx).catch(() => {})
+    if (ctx) getNoise(ctx)
   } catch {
     // ignore
   }
@@ -58,6 +52,7 @@ export function shouldClick(key?: string): boolean {
   return SOUNDED_SPECIAL_KEYS.has(key)
 }
 
+/** Per-key pitch variation so a run of keystrokes does not sound like one sample on repeat */
 export function clickRateFor(key?: string): number {
   if (key === 'Enter') return 0.8
   if (key === 'Backspace') return 1.15
@@ -65,32 +60,89 @@ export function clickRateFor(key?: string): number {
   return 0.95 + Math.random() * 0.15
 }
 
+type ClickVoice = {
+  /** Fundamental of the "thock" body in Hz */
+  body: number
+  /** How long the body rings, seconds */
+  ring: number
+  /** How long the noise transient lasts, seconds */
+  snap: number
+  /** Overall loudness */
+  level: number
+}
+
+/** Mechanical keyboard character per key: Enter is a deep stabiliser thunk, Space a wide one, letters a crisp tap */
+export function clickVoiceFor(key?: string): ClickVoice {
+  if (key === 'Enter') return { body: 150, ring: 0.1, snap: 0.035, level: 1 }
+  if (key === ' ') return { body: 175, ring: 0.085, snap: 0.045, level: 0.9 }
+  if (key === 'Backspace') return { body: 250, ring: 0.05, snap: 0.02, level: 0.7 }
+  return { body: 215, ring: 0.055, snap: 0.02, level: 0.75 }
+}
+
+/**
+ * Synthesised key click: a filtered noise snap (the switch), a short tuned body (the case
+ * resonance) and a tiny bright tick (the keycap). Every call is its own set of nodes, so
+ * fast typing overlaps naturally.
+ */
 export function playClick(key?: string): void {
   if (!shouldClick(key)) return
-
-  const ctx = getAudioContext()
+  const ctx = liveContext()
   if (!ctx) return
+  try {
+    const t = ctx.currentTime
+    const rate = clickRateFor(key)
+    const voice = clickVoiceFor(key)
+    const master = ctx.createGain()
+    master.gain.value = 0.32 * voice.level
+    master.connect(ctx.destination)
 
-  if (ctx.state === 'suspended') {
-    ctx.resume().catch(() => {})
+    // Switch: bandpassed noise with a very fast decay
+    const snap = ctx.createBufferSource()
+    snap.buffer = getNoise(ctx)
+    const snapFilter = ctx.createBiquadFilter()
+    snapFilter.type = 'bandpass'
+    snapFilter.frequency.value = 2600 * rate
+    snapFilter.Q.value = 0.9
+    const snapGain = ctx.createGain()
+    snapGain.gain.setValueAtTime(1, t)
+    snapGain.gain.exponentialRampToValueAtTime(0.001, t + voice.snap)
+    snap.connect(snapFilter)
+    snapFilter.connect(snapGain)
+    snapGain.connect(master)
+    snap.start(t, 0, voice.snap + 0.01)
+
+    // Body: triangle that drops in pitch as it dies, low-passed so it thumps rather than buzzes
+    const body = ctx.createOscillator()
+    body.type = 'triangle'
+    body.frequency.setValueAtTime(voice.body * rate, t)
+    body.frequency.exponentialRampToValueAtTime(voice.body * rate * 0.7, t + voice.ring)
+    const bodyFilter = ctx.createBiquadFilter()
+    bodyFilter.type = 'lowpass'
+    bodyFilter.frequency.value = 900
+    const bodyGain = ctx.createGain()
+    bodyGain.gain.setValueAtTime(0.0001, t)
+    bodyGain.gain.exponentialRampToValueAtTime(0.9, t + 0.004)
+    bodyGain.gain.exponentialRampToValueAtTime(0.001, t + voice.ring)
+    body.connect(bodyFilter)
+    bodyFilter.connect(bodyGain)
+    bodyGain.connect(master)
+    body.start(t)
+    body.stop(t + voice.ring + 0.02)
+
+    // Keycap: a whisper of high sine so the click reads as plastic, not wood
+    const tick = ctx.createOscillator()
+    tick.type = 'sine'
+    tick.frequency.setValueAtTime(4200 * rate, t)
+    const tickGain = ctx.createGain()
+    tickGain.gain.setValueAtTime(0.12, t)
+    tickGain.gain.exponentialRampToValueAtTime(0.001, t + 0.012)
+    tick.connect(tickGain)
+    tickGain.connect(master)
+    tick.start(t)
+    tick.stop(t + 0.02)
+  } catch (err) {
+    console.error('Error playing sound:', err)
   }
-
-  loadClickBuffer(ctx)
-    .then(buffer => {
-      const source = ctx.createBufferSource()
-      source.buffer = buffer
-      source.playbackRate.value = clickRateFor(key)
-
-      const gain = ctx.createGain()
-      gain.gain.value = 0.6
-
-      source.connect(gain)
-      gain.connect(ctx.destination)
-      source.start(0, 0, CLICK_DURATION)
-    })
-    .catch(err => {
-      console.error('Error playing sound:', err)
-    })
 }
 
 export function playPowerOn(): void {
@@ -217,5 +269,5 @@ export function isPartyPlaying(): boolean {
 export function resetAudioForTests(): void {
   stopParty()
   context = null
-  clickBuffer = null
+  noiseBuffer = null
 }

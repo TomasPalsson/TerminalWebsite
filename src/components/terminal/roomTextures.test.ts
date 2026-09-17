@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest'
-import { wrapText, paintPoster, paintBoard, paintSign, paintCorkboard, paintSpine } from './roomTextures'
+import { wrapText, paintPoster, paintBoard, paintSign, paintCorkboard, paintSpine, shortLink } from './roomTextures'
 import { paintClock, reykjavikTime } from './clockTexture'
 import type { Exhibit } from './exhibits'
 
@@ -91,12 +91,20 @@ describe('painters', () => {
     expect(ctx.texts).toEqual(['Tómas', 'Engineer'])
   })
 
-  it('corkboard paints a card per link without the scheme', () => {
+  it('corkboard paints a card per link with a short handle', () => {
     const ctx = makeCtx()
     paintCorkboard({ ...exhibit, kind: 'corkboard' })(ctx, 768, 624)
     expect(ctx.texts).toContain('GitHub')
-    expect(ctx.texts).toContain('github.com/x/y')
+    expect(ctx.texts).toContain('@x')
     expect(ctx.texts).toContain('me@example.com')
+  })
+
+  it('shortLink fits handles and hosts on a post-it', () => {
+    expect(shortLink('https://github.com/TomasPalsson')).toBe('@TomasPalsson')
+    expect(shortLink('https://www.linkedin.com/in/t%C3%B3mas-p%C3%A1lsson-2278613a7/')).toBe('in/tómas')
+    expect(shortLink('mailto:tomas@p5.is')).toBe('tomas@p5.is')
+    expect(shortLink('https://tomasari.is')).toBe('tomasari.is')
+    expect(shortLink('https://example.com/a/very/long/path/indeed')).toHaveLength(20)
   })
 
   it('spine paints the label, shortening it to fit', () => {

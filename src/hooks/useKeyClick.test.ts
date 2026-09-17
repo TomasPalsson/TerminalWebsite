@@ -4,11 +4,16 @@ import useKeyClick from './useKeyClick'
 import { resetAudioForTests } from '../utils/audio'
 
 class MockAudioContext {
+  static instances: MockAudioContext[] = []
+
   state = 'suspended'
   currentTime = 0
   destination = {}
   resume = vi.fn().mockResolvedValue(undefined)
-  decodeAudioData = vi.fn().mockResolvedValue({ duration: 1.5 })
+
+  constructor() {
+    MockAudioContext.instances.push(this)
+  }
 
   createBufferSource = vi.fn(() => ({
     buffer: null,
@@ -23,6 +28,19 @@ class MockAudioContext {
       setValueAtTime: vi.fn(),
       exponentialRampToValueAtTime: vi.fn(),
     },
+    connect: vi.fn(),
+  }))
+
+  sampleRate = 48000
+
+  createBuffer = vi.fn((_channels: number, length: number) => ({
+    getChannelData: () => new Float32Array(length),
+  }))
+
+  createBiquadFilter = vi.fn(() => ({
+    type: 'lowpass',
+    frequency: { value: 0 },
+    Q: { value: 1 },
     connect: vi.fn(),
   }))
 
@@ -43,11 +61,9 @@ describe('useKeyClick', () => {
 
   beforeEach(() => {
     originalAudioContext = window.AudioContext
+    MockAudioContext.instances = []
     // @ts-expect-error - Mocking AudioContext constructor
     global.AudioContext = MockAudioContext
-    global.fetch = vi.fn().mockResolvedValue({
-      arrayBuffer: () => Promise.resolve(new ArrayBuffer(8)),
-    }) as unknown as typeof fetch
     resetAudioForTests()
   })
 
@@ -74,34 +90,29 @@ describe('useKeyClick', () => {
     expect(firstRef).toBe(secondRef)
   })
 
-  it('warms up on mount, fetching the sample before any keypress', async () => {
+  it('warms up on mount, building the audio context before any keypress', () => {
     renderHook(() => useKeyClick())
-
-    await vi.waitFor(() => {
-      expect(global.fetch).toHaveBeenCalledTimes(1)
-    })
+    expect(MockAudioContext.instances).toHaveLength(1)
+    expect(MockAudioContext.instances[0].createBuffer).toHaveBeenCalledTimes(1)
   })
 
-  it('plays a click when called', async () => {
+  it('plays a click when called', () => {
     const { result } = renderHook(() => useKeyClick())
 
     act(() => {
       result.current('a')
     })
 
-    await vi.waitFor(() => {
-      expect(global.fetch).toHaveBeenCalled()
-    })
+    expect(MockAudioContext.instances[0].createBufferSource).toHaveBeenCalledTimes(1)
   })
 
-  it('does not warm up or play when disabled', async () => {
+  it('does not warm up or play when disabled', () => {
     const { result } = renderHook(() => useKeyClick(false))
 
     act(() => {
       result.current('a')
     })
 
-    await new Promise(resolve => setTimeout(resolve, 0))
-    expect(global.fetch).not.toHaveBeenCalled()
+    expect(MockAudioContext.instances).toHaveLength(0)
   })
 })

@@ -166,6 +166,16 @@ export const paintSign =
 
 const CARD_COLORS = ['#fde68a', '#fca5a5', '#a5f3fc', '#bbf7d0']
 
+/** What fits on a post-it: "@handle" for GitHub/LinkedIn, otherwise the bare host/path, clipped */
+export function shortLink(href: string, max = 20): string {
+  const bare = href.replace(/^(https?:\/\/|mailto:)/, '').replace(/^www\./, '').replace(/\/$/, '')
+  const gh = bare.match(/^github\.com\/([^/]+)/)
+  if (gh) return `@${gh[1]}`
+  const li = bare.match(/^linkedin\.com\/in\/([^/]+)/)
+  if (li) return `in/${decodeURIComponent(li[1]).split('-')[0]}`
+  return bare.length > max ? bare.slice(0, max - 1) + '…' : bare
+}
+
 /** Corkboard with a pinned card per contact link */
 export const paintCorkboard =
   (exhibit: Exhibit): Painter =>
@@ -182,11 +192,11 @@ export const paintCorkboard =
 
     ctx.textBaseline = 'alphabetic'
     const links = exhibit.links ?? []
-    const cardW = w * 0.36
-    const cardH = h * 0.32
+    const cardW = w * 0.42
+    const cardH = h * 0.34
     links.slice(0, 4).forEach((link, i) => {
-      const x = w * 0.1 + (i % 2) * (w * 0.44)
-      const y = h * 0.12 + Math.floor(i / 2) * (h * 0.42)
+      const x = w * 0.06 + (i % 2) * (w * 0.46)
+      const y = h * 0.1 + Math.floor(i / 2) * (h * 0.44)
       ctx.save()
       ctx.translate(x + cardW / 2, y + cardH / 2)
       ctx.rotate(((i * 37) % 7 - 3) * 0.03)
@@ -200,10 +210,9 @@ export const paintCorkboard =
       ctx.font = `700 ${h * 0.075}px ${HAND}`
       ctx.textAlign = 'center'
       ctx.fillText(link.label, 0, h * 0.02)
-      ctx.font = `${h * 0.045}px ${MONO}`
+      ctx.font = `${h * 0.036}px ${MONO}`
       ctx.fillStyle = '#374151'
-      const shown = link.href.replace(/^(https?:\/\/|mailto:)/, '').replace(/\/$/, '')
-      ctx.fillText(shown.length > 26 ? shown.slice(0, 24) + '…' : shown, 0, h * 0.1)
+      ctx.fillText(shortLink(link.href), 0, h * 0.1)
       ctx.restore()
     })
   }

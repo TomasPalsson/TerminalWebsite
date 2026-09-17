@@ -2,6 +2,8 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import {
   shouldClick,
   clickRateFor,
+  clickVoiceFor,
+  warmUp,
   playClick,
   playPowerOn,
   playQuack,
@@ -27,8 +29,20 @@ class MockAudioContext {
   currentTime = 0
   destination = {}
   resume = vi.fn().mockResolvedValue(undefined)
-  decodeAudioData = vi.fn().mockResolvedValue({ duration: 1.5 })
   sources: MockBufferSource[] = []
+
+  sampleRate = 48000
+
+  createBuffer = vi.fn((_channels: number, length: number) => ({
+    getChannelData: () => new Float32Array(length),
+  }))
+
+  createBiquadFilter = vi.fn(() => ({
+    type: 'lowpass',
+    frequency: { value: 0 },
+    Q: { value: 1 },
+    connect: vi.fn(),
+  }))
 
   constructor() {
     MockAudioContext.instances.push(this)
@@ -74,9 +88,6 @@ describe('audio', () => {
     MockAudioContext.instances = []
     // @ts-expect-error - Mocking AudioContext constructor
     global.AudioContext = MockAudioContext
-    global.fetch = vi.fn().mockResolvedValue({
-      arrayBuffer: () => Promise.resolve(new ArrayBuffer(8)),
-    }) as unknown as typeof fetch
     resetAudioForTests()
   })
 
@@ -129,56 +140,54 @@ describe('audio', () => {
   })
 
   describe('playClick', () => {
-    it('fetches the sample once, creates a source per call, and resumes a suspended context', async () => {
+    it('synthesises snap, body and tick per call and resumes a suspended context', () => {
       playClick('a')
       playClick('a')
       playClick('a')
-
-      await vi.waitFor(() => {
-        const ctx = MockAudioContext.instances[0]
-        expect(ctx.sources).toHaveLength(3)
-      })
 
       const ctx = MockAudioContext.instances[0]
-      expect(global.fetch).toHaveBeenCalledTimes(1)
       expect(ctx.resume).toHaveBeenCalled()
-      for (const source of ctx.sources) {
-        expect(source.start).toHaveBeenCalledWith(0, 0, 0.3)
-      }
+      // One noise source per click, the noise buffer built once
+      expect(ctx.sources).toHaveLength(3)
+      expect(ctx.createBuffer).toHaveBeenCalledTimes(1)
+      // Body + tick oscillators per click
+      expect(ctx.createOscillator).toHaveBeenCalledTimes(6)
+      expect(ctx.createBiquadFilter).toHaveBeenCalledTimes(6)
+      for (const source of ctx.sources) expect(source.start).toHaveBeenCalled()
     })
 
-    it('creates no source for modifier keys', async () => {
+    it('creates nothing for modifier keys', () => {
       playClick('Shift')
-      await new Promise(resolve => setTimeout(resolve, 0))
-      expect(global.fetch).not.toHaveBeenCalled()
+      expect(MockAudioContext.instances).toHaveLength(0)
     })
 
-    it('retries fetch after a decode failure', async () => {
-      const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
+    it('gives Enter a deeper, longer voice than a letter', () => {
+      expect(clickVoiceFor('Enter').body).toBeLessThan(clickVoiceFor('a').body)
+      expect(clickVoiceFor('Enter').ring).toBeGreaterThan(clickVoiceFor('a').ring)
+      expect(clickVoiceFor(' ').snap).toBeGreaterThan(clickVoiceFor('a').snap)
+    })
 
-      class FailingOnceContext extends MockAudioContext {
+    it('logs and survives a broken node graph', () => {
+      const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
+      class BrokenContext extends MockAudioContext {
         constructor() {
           super()
-          this.decodeAudioData = vi
-            .fn()
-            .mockRejectedValueOnce(new Error('decode failed'))
-            .mockResolvedValue({ duration: 1.5 })
+          this.createBiquadFilter = vi.fn(() => {
+            throw new Error('no filters here')
+          })
         }
       }
       // @ts-expect-error - Mocking AudioContext constructor
-      global.AudioContext = FailingOnceContext
-
+      global.AudioContext = BrokenContext
       playClick('a')
-      await vi.waitFor(() => {
-        expect(consoleSpy).toHaveBeenCalledWith('Error playing sound:', expect.any(Error))
-      })
-
-      playClick('a')
-      await vi.waitFor(() => {
-        expect(global.fetch).toHaveBeenCalledTimes(2)
-      })
-
+      expect(consoleSpy).toHaveBeenCalledWith('Error playing sound:', expect.any(Error))
       consoleSpy.mockRestore()
+    })
+
+    it('warmUp builds the context and noise before any keypress', () => {
+      warmUp()
+      expect(MockAudioContext.instances).toHaveLength(1)
+      expect(MockAudioContext.instances[0].createBuffer).toHaveBeenCalledTimes(1)
     })
   })
 
@@ -240,7 +249,7 @@ describe('audio', () => {
       playClick('a')
       playPowerOn()
       await new Promise(resolve => setTimeout(resolve, 0))
-      expect(global.fetch).not.toHaveBeenCalled()
+      expect(MockAudioContext.instances).toHaveLength(0)
     })
   })
 })

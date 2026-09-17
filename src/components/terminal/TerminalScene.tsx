@@ -2,7 +2,7 @@
 
 import { OrbitControls, useGLTF } from '@react-three/drei'
 import { Canvas, useFrame, useThree } from '@react-three/fiber'
-import React, { Suspense, useCallback, useMemo, useEffect, useRef, useSyncExternalStore } from 'react'
+import React, { Suspense, useCallback, useMemo, useEffect, useRef, useState, useSyncExternalStore } from 'react'
 import * as THREE from 'three'
 import { EffectComposer } from '@react-three/postprocessing'
 import CRTEffects from './CRTEffects'
@@ -423,9 +423,41 @@ function SceneContent({
   )
 }
 
-/** Keeps a lost WebGL context from tearing the page down; three restores it on `webglcontextrestored` */
-const handleCreated = ({ gl }: { gl: THREE.WebGLRenderer }) => {
-  gl.domElement.addEventListener('webglcontextlost', (event) => event.preventDefault())
+/** Shown when the browser refuses or drops the WebGL context; the button remounts the canvas */
+function SceneFallback({ onRetry }: { onRetry: () => void }) {
+  return (
+    <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-black">
+      <span className="font-mono text-sm text-gray-400">The 3D scene lost its WebGL context.</span>
+      <button
+        onClick={onRetry}
+        className="inline-flex items-center gap-2 px-4 py-2 font-mono text-sm transition rounded-sm text-terminal border border-terminal/40 hover:bg-terminal hover:text-black"
+      >
+        Reload scene
+      </button>
+      <a href="/terminal" className="font-mono text-xs text-gray-600 hover:text-terminal transition">
+        or use the 2D terminal
+      </a>
+    </div>
+  )
+}
+
+type BoundaryProps = { children: React.ReactNode; onError: () => void }
+
+/** Catches renderer construction errors (e.g. a context the browser has already lost) */
+class SceneErrorBoundary extends React.Component<BoundaryProps, { failed: boolean }> {
+  state = { failed: false }
+
+  static getDerivedStateFromError() {
+    return { failed: true }
+  }
+
+  componentDidCatch() {
+    this.props.onError()
+  }
+
+  render() {
+    return this.state.failed ? null : this.props.children
+  }
 }
 
 /**
@@ -438,6 +470,20 @@ export default function TerminalScene({ buffer, enableEffects, cameraConfig: cus
   const screensaver = useSceneStore((s) => s.screensaver)
   const screenTexture = useTerminalTexture(buffer, power, screensaver)
   const cameraConfig = { ...DEFAULT_CAMERA_CONFIG, ...customConfig }
+  // Bumping the generation remounts the Canvas with a fresh context after a loss
+  const [generation, setGeneration] = useState(0)
+  const [lost, setLost] = useState(false)
+  const retry = useCallback(() => {
+    setLost(false)
+    setGeneration((g) => g + 1)
+  }, [])
+  const markLost = useCallback(() => setLost(true), [])
+  const handleCreated = useCallback(
+    ({ gl }: { gl: THREE.WebGLRenderer }) => {
+      gl.domElement.addEventListener('webglcontextlost', markLost)
+    },
+    [markLost]
+  )
 
   if (!mounted) {
     return (
@@ -447,18 +493,22 @@ export default function TerminalScene({ buffer, enableEffects, cameraConfig: cus
     )
   }
 
+  if (lost) return <SceneFallback onRetry={retry} />
+
   return (
-    <Canvas
-      className="absolute inset-0"
-      camera={{ position: cameraConfig.defaultPosition, fov: 42, near: 0.05, far: 40 }}
-      gl={{ antialias: true, alpha: false, powerPreference: 'high-performance' }}
-      dpr={[1, 2]}
-      shadows
-      onCreated={handleCreated}
-    >
-      <color attach="background" args={['#030405']} />
-      <fog attach="fog" args={['#030405', 6, 12]} />
-      <SceneContent screenTexture={screenTexture} enableEffects={enableEffects} cameraConfig={cameraConfig} />
-    </Canvas>
+    <SceneErrorBoundary key={generation} onError={markLost}>
+      <Canvas
+        className="absolute inset-0"
+        camera={{ position: cameraConfig.defaultPosition, fov: 42, near: 0.05, far: 40 }}
+        gl={{ antialias: true, alpha: false, powerPreference: 'high-performance' }}
+        dpr={[1, 2]}
+        shadows
+        onCreated={handleCreated}
+      >
+        <color attach="background" args={['#030405']} />
+        <fog attach="fog" args={['#030405', 6, 12]} />
+        <SceneContent screenTexture={screenTexture} enableEffects={enableEffects} cameraConfig={cameraConfig} />
+      </Canvas>
+    </SceneErrorBoundary>
   )
 }

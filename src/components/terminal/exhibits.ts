@@ -32,7 +32,7 @@ export const ROOM = {
   minX: -3.2,
   maxX: 3.2,
   minZ: -0.8,
-  maxZ: 4.4,
+  maxZ: 5.2,
 } as const
 
 /** Footprint of the desk (with a little margin) that the player cannot walk into */
@@ -215,9 +215,9 @@ const contactExhibit = ({ contact }: Profile): Exhibit => ({
     { label: 'Email', href: `mailto:${contact.email}` },
     { label: 'Website', href: contact.website },
   ],
-  position: [LEFT_X, 1.0, 4.0],
+  position: [LEFT_X, 1.0, 4.45],
   rotationY: Math.PI / 2,
-  size: [0.8, 0.65],
+  size: [0.95, 0.72],
 })
 
 /**
