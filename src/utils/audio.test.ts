@@ -140,19 +140,18 @@ describe('audio', () => {
   })
 
   describe('playClick', () => {
-    it('synthesises snap, body and tick per call and resumes a suspended context', () => {
+    it('synthesises five filtered noise strikes per call, with no oscillators', () => {
       playClick('a')
       playClick('a')
       playClick('a')
 
       const ctx = MockAudioContext.instances[0]
       expect(ctx.resume).toHaveBeenCalled()
-      // Press + release noise sources per click, the noise buffer built once
-      expect(ctx.sources).toHaveLength(6)
+      // 3 down-stroke + 2 up-stroke strikes per click, the noise buffer built once
+      expect(ctx.sources).toHaveLength(15)
+      expect(ctx.createBiquadFilter).toHaveBeenCalledTimes(15)
       expect(ctx.createBuffer).toHaveBeenCalledTimes(1)
-      // Body + tick oscillators per click; snap, body and release filters per click
-      expect(ctx.createOscillator).toHaveBeenCalledTimes(6)
-      expect(ctx.createBiquadFilter).toHaveBeenCalledTimes(9)
+      expect(ctx.createOscillator).not.toHaveBeenCalled()
       for (const source of ctx.sources) expect(source.start).toHaveBeenCalled()
     })
 
@@ -161,10 +160,10 @@ describe('audio', () => {
       expect(MockAudioContext.instances).toHaveLength(0)
     })
 
-    it('gives Enter a deeper, longer voice than a letter', () => {
-      expect(clickVoiceFor('Enter').body).toBeLessThan(clickVoiceFor('a').body)
-      expect(clickVoiceFor('Enter').ring).toBeGreaterThan(clickVoiceFor('a').ring)
-      expect(clickVoiceFor(' ').snap).toBeGreaterThan(clickVoiceFor('a').snap)
+    it('gives Enter and Space a lower, heavier voice than a letter', () => {
+      expect(clickVoiceFor('Enter').click).toBeLessThan(clickVoiceFor('a').click)
+      expect(clickVoiceFor('Enter').level).toBeGreaterThan(clickVoiceFor('a').level)
+      expect(clickVoiceFor(' ').thud).toBeLessThan(clickVoiceFor('a').thud)
     })
 
     it('logs and survives a broken node graph', () => {

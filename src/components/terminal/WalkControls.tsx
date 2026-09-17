@@ -8,6 +8,7 @@ import { DESK_BOUNDS, ROOM, exhibitNormal } from './exhibits'
 import type { Exhibit } from './exhibits'
 import { sceneStore, useSceneStore } from './sceneStore'
 import { activateExhibit, closeCard, openCardLink } from './exhibitActions'
+import { releaseWalkLock, requestWalkLock, setWalkLockTarget } from './walkLock'
 
 /** Eye height above the floor and how close you must be to an exhibit to inspect it */
 const EYE_Y = ROOM.floorY + 1.55
@@ -115,39 +116,39 @@ function useWalkKeys(walk: boolean, moves: React.MutableRefObject<Moves>) {
 export default function WalkControls() {
   const walk = useSceneStore((s) => s.walk)
   const cardOpen = useSceneStore((s) => s.focusedExhibit !== null)
-  const { camera } = useThree()
+  const { camera, gl } = useThree()
   const controls = useRef<React.ComponentRef<typeof PointerLockControls>>(null)
   const moves = useRef<Moves>({ ...IDLE })
   const previous = useRef(new THREE.Vector3())
   const forward = useRef(new THREE.Vector3())
   const lastNear = useRef<string | null>(null)
 
-  // Enter: spawn by the door facing the desk and grab the pointer
+  // The HUD's "click to look around" needs the canvas to request the lock from a real click
+  useEffect(() => {
+    setWalkLockTarget(gl.domElement)
+    return () => setWalkLockTarget(null)
+  }, [gl])
+
+  // Enter: spawn by the door facing the desk. The lock is *attempted* here (Chrome grants it
+  // within the click's activation window); Firefox only grants it from inside a handler, so
+  // the HUD shows a click target until the lock arrives.
   useEffect(() => {
     if (!walk) return
     camera.position.copy(SPAWN)
     camera.lookAt(0, 0.4, 0.2)
     sceneStore.setState({ roomLights: true })
-    const lock = controls.current
-    lock?.lock()
-    // If the browser refuses the lock (no user gesture, iframe policy…) do not stay stuck swallowing keys
-    const check = setTimeout(() => {
-      if (sceneStore.getState().walk && !document.pointerLockElement && !sceneStore.getState().focusedExhibit) {
-        sceneStore.setState({ walk: false })
-      }
-    }, 800)
+    requestWalkLock()
     return () => {
-      clearTimeout(check)
-      lock?.unlock()
-      sceneStore.setState({ nearExhibit: null })
+      releaseWalkLock()
+      sceneStore.setState({ nearExhibit: null, pointerLocked: false })
     }
   }, [walk, camera])
 
-  // A card releases the mouse so its links can be clicked; closing it grabs the mouse again
+  // A card releases the mouse so its links can be clicked; closing it asks for the mouse again
   useEffect(() => {
     if (!walk) return
-    if (cardOpen) controls.current?.unlock()
-    else controls.current?.lock()
+    if (cardOpen) releaseWalkLock()
+    else requestWalkLock()
   }, [walk, cardOpen])
 
   useWalkKeys(walk, moves)
@@ -179,10 +180,10 @@ export default function WalkControls() {
       ref={controls}
       enabled={walk}
       selector="#walk-lock-target"
+      onLock={() => sceneStore.setState({ pointerLocked: true })}
       onUnlock={() => {
-        // Browser-initiated unlock (Esc, tab switch) ends the walk unless a card deliberately released it
-        const { walk: walking, focusedExhibit } = sceneStore.getState()
-        if (walking && !focusedExhibit) sceneStore.setState({ walk: false })
+        // Esc / tab switch: keep walking (the HUD offers a click to re-grab the mouse) unless a card released it
+        sceneStore.setState({ pointerLocked: false })
       }}
     />
   )

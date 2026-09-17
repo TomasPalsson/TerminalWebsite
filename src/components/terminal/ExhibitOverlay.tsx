@@ -5,6 +5,8 @@ import { X, ExternalLink, Footprints, Trophy } from 'lucide-react'
 import { duckTip, type ExhibitLink } from './exhibits'
 import { useSceneStore } from './sceneStore'
 import { closeCard } from './exhibitActions'
+import { requestWalkLock } from './walkLock'
+import { MousePointerClick } from 'lucide-react'
 
 /** Tag pills and link buttons under the card body */
 function CardFooter({ tags, links, numbered }: { tags?: string[]; links?: ExhibitLink[]; numbered?: boolean }) {
@@ -107,10 +109,22 @@ export function WalkHud() {
   const walk = useSceneStore((s) => s.walk)
   const near = useSceneStore((s) => s.nearExhibit)
   const exhibits = useSceneStore((s) => s.exhibits)
+  const locked = useSceneStore((s) => s.pointerLocked)
+  const cardOpen = useSceneStore((s) => s.focusedExhibit !== null)
   if (!walk) return null
   const target = exhibits.find((e) => e.id === near)
   return (
     <div className="absolute inset-0 z-20 pointer-events-none">
+      {!locked && !cardOpen && (
+        <button
+          onClick={requestWalkLock}
+          className="absolute inset-0 pointer-events-auto flex flex-col items-center justify-center gap-2 bg-black/40 font-mono text-white cursor-pointer"
+        >
+          <MousePointerClick size={28} className="text-terminal" />
+          <span className="text-sm">Click to look around</span>
+          <span className="text-[10px] text-gray-400">WASD to walk · E to inspect · Q to leave</span>
+        </button>
+      )}
       <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-3 h-3 rounded-full border border-terminal/80" />
       {target && (
         <div className="absolute left-1/2 top-1/2 translate-x-4 translate-y-3 px-2 py-1 font-mono text-xs bg-black/80 border border-terminal/50 rounded-sm text-white whitespace-nowrap">

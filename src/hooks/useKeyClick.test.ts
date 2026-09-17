@@ -103,8 +103,8 @@ describe('useKeyClick', () => {
       result.current('a')
     })
 
-    // press + release noise bursts
-    expect(MockAudioContext.instances[0].createBufferSource).toHaveBeenCalledTimes(2)
+    // five filtered noise strikes make up one keypress
+    expect(MockAudioContext.instances[0].createBufferSource).toHaveBeenCalledTimes(5)
   })
 
   it('does not warm up or play when disabled', () => {

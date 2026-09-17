@@ -61,28 +61,56 @@ export function clickRateFor(key?: string): number {
 }
 
 type ClickVoice = {
-  /** Fundamental of the "thock" body in Hz */
+  /** Centre of the click resonance in Hz (the "tick") */
+  click: number
+  /** Centre of the case resonance in Hz (the "tock") */
   body: number
-  /** How long the body rings, seconds */
-  ring: number
-  /** How long the noise transient lasts, seconds */
-  snap: number
+  /** Cut-off of the bottom-out thud in Hz */
+  thud: number
   /** Overall loudness */
   level: number
 }
 
-/** Clicky-switch character per key: Enter is a heavier, lower click, Space a broader one, letters a sharp tick */
+/** Keyboard character per key: Enter and Space are bigger keys — lower, more thud; letters are tight ticks */
 export function clickVoiceFor(key?: string): ClickVoice {
-  if (key === 'Enter') return { body: 240, ring: 0.045, snap: 0.016, level: 1 }
-  if (key === ' ') return { body: 280, ring: 0.04, snap: 0.02, level: 0.9 }
-  if (key === 'Backspace') return { body: 380, ring: 0.025, snap: 0.011, level: 0.75 }
-  return { body: 330, ring: 0.028, snap: 0.012, level: 0.8 }
+  if (key === 'Enter') return { click: 2600, body: 900, thud: 220, level: 1.15 }
+  if (key === ' ') return { click: 2400, body: 800, thud: 190, level: 1.05 }
+  if (key === 'Backspace') return { click: 3600, body: 1300, thud: 260, level: 0.8 }
+  return { click: 3300, body: 1150, thud: 250, level: 0.85 }
+}
+
+/** ±spread random multiplier so no two presses ring identically */
+const vary = (spread: number) => 1 + (Math.random() * 2 - 1) * spread
+
+/**
+ * One impulse of noise sent through a resonant filter that rings and decays — the whole
+ * sound of a keypress is a few of these in parallel (plastic tick, case tock, desk thud).
+ */
+function strike(
+  ctx: AudioContext,
+  out: AudioNode,
+  at: number,
+  opts: { type: BiquadFilterType; freq: number; q: number; gain: number; decay: number; impulse: number }
+) {
+  const source = ctx.createBufferSource()
+  source.buffer = getNoise(ctx)
+  const filter = ctx.createBiquadFilter()
+  filter.type = opts.type
+  filter.frequency.value = opts.freq
+  filter.Q.value = opts.q
+  const env = ctx.createGain()
+  env.gain.setValueAtTime(opts.gain, at)
+  env.gain.exponentialRampToValueAtTime(0.001, at + opts.decay)
+  source.connect(filter)
+  filter.connect(env)
+  env.connect(out)
+  source.start(at, 0, opts.impulse)
 }
 
 /**
- * Synthesised clicky-switch keypress: a bright noise snap (the click leaf), a short biting
- * body (the housing), a high ping (the keycap) and a softer release click. Every call is
- * its own set of nodes, so fast typing overlaps naturally.
+ * Synthesised keypress built only from noise impulses ringing through resonant filters —
+ * no oscillators, so it reads as plastic and metal rather than a synth. Down-stroke: click
+ * leaf + case + bottom-out thud; up-stroke: a lighter click a few dozen ms later.
  */
 export function playClick(key?: string): void {
   if (!shouldClick(key)) return
@@ -93,70 +121,18 @@ export function playClick(key?: string): void {
     const rate = clickRateFor(key)
     const voice = clickVoiceFor(key)
     const master = ctx.createGain()
-    master.gain.value = 0.28 * voice.level
+    master.gain.value = 0.55 * voice.level
     master.connect(ctx.destination)
 
-    // Click leaf: a sharp, bright noise burst — the part that reads as "clicky"
-    const snap = ctx.createBufferSource()
-    snap.buffer = getNoise(ctx)
-    const snapFilter = ctx.createBiquadFilter()
-    snapFilter.type = 'bandpass'
-    snapFilter.frequency.value = 5200 * rate
-    snapFilter.Q.value = 1.6
-    const snapGain = ctx.createGain()
-    snapGain.gain.setValueAtTime(1.6, t)
-    snapGain.gain.exponentialRampToValueAtTime(0.001, t + voice.snap)
-    snap.connect(snapFilter)
-    snapFilter.connect(snapGain)
-    snapGain.connect(master)
-    snap.start(t, 0, voice.snap + 0.01)
+    // Down-stroke
+    strike(ctx, master, t, { type: 'bandpass', freq: voice.click * rate * vary(0.08), q: 6, gain: 1.4, decay: 0.035, impulse: 0.004 })
+    strike(ctx, master, t, { type: 'bandpass', freq: voice.body * rate * vary(0.1), q: 3, gain: 0.9, decay: 0.05, impulse: 0.006 })
+    strike(ctx, master, t + 0.003, { type: 'lowpass', freq: voice.thud, q: 1.2, gain: 1.1, decay: 0.06, impulse: 0.012 })
 
-    // Housing: short square body, high-passed so it adds bite instead of thud
-    const body = ctx.createOscillator()
-    body.type = 'square'
-    body.frequency.setValueAtTime(voice.body * rate, t)
-    body.frequency.exponentialRampToValueAtTime(voice.body * rate * 0.6, t + voice.ring)
-    const bodyFilter = ctx.createBiquadFilter()
-    bodyFilter.type = 'highpass'
-    bodyFilter.frequency.value = 700
-    const bodyGain = ctx.createGain()
-    bodyGain.gain.setValueAtTime(0.0001, t)
-    bodyGain.gain.exponentialRampToValueAtTime(0.35, t + 0.002)
-    bodyGain.gain.exponentialRampToValueAtTime(0.001, t + voice.ring)
-    body.connect(bodyFilter)
-    bodyFilter.connect(bodyGain)
-    bodyGain.connect(master)
-    body.start(t)
-    body.stop(t + voice.ring + 0.02)
-
-    // Keycap: a bright ping right at the top of the click
-    const tick = ctx.createOscillator()
-    tick.type = 'sine'
-    tick.frequency.setValueAtTime(7000 * rate, t)
-    const tickGain = ctx.createGain()
-    tickGain.gain.setValueAtTime(0.4, t)
-    tickGain.gain.exponentialRampToValueAtTime(0.001, t + 0.008)
-    tick.connect(tickGain)
-    tickGain.connect(master)
-    tick.start(t)
-    tick.stop(t + 0.015)
-
-    // Release: a quieter second click a moment later, like the leaf springing back
-    const release = ctx.createBufferSource()
-    release.buffer = getNoise(ctx)
-    const releaseFilter = ctx.createBiquadFilter()
-    releaseFilter.type = 'bandpass'
-    releaseFilter.frequency.value = 4200 * rate
-    releaseFilter.Q.value = 1.4
-    const releaseGain = ctx.createGain()
-    const tr = t + 0.055 + Math.random() * 0.02
-    releaseGain.gain.setValueAtTime(0.0001, t)
-    releaseGain.gain.setValueAtTime(0.55, tr)
-    releaseGain.gain.exponentialRampToValueAtTime(0.001, tr + 0.01)
-    release.connect(releaseFilter)
-    releaseFilter.connect(releaseGain)
-    releaseGain.connect(master)
-    release.start(tr, 0, 0.02)
+    // Up-stroke: the switch springing back, quieter and a touch higher
+    const up = t + 0.06 + Math.random() * 0.03
+    strike(ctx, master, up, { type: 'bandpass', freq: voice.click * rate * 1.15 * vary(0.08), q: 6, gain: 0.6, decay: 0.025, impulse: 0.003 })
+    strike(ctx, master, up, { type: 'bandpass', freq: voice.body * rate * vary(0.1), q: 3, gain: 0.35, decay: 0.03, impulse: 0.004 })
   } catch (err) {
     console.error('Error playing sound:', err)
   }

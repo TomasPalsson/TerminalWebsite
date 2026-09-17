@@ -27,6 +27,8 @@ export type SceneState = {
   cameraNonce: number
   /** First-person walk mode (pointer lock + WASD) */
   walk: boolean
+  /** Whether the browser currently has the mouse captured for looking around */
+  pointerLocked: boolean
   /** Ceiling light so the room is visible while walking */
   roomLights: boolean
   /** Disco lights + chiptune */
@@ -72,6 +74,7 @@ export const DEFAULT_SCENE_STATE: SceneState = {
   cameraGoal: CAMERA_PRESETS.default,
   cameraNonce: 0,
   walk: false,
+  pointerLocked: false,
   roomLights: false,
   party: false,
   gravity: true,
