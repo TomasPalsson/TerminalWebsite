@@ -178,6 +178,8 @@ export default function WalkControls() {
   return (
     <PointerLockControls
       ref={controls}
+      // R3F connects its events to the wrapper div; pin the lock to the canvas so it matches requestWalkLock
+      domElement={gl.domElement}
       enabled={walk}
       selector="#walk-lock-target"
       onLock={() => sceneStore.setState({ pointerLocked: true })}

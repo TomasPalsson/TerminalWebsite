@@ -49,7 +49,13 @@ function getBus(ctx: AudioContext): AudioNode {
       comp.ratio.value = 5
       comp.attack.value = 0.002
       comp.release.value = 0.09
-      comp.connect(ctx.destination)
+      // Roll off the top so nothing in the click is piercing
+      const soften = ctx.createBiquadFilter()
+      soften.type = 'lowpass'
+      soften.frequency.value = 4200
+      soften.Q.value = 0.5
+      comp.connect(soften)
+      soften.connect(ctx.destination)
       bus = comp
     } else {
       bus = ctx.destination
@@ -95,10 +101,10 @@ type ClickVoice = {
 
 /** Keyboard character per key: Enter and Space are bigger keys — lower, more thud; letters are tight ticks */
 export function clickVoiceFor(key?: string): ClickVoice {
-  if (key === 'Enter') return { click: 2600, body: 900, thud: 220, level: 1.15 }
-  if (key === ' ') return { click: 2400, body: 800, thud: 190, level: 1.05 }
-  if (key === 'Backspace') return { click: 3600, body: 1300, thud: 260, level: 0.8 }
-  return { click: 3300, body: 1150, thud: 250, level: 0.85 }
+  if (key === 'Enter') return { click: 1800, body: 560, thud: 190, level: 1.1 }
+  if (key === ' ') return { click: 1700, body: 520, thud: 170, level: 1 }
+  if (key === 'Backspace') return { click: 2500, body: 800, thud: 220, level: 0.8 }
+  return { click: 2300, body: 740, thud: 210, level: 0.85 }
 }
 
 /** ±spread random multiplier so no two presses ring identically */
@@ -144,7 +150,7 @@ export function playClick(key?: string): void {
     const rate = clickRateFor(key)
     const voice = clickVoiceFor(key)
     const master = ctx.createGain()
-    master.gain.value = 0.55 * voice.level
+    master.gain.value = 0.42 * voice.level
     master.connect(getBus(ctx))
 
     // Typing fast: the previous key's up-stroke has not happened yet — a real finger is already
@@ -154,17 +160,17 @@ export function playClick(key?: string): void {
     }
 
     // Down-stroke
-    strike(ctx, master, t, { type: 'bandpass', freq: voice.click * rate * vary(0.08), q: 6, gain: 1.4, decay: 0.035, impulse: 0.004 })
-    strike(ctx, master, t, { type: 'bandpass', freq: voice.body * rate * vary(0.1), q: 3, gain: 0.9, decay: 0.05, impulse: 0.006 })
-    strike(ctx, master, t + 0.003, { type: 'lowpass', freq: voice.thud, q: 1.2, gain: 1.1, decay: 0.06, impulse: 0.012 })
+    strike(ctx, master, t, { type: 'bandpass', freq: voice.click * rate * vary(0.08), q: 3, gain: 0.8, decay: 0.03, impulse: 0.004 })
+    strike(ctx, master, t, { type: 'bandpass', freq: voice.body * rate * vary(0.1), q: 2.2, gain: 1.0, decay: 0.05, impulse: 0.006 })
+    strike(ctx, master, t + 0.003, { type: 'lowpass', freq: voice.thud, q: 1.1, gain: 1.3, decay: 0.07, impulse: 0.012 })
 
     // Up-stroke: the switch springing back, quieter and a touch higher
     const up = t + 0.07 + Math.random() * 0.02
     pendingRelease = {
       at: up,
       sources: [
-        strike(ctx, master, up, { type: 'bandpass', freq: voice.click * rate * 1.15 * vary(0.08), q: 6, gain: 0.45, decay: 0.022, impulse: 0.003 }),
-        strike(ctx, master, up, { type: 'bandpass', freq: voice.body * rate * vary(0.1), q: 3, gain: 0.25, decay: 0.028, impulse: 0.004 }),
+        strike(ctx, master, up, { type: 'bandpass', freq: voice.click * rate * 1.1 * vary(0.08), q: 3, gain: 0.3, decay: 0.02, impulse: 0.003 }),
+        strike(ctx, master, up, { type: 'bandpass', freq: voice.body * rate * vary(0.1), q: 2.2, gain: 0.25, decay: 0.028, impulse: 0.004 }),
       ],
     }
   } catch (err) {

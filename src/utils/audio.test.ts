@@ -160,7 +160,8 @@ describe('audio', () => {
       expect(ctx.resume).toHaveBeenCalled()
       // 3 down-stroke + 2 up-stroke strikes per click, the noise buffer built once
       expect(ctx.sources).toHaveLength(15)
-      expect(ctx.createBiquadFilter).toHaveBeenCalledTimes(15)
+      // 15 strike filters + the one lowpass on the shared bus
+      expect(ctx.createBiquadFilter).toHaveBeenCalledTimes(16)
       expect(ctx.createBuffer).toHaveBeenCalledTimes(1)
       expect(ctx.createOscillator).not.toHaveBeenCalled()
       for (const source of ctx.sources) expect(source.start).toHaveBeenCalled()
