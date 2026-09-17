@@ -8,7 +8,7 @@ import React, {
   useState,
 } from "react";
 import { useRouter } from "next/navigation";
-import { KeyPressContext } from "../context/KeypressedContext";
+import { KeyPressContext, type TerminalShortcut } from "../context/KeypressedContext";
 import { commandMap } from "./commands/CommandMap";
 import { extractText } from "../utils/textExtraction";
 import { loadPersistedColor } from "../utils/colorPersistence";
@@ -21,6 +21,7 @@ import {
   TerminalSuggestions,
   ReverseSearchPrompt,
 } from "./terminal";
+import { completeInput, type TabState } from "./terminal/tabCompletion";
 
 // Commands that accept filesystem paths as arguments
 // Used to enable filesystem path completion instead of command completion
@@ -40,7 +41,7 @@ const TerminalHandler = ({ onBufferChange, headless = false }: Props) => {
   if (!context)
     throw new Error("TerminalHandler must be used within KeyPressProvider");
 
-  const { text, clearText, cursorPos, setText, setCursorPos, shortcut, clearShortcut } = context;
+  const { text, clearText, cursorPos, setText, setCursorPos, subscribeInput } = context;
 
   const [output, setOutput] = useState<ReactNode[]>([]);
   type PlainLine = { text: string; command: boolean };
@@ -49,12 +50,10 @@ const TerminalHandler = ({ onBufferChange, headless = false }: Props) => {
   const [commandHistory, setCommandHistory] = useState<string[]>([]);
   const [historyIndex, setHistoryIndex] = useState<number | null>(null);
   const [searchMode, setSearchMode] = useState(false);
-  const [tabState, setTabState] = useState<{ prefix: string; candidates: string[]; index: number } | null>(null);
+  const [tabState, setTabState] = useState<TabState | null>(null);
   const [suggestions, setSuggestions] = useState<string[] | null>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLElement | null>(null);
-  const expandingRef = useRef(false);
-  const tabEditRef = useRef(false);
   const colorPersistedRef = useRef(false);
 
   useEffect(() => {
@@ -91,254 +90,24 @@ const TerminalHandler = ({ onBufferChange, headless = false }: Props) => {
     });
   };
 
-  /* Inline history expansion (!!, !$, !*) - expands as user types */
-  useEffect(() => {
-    // Clear suggestions when user types (unless it was a tab completion edit)
-    if (!tabEditRef.current) {
-      setSuggestions(null);
-      if (tabState) setTabState(null);
-    }
-    tabEditRef.current = false;
-    // Prevent infinite loop: skip if we just did an expansion
-    if (expandingRef.current) {
-      expandingRef.current = false;
-      return;
-    }
-
-    const hasHistory = lastCommandTokens.length > 0;
-    if (!hasHistory) return;
-
+  /** Silent inline expansion of !!, !$ and !* against the last command (errors surface on submit) */
+  const expandInline = (current: string): string => {
+    if (!lastCommandTokens.length) return current;
     const hasPrevArgs = lastCommandTokens.length > 1;
-    const current = text.replace(/\n$/, "");
-    const tokens = current.split(/\s+/);
-
-    if (!tokens.length) return;
-
-    const expandedTokens = tokens.map((tok) => {
-      if (tok === "!!") return lastCommandTokens.join(" ");
-      if (tok === "!$" && hasPrevArgs) return lastCommandTokens[lastCommandTokens.length - 1];
-      if (tok === "!*" && hasPrevArgs) return lastCommandTokens.slice(1).join(" ");
-      return tok;
-    });
-
-    const expanded = expandedTokens.join(" ");
-
-    if (expanded !== current) {
-      expandingRef.current = true;
-      const trailingNewline = text.endsWith("\n") ? "\n" : "";
-      const cursorOffset = expanded.length - current.length;
-      setText(expanded + trailingNewline);
-      setCursorPos((prev) => {
-        const newPos = prev + cursorOffset;
-        return Math.min(Math.max(0, newPos), expanded.length);
-      });
-    }
-  }, [text, lastCommandTokens, setCursorPos, setText]);
-
-  /* handle ctrl+r reverse search trigger */
-  useEffect(() => {
-    if (shortcut === "ctrl+r") {
-      setSearchMode(true);
-      setHistoryIndex(null);
-      setText("");
-      setCursorPos(0);
-      clearShortcut();
-      return;
-    }
-
-    if (shortcut === "history-up" && !searchMode) {
-      if (!commandHistory.length) {
-        clearShortcut();
-        return;
-      }
-      const nextIndex =
-        historyIndex === null
-          ? commandHistory.length - 1
-          : Math.max(0, historyIndex - 1);
-      const cmd = commandHistory[nextIndex];
-      setSuggestions(null);
-      setHistoryIndex(nextIndex);
-      setText(cmd);
-      setCursorPos(cmd.length);
-      clearShortcut();
-      return;
-    }
-
-    if (shortcut === "history-down" && !searchMode) {
-      if (historyIndex === null) {
-        clearShortcut();
-        return;
-      }
-      const nextIndex =
-        historyIndex >= commandHistory.length - 1 ? null : historyIndex + 1;
-      const cmd = nextIndex === null ? "" : commandHistory[nextIndex];
-      setSuggestions(null);
-      setHistoryIndex(nextIndex);
-      setText(cmd);
-      setCursorPos(cmd.length);
-      clearShortcut();
-      return;
-    }
-
-    if (shortcut === "tab" && !searchMode) {
-      const current = text.replace(/\n$/, "");
-      if (!current) {
-        setSuggestions(null);
-        clearShortcut();
-        return;
-      }
-      const tokens = current.split(/\s+/);
-      const [first, ...rest] = tokens;
-      if (!first) {
-        setSuggestions(null);
-        clearShortcut();
-        return;
-      }
-
-      // Filesystem path completion for commands like cd, ls, cat, etc.
-      const isFsCommand = fsCommands.includes(first);
-      const lastArg = rest[rest.length - 1] || '';
-      const shouldCompletePath = isFsCommand && rest.length > 0;
-
-      if (shouldCompletePath) {
-        fileSystem.initialize();
-
-        // Use current argument as prefix - this allows completing into directories
-        // e.g., "projects/" -> "projects/README.md" on subsequent tabs
-        const basePrefix = lastArg;
-        let candidates =
-          tabState && tabState.prefix === basePrefix ? tabState.candidates : null;
-
-        if (!candidates) {
-          candidates = fileSystem.getCompletions(basePrefix);
-        }
-
-        if (!candidates.length) {
-          setSuggestions(null);
-          clearShortcut();
-          return;
-        }
-
-        // First tab for this prefix
-        if (!tabState || tabState.prefix !== basePrefix) {
-          const lcp = candidates.reduce((prev, curr) => {
-            let p = prev;
-            while (p && !curr.startsWith(p)) {
-              p = p.slice(0, -1);
-            }
-            return p;
-          }, candidates[0]);
-
-          const completion = lcp && lcp.length > basePrefix.length ? lcp : candidates[0];
-          const newArgs = [...rest.slice(0, -1), completion];
-          const newText = [first, ...newArgs].join(" ");
-          tabEditRef.current = true;
-          setText(newText);
-          setCursorPos(newText.length);
-          setSuggestions(candidates.length > 1 ? candidates : null);
-          setTabState({
-            prefix: basePrefix,
-            candidates,
-            index: candidates.length === 1 ? 0 : -1,
-          });
-          clearShortcut();
-          return;
-        }
-
-        // Subsequent tabs: cycle through candidates
-        const nextIndex =
-          tabState.index === -1
-            ? 0
-            : (tabState.index + 1) % tabState.candidates.length;
-        const completion = tabState.candidates[nextIndex];
-        const newArgs = [...rest.slice(0, -1), completion];
-        const newText = [first, ...newArgs].join(" ");
-        tabEditRef.current = true;
-        setText(newText);
-        setCursorPos(newText.length);
-        setSuggestions(tabState.candidates);
-        setTabState({ ...tabState, index: nextIndex });
-        clearShortcut();
-        return;
-      }
-
-      // Command name completion (original logic)
-      const basePrefix = tabState?.prefix ?? first;
-      let candidates =
-        tabState && tabState.prefix === basePrefix ? tabState.candidates : null;
-
-      if (!candidates) {
-        candidates = ["clear", ...Array.from(commandMap.keys())].filter((c) =>
-          c.startsWith(basePrefix)
-        );
-      }
-      if (!candidates.length) {
-        setSuggestions(null);
-        clearShortcut();
-        return;
-      }
-
-      // First tab for this prefix: extend to longest common prefix, no suggestions yet
-      if (!tabState || tabState.prefix !== basePrefix) {
-        const lcp = candidates.reduce((prev, curr) => {
-          let p = prev;
-          while (p && !curr.startsWith(p)) {
-            p = p.slice(0, -1);
-          }
-          return p;
-        }, candidates[0]);
-
-        const completion = lcp && lcp.length > basePrefix.length ? lcp : candidates[0];
-        const newText = [completion, ...rest].join(" ");
-        tabEditRef.current = true;
-        setText(newText);
-        setCursorPos(newText.length);
-        setSuggestions(candidates.length > 1 ? candidates : null);
-        setTabState({
-          prefix: basePrefix,
-          candidates,
-          index: candidates.length === 1 ? 0 : -1,
-        });
-        clearShortcut();
-        return;
-      }
-
-      // Subsequent tabs: show suggestions and cycle
-      const nextIndex =
-        tabState.index === -1
-          ? 0
-          : (tabState.index + 1) % tabState.candidates.length;
-      const completion = tabState.candidates[nextIndex];
-      const newText = [completion, ...rest].join(" ");
-      tabEditRef.current = true;
-      setText(newText);
-      setCursorPos(newText.length);
-      setSuggestions(tabState.candidates);
-      setTabState({ ...tabState, index: nextIndex });
-
-      clearShortcut();
-      return;
-    }
-
-    if (shortcut) clearShortcut();
-  }, [
-    shortcut,
-    clearShortcut,
-    commandHistory,
-    historyIndex,
-    searchMode,
-    setCursorPos,
-    setText,
-    tabState,
-  ]);
+    return current
+      .split(/\s+/)
+      .map((tok) => {
+        if (tok === "!!") return lastCommandTokens.join(" ");
+        if (tok === "!$" && hasPrevArgs) return lastCommandTokens[lastCommandTokens.length - 1];
+        if (tok === "!*" && hasPrevArgs) return lastCommandTokens.slice(1).join(" ");
+        return tok;
+      })
+      .join(" ");
+  };
 
   /* Accept reverse search result on Enter
      Ctrl+R search is case-insensitive and searches from most recent to oldest */
-  useEffect(() => {
-    if (!searchMode) return;
-    if (!text.endsWith("\n")) return;
-    const query = text.replace(/\n$/, "");
-    // Search history from newest to oldest (reverse order)
+  const acceptReverseSearch = (query: string) => {
     const match = [...commandHistory].reverse().find((cmd) =>
       cmd.toLowerCase().includes(query.toLowerCase())
     );
@@ -347,7 +116,90 @@ const TerminalHandler = ({ onBufferChange, headless = false }: Props) => {
     setSearchMode(false);
     setText(resolved);
     setCursorPos(resolved.length);
-  }, [commandHistory, searchMode, setCursorPos, setText, text]);
+  };
+
+  /* User typed, pasted, deleted or pressed Enter: drop completions, expand history refs */
+  const handleInput = (nextText: string) => {
+    setSuggestions(null);
+    setTabState(null);
+
+    const current = nextText.replace(/\n$/, "");
+    if (searchMode) {
+      if (nextText.endsWith("\n")) acceptReverseSearch(current);
+      return;
+    }
+
+    const expanded = expandInline(current);
+    if (expanded !== current) {
+      const trailingNewline = nextText.endsWith("\n") ? "\n" : "";
+      const cursorOffset = expanded.length - current.length;
+      setText(expanded + trailingNewline);
+      setCursorPos((prev) => Math.min(Math.max(0, prev + cursorOffset), expanded.length));
+    }
+  };
+
+  const setLine = (line: string) => {
+    setText(line);
+    setCursorPos(line.length);
+  };
+
+  const navigateHistory = (direction: "up" | "down") => {
+    if (direction === "up" && !commandHistory.length) return;
+    if (direction === "down" && historyIndex === null) return;
+    const nextIndex =
+      direction === "up"
+        ? historyIndex === null
+          ? commandHistory.length - 1
+          : Math.max(0, historyIndex - 1)
+        : historyIndex! >= commandHistory.length - 1
+          ? null
+          : historyIndex! + 1;
+    setSuggestions(null);
+    setTabState(null);
+    setHistoryIndex(nextIndex);
+    setLine(nextIndex === null ? "" : commandHistory[nextIndex]);
+  };
+
+  const completeTab = () => {
+    const result = completeInput(text.replace(/\n$/, ""), tabState, {
+      fsCommands,
+      commandNames: ["clear", ...Array.from(commandMap.keys())],
+      getPathCompletions: (prefix) => {
+        fileSystem.initialize();
+        return fileSystem.getCompletions(prefix);
+      },
+    });
+    if (!result) {
+      setSuggestions(null);
+      return;
+    }
+    setLine(result.text);
+    setSuggestions(result.suggestions);
+    setTabState(result.tabState);
+  };
+
+  const handleShortcut = (name: TerminalShortcut) => {
+    if (name === "ctrl+r") {
+      setSearchMode(true);
+      setHistoryIndex(null);
+      setSuggestions(null);
+      setTabState(null);
+      setLine("");
+      return;
+    }
+    if (searchMode) return;
+    if (name === "history-up") navigateHistory("up");
+    else if (name === "history-down") navigateHistory("down");
+    else if (name === "tab") completeTab();
+  };
+
+  /* Keyboard input arrives as events from the provider; resubscribe so the handler sees fresh state */
+  useEffect(() =>
+    subscribeInput((event) => {
+      if (event.type === "shortcut") handleShortcut(event.name);
+      else handleInput(event.text);
+    })
+  );
 
   /* command processing */
   useEffect(() => {
