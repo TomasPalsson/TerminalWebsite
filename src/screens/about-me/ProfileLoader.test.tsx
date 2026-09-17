@@ -2,30 +2,28 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { render, screen, act } from '@testing-library/react'
 import { ProfileLoader } from './ProfileLoader'
 
+function blurred(container: HTMLElement): string {
+  return (container.querySelector('[style*="blur"]') as HTMLElement).style.filter
+}
+
 describe('ProfileLoader', () => {
   beforeEach(() => vi.useFakeTimers())
   afterEach(() => vi.useRealTimers())
 
-  it('streams the first status line character by character', () => {
-    render(<ProfileLoader />)
-    const status = screen.getByRole('status')
-    expect(status).toHaveTextContent('generating profile')
+  it('starts fully blurred and advances the step counter', () => {
+    const { container } = render(<ProfileLoader />)
+    expect(screen.getByRole('status')).toHaveTextContent('step 0/50')
+    expect(blurred(container)).toContain('blur(24px)')
 
-    act(() => vi.advanceTimersByTime(28 * 5))
-    expect(status).toHaveTextContent('Fetch')
-    expect(status).not.toHaveTextContent('Fetching profile data…')
-
-    act(() => vi.advanceTimersByTime(28 * 30))
-    expect(status).toHaveTextContent('Fetching profile data…')
+    act(() => vi.advanceTimersByTime(90 * 10))
+    expect(screen.getByRole('status')).toHaveTextContent('step 10/50')
   })
 
-  it('moves on to the next line after a pause', () => {
-    render(<ProfileLoader />)
-    const status = screen.getByRole('status')
+  it('sharpens to zero blur at the final step and stops', () => {
+    const { container } = render(<ProfileLoader />)
 
-    act(() => vi.advanceTimersByTime(28 * 30 + 350))
-    expect(status).toHaveTextContent('Fetching profile data…')
-    act(() => vi.advanceTimersByTime(28 * 10))
-    expect(status).toHaveTextContent('Reading e')
+    act(() => vi.advanceTimersByTime(90 * 60))
+    expect(screen.getByRole('status')).toHaveTextContent('step 50/50')
+    expect(blurred(container)).toContain('blur(0px)')
   })
 })
