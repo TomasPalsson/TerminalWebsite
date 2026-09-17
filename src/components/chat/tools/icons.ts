@@ -61,7 +61,10 @@ export const techIconMap: Record<string, IconComponent> = {
   'tailwindcss': SiTailwindcss,
 }
 
+export function normalizeTech(tech: string): string {
+  return tech.toLowerCase().split(' ')[0].replace(/[^a-z0-9+.]/g, '')
+}
+
 export function getTechIcon(tech: string): IconComponent {
-  const normalized = tech.toLowerCase().split(' ')[0].replace(/[^a-z0-9+.]/g, '')
-  return techIconMap[normalized] || Code2
+  return techIconMap[normalizeTech(tech)] || Code2
 }

@@ -39,7 +39,7 @@ export function safeParse<T>(str: string): T | null {
 
 // Format tool name for display
 export function formatToolName(tool: string): string {
-  let name = tool.replace(/_exa$/, '').replace(/^exa_/, '')
+  const name = tool.replace(/_exa$/, '').replace(/^exa_/, '')
   return name
     .split('_')
     .map(word => word.charAt(0).toUpperCase() + word.slice(1))

@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { ChevronDown, ChevronRight, Zap, Code2, Wrench, Layers, Box } from 'lucide-react'
 import { ToolRendererProps } from '../types'
 import { safeParse } from '../utils'
-import { getTechIcon } from '../icons'
+import { techIconMap, normalizeTech } from '../icons'
 import { LoadingSkeleton } from './LoadingSkeleton'
 import { DefaultToolRenderer } from './DefaultToolRenderer'
 
@@ -37,7 +37,7 @@ function formatLabel(str: string): string {
 }
 
 function SkillBadge({ skill, level }: { skill: string; level: string }) {
-  const Icon = getTechIcon(skill)
+  const Icon = techIconMap[normalizeTech(skill)] ?? Code2
   const style = getStyle(level)
 
   return (

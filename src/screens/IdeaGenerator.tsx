@@ -737,7 +737,7 @@ export default function IdeaGenerator() {
                     <span className="text-blue-400 shrink-0">02</span>
                     <div>
                       <span className="text-white">Critic</span>
-                      <span className="text-gray-500"> — Evaluates feasibility, identifies unique elements, and enhances with "yes, and..." approach</span>
+                      <span className="text-gray-500"> — Evaluates feasibility, identifies unique elements, and enhances with &quot;yes, and...&quot; approach</span>
                     </div>
                   </div>
                   <div className="flex gap-3">

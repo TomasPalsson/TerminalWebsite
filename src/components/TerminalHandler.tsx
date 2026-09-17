@@ -509,11 +509,6 @@ const TerminalHandler = ({ onBufferChange, headless = false }: Props) => {
     onBufferChange([...mapped, liveWithPrompt]);
   }, [plainLines, text]);
 
-  /* -------- HTML terminal (hidden in headless mode) -------- */
-  if (headless) return null;
-
-  const liveText = text.replace(/\n$/, "");
-
   /* Ensure scrolling when output changes */
   useEffect(() => {
     requestAnimationFrame(() => {
@@ -527,6 +522,11 @@ const TerminalHandler = ({ onBufferChange, headless = false }: Props) => {
       }
     });
   }, [output]);
+
+  /* -------- HTML terminal (hidden in headless mode) -------- */
+  if (headless) return null;
+
+  const liveText = text.replace(/\n$/, "");
 
   if (searchMode) {
     const query = liveText;

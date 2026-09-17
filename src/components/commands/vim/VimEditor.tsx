@@ -3,7 +3,7 @@
 import React, { useEffect, useRef, useState, useCallback, useMemo } from 'react'
 import CodeMirror, { ReactCodeMirrorRef } from '@uiw/react-codemirror'
 import { vim, Vim, getCM } from '@replit/codemirror-vim'
-import { EditorView } from '@codemirror/view'
+import { EditorView, ViewUpdate } from '@codemirror/view'
 import { Extension } from '@codemirror/state'
 import { VimEditorProps, VimMode } from './types'
 
@@ -307,7 +307,7 @@ export function VimEditor({ filename, initialContent, onSave, onClose }: VimEdit
   }, [])
 
   // Track cursor position - only update if changed
-  const handleUpdate = useCallback((viewUpdate: any) => {
+  const handleUpdate = useCallback((viewUpdate: ViewUpdate) => {
     if (!viewUpdate.state?.selection?.main) return
     const pos = viewUpdate.state.selection.main.head
     const doc = viewUpdate.state.doc

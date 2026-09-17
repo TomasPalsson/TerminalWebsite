@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useRef, useEffect, useState, useContext } from 'react'
+import React, { useRef, useEffect, useContext, useSyncExternalStore } from 'react'
 import TerminalHandler from '../components/TerminalHandler'
 import { KeyPressProvider, KeyPressContext } from '../context/KeypressedContext'
 import { Terminal as TerminalIcon, Folder, GitBranch } from 'lucide-react'
@@ -8,40 +8,23 @@ import { fileSystem } from '../services/filesystem'
 import { gitService } from '../services/git'
 import { VimEditor } from '../components/commands/vim/VimEditor'
 
+/** Initializes the shell services and polls them for prompt changes */
+const subscribeToServices = (onChange: () => void) => {
+  fileSystem.initialize()
+  gitService.initialize()
+  onChange()
+  const interval = setInterval(onChange, 500)
+  return () => clearInterval(interval)
+}
+
 /**
  * Inner terminal content that has access to KeyPressContext
  */
 function TerminalContent() {
   const context = useContext(KeyPressContext)
   const scrollRef = useRef<HTMLDivElement>(null)
-  const [gitBranch, setGitBranch] = useState<string | null>(null)
-  const [cwd, setCwd] = useState('/home/user')
-
-  // Initialize services and update state
-  useEffect(() => {
-    fileSystem.initialize()
-    gitService.initialize()
-
-    // Update cwd
-    setCwd(fileSystem.getCwd())
-
-    // Update git branch
-    if (gitService.isInitialized()) {
-      setGitBranch(gitService.getCurrentBranch())
-    }
-
-    // Set up interval to check for changes
-    const interval = setInterval(() => {
-      setCwd(fileSystem.getCwd())
-      if (gitService.isInitialized()) {
-        setGitBranch(gitService.getCurrentBranch())
-      } else {
-        setGitBranch(null)
-      }
-    }, 500)
-
-    return () => clearInterval(interval)
-  }, [])
+  const cwd = useSyncExternalStore(subscribeToServices, () => fileSystem.getCwd(), () => '/home/user')
+  const gitBranch = useSyncExternalStore(subscribeToServices, () => gitService.getCurrentBranch(), () => null)
 
   const isVimActive = !!context?.vimEditor
   const wasVimActiveRef = useRef(false)

@@ -4,7 +4,7 @@ import { ToolRendererProps } from '../types'
 import { safeParse } from '../utils'
 import { LoadingSkeleton } from './LoadingSkeleton'
 import { DefaultToolRenderer } from './DefaultToolRenderer'
-import { getTechIcon } from '../icons'
+import { techIconMap, normalizeTech } from '../icons'
 
 type Repository = {
   name: string
@@ -50,7 +50,7 @@ function formatNumber(num: number): string {
 
 function RepoCard({ repo }: { repo: Repository }) {
   const normalized = normalizeRepo(repo)
-  const LangIcon = normalized.language ? getTechIcon(normalized.language) : Code
+  const LangIcon = (normalized.language && techIconMap[normalizeTech(normalized.language)]) || Code
 
   return (
     <a

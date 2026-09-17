@@ -1,9 +1,11 @@
 'use client'
 
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useState, useSyncExternalStore } from 'react'
 import Link from 'next/link'
 import { Maximize2, Minimize2, X, Terminal } from 'lucide-react'
 import ColorWheel from './ColorWheel'
+
+const subscribeNoop = () => () => {}
 
 type MacBarProps = {
   fullscreenRef: React.RefObject<HTMLDivElement | null>
@@ -11,11 +13,9 @@ type MacBarProps = {
 
 export default function MacBar({ fullscreenRef }: MacBarProps) {
   const [isFullscreen, setIsFullscreen] = useState(false)
-  const [hostname, setHostname] = useState('')
+  const hostname = useSyncExternalStore(subscribeNoop, () => window.location.hostname, () => '')
 
   useEffect(() => {
-    setHostname(window.location.hostname)
-
     const handleChange = () => {
       setIsFullscreen(document.fullscreenElement !== null)
     }

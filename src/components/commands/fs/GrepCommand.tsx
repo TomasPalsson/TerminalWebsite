@@ -18,9 +18,9 @@ export const GrepCommand: Command = {
       </p>
       <p className="text-terminal mb-2">Examples:</p>
       <div className="space-y-1 text-gray-400">
-        <p><span className="text-white">grep "hello" file.txt</span> — Search in a single file</p>
-        <p><span className="text-white">grep "TODO" .</span> — Search recursively in current directory</p>
-        <p><span className="text-white">grep "error" /home/user/logs</span> — Search in logs directory</p>
+        <p><span className="text-white">grep &quot;hello&quot; file.txt</span> — Search in a single file</p>
+        <p><span className="text-white">grep &quot;TODO&quot; .</span> — Search recursively in current directory</p>
+        <p><span className="text-white">grep &quot;error&quot; /home/user/logs</span> — Search in logs directory</p>
       </div>
     </div>
   ),
@@ -40,7 +40,7 @@ export const GrepCommand: Command = {
     }
 
     // Pattern might be quoted
-    let pattern = args[0].replace(/^["']|["']$/g, '')
+    const pattern = args[0].replace(/^["']|["']$/g, '')
     const path = args[1]
 
     const result = fileSystem.grep(pattern, path)
@@ -61,7 +61,7 @@ export const GrepCommand: Command = {
         <div className="font-mono text-sm">
           <div className="inline-flex items-center gap-2 px-4 py-3 rounded-lg bg-neutral-900/50 border border-neutral-800">
             <Search size={14} className="text-gray-500" />
-            <span className="text-gray-500">No matches found for "{pattern}"</span>
+            <span className="text-gray-500">No matches found for &quot;{pattern}&quot;</span>
           </div>
         </div>
       )

@@ -240,7 +240,7 @@ function gitCommit(args: string[]): React.ReactNode {
     return (
       <div className="inline-flex items-center gap-2 px-4 py-3 rounded-lg bg-red-500/10 border border-red-500/30">
         <AlertCircle size={14} className="text-red-400" />
-        <span className="text-red-400">Missing commit message. Usage: git commit -m "message"</span>
+        <span className="text-red-400">Missing commit message. Usage: git commit -m &quot;message&quot;</span>
       </div>
     )
   }
@@ -653,7 +653,7 @@ function gitHelp(): React.ReactNode {
           <span className="text-gray-500">Stage all changes</span>
           <span className="text-terminal">git reset &lt;file&gt;</span>
           <span className="text-gray-500">Unstage file</span>
-          <span className="text-terminal">git commit -m "msg"</span>
+          <span className="text-terminal">git commit -m &quot;msg&quot;</span>
           <span className="text-gray-500">Commit staged changes</span>
           <span className="text-terminal">git log</span>
           <span className="text-gray-500">Show commit history</span>
@@ -687,7 +687,7 @@ export const GitCommand: Command = {
         <p><span className="text-white">init</span> — Initialize a new repository</p>
         <p><span className="text-white">status</span> — Show working tree status</p>
         <p><span className="text-white">add &lt;file&gt;</span> — Stage changes</p>
-        <p><span className="text-white">commit -m "msg"</span> — Commit changes</p>
+        <p><span className="text-white">commit -m &quot;msg&quot;</span> — Commit changes</p>
         <p><span className="text-white">log</span> — Show commit history</p>
         <p><span className="text-white">branch</span> — List or create branches</p>
         <p><span className="text-white">checkout &lt;branch&gt;</span> — Switch branches</p>
