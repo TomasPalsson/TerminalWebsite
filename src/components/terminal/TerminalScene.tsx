@@ -1,199 +1,180 @@
 'use client'
 
 import { OrbitControls, useGLTF } from '@react-three/drei'
-import { Canvas, useThree } from '@react-three/fiber'
-import React, { useMemo, useEffect, useRef, useCallback, useSyncExternalStore } from 'react'
+import { Canvas, useFrame, useThree } from '@react-three/fiber'
+import React, { useCallback, useMemo, useEffect, useRef, useSyncExternalStore } from 'react'
 import * as THREE from 'three'
 import { EffectComposer } from '@react-three/postprocessing'
 import CRTEffects from './CRTEffects'
 import AmbientEffects from './AmbientEffects'
+import { Room, DeskProps } from './DeskProps'
+import { CAMERA_PRESETS, sceneStore, useSceneStore } from './sceneStore'
+import { SCREEN, drawScreen, phosphorColor, type DrawScreenOptions } from './screenTexture'
 import { DEFAULT_CAMERA_CONFIG } from '../../types/terminal3d'
 import type { TerminalSceneProps, CameraConfig } from '../../types/terminal3d'
 
+const MODEL_URL = '/scene.gltf'
+useGLTF.preload(MODEL_URL)
+
 const subscribeNoop = () => () => {}
 
-/** Reads the terminal accent from CSS on the client; the default green maps to pure phosphor green */
-const readTerminalColor = () => {
-  const c = getComputedStyle(document.documentElement).getPropertyValue('--terminal').trim() || '#0f0'
-  return c === '#22c55e' ? '#0f0' : c
+/** Reads the terminal accent from CSS on the client */
+const readTerminalColor = () =>
+  phosphorColor(getComputedStyle(document.documentElement).getPropertyValue('--terminal').trim() || '#22c55e')
+
+/** The `color` command writes `--terminal` onto <html style>; watch that attribute */
+const subscribeTerminalColor = (onChange: () => void) => {
+  const observer = new MutationObserver(onChange)
+  observer.observe(document.documentElement, { attributes: true, attributeFilter: ['style'] })
+  return () => observer.disconnect()
 }
 
-const VISIBLE_HEIGHT = 768
-const MARGIN = 20
-const LINE_HEIGHT = 42
-
-type DrawTerminalArgs = {
-  canvas: HTMLCanvasElement
-  ctx: CanvasRenderingContext2D
-  texture: THREE.CanvasTexture
-  lines: string[]
-  color: string
-  maxWidth: number
-  cursorPosRef: React.MutableRefObject<{ x: number; y: number; visible: boolean }>
-  cursorVisibleRef: React.MutableRefObject<boolean>
+/** Loads JetBrains Mono for the canvas and resolves once it is usable (or immediately if unsupported) */
+const whenScreenFontReady = (): Promise<unknown> => {
+  if (typeof document === 'undefined' || !('fonts' in document)) return Promise.resolve()
+  return document.fonts.load(`${SCREEN.fontSize}px "JetBrains Mono"`).catch(() => undefined)
 }
 
-/** Word-wraps `lines` and invokes `onLine` for each rendered row, returning the final y */
-function layoutLines(ctx: CanvasRenderingContext2D, lines: string[], maxWidth: number, startY: number, onLine?: (text: string, y: number) => void) {
-  let y = startY
-  lines.forEach((ln) => {
-    const words = ln.split(' ')
-    let line = ''
-    words.forEach((word, idx) => {
-      const test = line + (idx ? ' ' : '') + word
-      if (ctx.measureText(test).width > maxWidth) {
-        onLine?.(line, y)
-        y += LINE_HEIGHT
-        line = word
-      } else {
-        line = test
-      }
-    })
-    onLine?.(line, y)
-    y += LINE_HEIGHT
-  })
-  return y
-}
+/** Owns the offscreen canvas and the three texture drawn from it */
+class ScreenSurface {
+  readonly texture: THREE.CanvasTexture
+  private readonly ctx: CanvasRenderingContext2D | null
 
-/** Paints terminal lines (scrolled to the bottom) and the cursor onto the screen canvas */
-function drawTerminal({ canvas, ctx, texture, lines, color, maxWidth, cursorPosRef, cursorVisibleRef }: DrawTerminalArgs) {
-  ctx.clearRect(0, 0, canvas.width, canvas.height)
-  ctx.fillStyle = '#000'
-  ctx.fillRect(0, 0, canvas.width, canvas.height)
-  ctx.fillStyle = color
-  ctx.font = '20px monospace'
-  ctx.textBaseline = 'top'
-
-  const totalHeight = layoutLines(ctx, lines, maxWidth, MARGIN)
-  const startY = totalHeight > VISIBLE_HEIGHT ? MARGIN - (totalHeight - VISIBLE_HEIGHT) : MARGIN
-  const y = layoutLines(ctx, lines, maxWidth, startY, (text, rowY) => {
-    if (rowY >= MARGIN && rowY <= VISIBLE_HEIGHT) ctx.fillText(text, MARGIN, rowY)
-  })
-
-  if (lines.length > 0) {
-    const lastLine = lines[lines.length - 1]
-    cursorPosRef.current = {
-      x: MARGIN + ctx.measureText(lastLine).width,
-      y: y - LINE_HEIGHT,
-      visible: cursorVisibleRef.current,
+  constructor() {
+    // Guard for SSR - a 1x1 placeholder that is never painted
+    if (typeof document === 'undefined') {
+      this.ctx = null
+      this.texture = new THREE.CanvasTexture(new ImageData(1, 1))
+      return
     }
-    if (cursorVisibleRef.current && cursorPosRef.current.y >= MARGIN && cursorPosRef.current.y <= VISIBLE_HEIGHT) {
-      ctx.fillText('_', cursorPosRef.current.x, cursorPosRef.current.y)
-    }
+    const canvas = document.createElement('canvas')
+    canvas.width = SCREEN.width
+    canvas.height = SCREEN.height
+    this.ctx = canvas.getContext('2d')
+    this.texture = new THREE.CanvasTexture(canvas)
+    this.texture.colorSpace = THREE.SRGBColorSpace
+    this.texture.anisotropy = 4
   }
 
-  texture.needsUpdate = true
+  paint(options: Omit<DrawScreenOptions, 'ctx'>) {
+    if (!this.ctx) return
+    drawScreen({ ctx: this.ctx, ...options })
+    this.texture.needsUpdate = true
+  }
 }
 
 /**
  * Hook that returns a CanvasTexture driven by terminal lines
  */
-export function useTerminalTexture(lines: string[]) {
-  const color = useSyncExternalStore(subscribeNoop, readTerminalColor, () => '#0f0')
+export function useTerminalTexture(lines: string[], power: boolean) {
+  const color = useSyncExternalStore(subscribeTerminalColor, readTerminalColor, () => '#39ff6e')
+  const surface = useMemo(() => new ScreenSurface(), [])
 
-  const { canvas, ctx, texture } = useMemo(() => {
-    // Guard for SSR - return dummy values that will be replaced on client
-    if (typeof document === 'undefined') {
-      return { canvas: null as HTMLCanvasElement | null, ctx: null as CanvasRenderingContext2D | null, texture: new THREE.CanvasTexture(new ImageData(1, 1)) }
-    }
-    const canvas = document.createElement('canvas')
-    canvas.width = 1024
-    canvas.height = 768
-    const ctx = canvas.getContext('2d')!
-    const texture = new THREE.CanvasTexture(canvas)
-    texture.flipY = true
-    texture.wrapS = THREE.RepeatWrapping
-    texture.center.set(0.5, 0.5)
-    return { canvas, ctx, texture }
-  }, [])
-
-  const visibleHeight = VISIBLE_HEIGHT
-  const margin = MARGIN
-  const lineHeight = LINE_HEIGHT
-  const maxWidth = canvas ? canvas.width - margin * 2 : 1024 - margin * 2
-
-  const cursorPosRef = useRef<{ x: number; y: number; visible: boolean }>({ x: 0, y: 0, visible: true })
   const cursorVisibleRef = useRef(true)
-  const linesRef = useRef<string[]>([])
+  const linesRef = useRef(lines)
+  const fontReadyRef = useRef(false)
+
+  const redraw = useCallback(() => {
+    surface.paint({ lines: linesRef.current, color, cursorVisible: cursorVisibleRef.current, power })
+  }, [surface, color, power])
 
   useEffect(() => {
-    if (!canvas || !ctx) return
     linesRef.current = lines
-    drawTerminal({ canvas, ctx, texture, lines, color, maxWidth, cursorPosRef, cursorVisibleRef })
-  }, [lines, color, canvas, ctx, texture, maxWidth])
+    redraw()
+  }, [lines, redraw])
+
+  // Repaint once the web font arrives so the first frames are not in the fallback face
+  useEffect(() => {
+    if (fontReadyRef.current) return
+    let cancelled = false
+    whenScreenFontReady().then(() => {
+      if (cancelled) return
+      fontReadyRef.current = true
+      redraw()
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [redraw])
 
   useEffect(() => {
-    if (!canvas || !ctx) return
-
-    const cursorWidth = 15
-    const cursorHeight = lineHeight
-
+    if (!power) return
     const interval = setInterval(() => {
       cursorVisibleRef.current = !cursorVisibleRef.current
-      const pos = cursorPosRef.current
-
-      if (linesRef.current.length === 0 || pos.y < margin || pos.y > visibleHeight) return
-
-      ctx.fillStyle = '#000'
-      ctx.fillRect(pos.x, pos.y, cursorWidth, cursorHeight)
-
-      if (cursorVisibleRef.current) {
-        ctx.fillStyle = color
-        ctx.font = '20px monospace'
-        ctx.textBaseline = 'top'
-        ctx.fillText('_', pos.x, pos.y)
-      }
-
-      texture.needsUpdate = true
-    }, 500)
-
+      redraw()
+    }, 530)
     return () => clearInterval(interval)
-  }, [color, canvas, ctx, texture])
+  }, [power, redraw])
 
-  return texture
+  return surface.texture
 }
 
 /** GLTF wrapper for the retro computer model */
 function RetroComputer({ screenTexture }: { screenTexture: THREE.Texture }) {
-  const { scene } = useGLTF('/scene.gltf')
+  const { scene } = useGLTF(MODEL_URL)
 
   useEffect(() => {
-    const screen = scene.getObjectByName('PC_M_Screen_0') as THREE.Mesh
+    scene.traverse((obj) => {
+      if ((obj as THREE.Mesh).isMesh) {
+        obj.castShadow = true
+        obj.receiveShadow = true
+      }
+    })
+    const screen = scene.getObjectByName('PC_M_Screen_0') as THREE.Mesh | undefined
     if (screen) {
       screen.material = new THREE.MeshBasicMaterial({ map: screenTexture, toneMapped: false })
+      screen.castShadow = false
     }
   }, [scene, screenTexture])
 
   return <primitive object={scene} scale={[1.2, 1.2, 1.2]} />
 }
 
-/** Camera controls with configurable boundaries */
-function CameraController({
-  config,
-  onDoubleClick,
-}: {
-  config: CameraConfig
-  onDoubleClick?: () => void
-}) {
-  const { camera } = useThree()
+/** Orbit controls plus smooth fly-to for `scene cam …`, double-click reset and optional auto-spin */
+function CameraRig({ config }: { config: CameraConfig }) {
+  const { camera, gl } = useThree()
   const controlsRef = useRef<React.ComponentRef<typeof OrbitControls>>(null)
+  const preset = useSceneStore((s) => s.cameraPreset)
+  const nonce = useSceneStore((s) => s.cameraNonce)
+  const spin = useSceneStore((s) => s.spin)
 
-  const handleDoubleClick = useCallback(() => {
-    if (controlsRef.current) {
-      camera.position.set(...config.defaultPosition)
-      controlsRef.current.target.set(...config.target)
-      controlsRef.current.update()
-    }
-    onDoubleClick?.()
-  }, [camera, config, onDoubleClick])
+  const flight = useRef<{ position: THREE.Vector3; target: THREE.Vector3 } | null>(null)
 
   useEffect(() => {
-    const canvas = document.querySelector('canvas')
-    if (canvas) {
-      canvas.addEventListener('dblclick', handleDoubleClick)
-      return () => canvas.removeEventListener('dblclick', handleDoubleClick)
+    const { position, target } = CAMERA_PRESETS[preset]
+    flight.current = { position: new THREE.Vector3(...position), target: new THREE.Vector3(...target) }
+  }, [preset, nonce])
+
+  useEffect(() => {
+    const el = gl.domElement
+    const reset = () => sceneStore.setCamera('default')
+    // Dragging takes over from an in-progress flight
+    const cancel = () => {
+      flight.current = null
     }
-  }, [handleDoubleClick])
+    el.addEventListener('dblclick', reset)
+    el.addEventListener('pointerdown', cancel)
+    el.addEventListener('wheel', cancel, { passive: true })
+    return () => {
+      el.removeEventListener('dblclick', reset)
+      el.removeEventListener('pointerdown', cancel)
+      el.removeEventListener('wheel', cancel)
+    }
+  }, [gl])
+
+  useFrame((_, delta) => {
+    const controls = controlsRef.current
+    const goal = flight.current
+    if (!controls || !goal) return
+    const k = 1 - Math.exp(-delta * 4.5)
+    camera.position.lerp(goal.position, k)
+    controls.target.lerp(goal.target, k)
+    if (camera.position.distanceTo(goal.position) < 0.002 && controls.target.distanceTo(goal.target) < 0.002) {
+      camera.position.copy(goal.position)
+      controls.target.copy(goal.target)
+      flight.current = null
+    }
+  })
 
   return (
     <OrbitControls
@@ -203,12 +184,32 @@ function CameraController({
       maxDistance={config.maxDistance}
       minPolarAngle={config.minPolarAngle}
       maxPolarAngle={config.maxPolarAngle}
-      minAzimuthAngle={config.minAzimuthAngle}
-      maxAzimuthAngle={config.maxAzimuthAngle}
+      minAzimuthAngle={spin ? -Infinity : config.minAzimuthAngle}
+      maxAzimuthAngle={spin ? Infinity : config.maxAzimuthAngle}
+      autoRotate={spin}
+      autoRotateSpeed={0.6}
       enableDamping
-      dampingFactor={0.05}
+      dampingFactor={0.08}
+      enablePan={false}
+      makeDefault
     />
   )
+}
+
+/** Publishes a smoothed frame rate to the scene store once a second */
+function FpsSampler() {
+  const frames = useRef(0)
+  const elapsed = useRef(0)
+  useFrame((_, delta) => {
+    frames.current += 1
+    elapsed.current += delta
+    if (elapsed.current >= 1) {
+      sceneStore.setState({ fps: Math.round(frames.current / elapsed.current) })
+      frames.current = 0
+      elapsed.current = 0
+    }
+  })
+  return null
 }
 
 /** Scene content rendered inside Canvas */
@@ -216,20 +217,25 @@ function SceneContent({
   screenTexture,
   enableEffects,
   cameraConfig,
-  onDoubleClick,
 }: {
   screenTexture: THREE.Texture
   enableEffects: boolean
   cameraConfig: CameraConfig
-  onDoubleClick?: () => void
 }) {
+  const power = useSceneStore((s) => s.power)
+  const lampOn = useSceneStore((s) => s.lampOn)
+  const props = useSceneStore((s) => s.props)
+
   return (
     <>
-      <ambientLight intensity={0.3} />
-      <pointLight position={[0, 0.721, 0.9]} intensity={0.8} color="#22c55e" />
+      <ambientLight intensity={0.25} color="#8fb3a0" />
+      <hemisphereLight intensity={0.25} color="#1b2a22" groundColor="#050505" />
+      <Room />
       <RetroComputer screenTexture={screenTexture} />
-      <CameraController config={cameraConfig} onDoubleClick={onDoubleClick} />
-      <AmbientEffects enabled={enableEffects} />
+      {props && <DeskProps lampOn={lampOn} />}
+      <CameraRig config={cameraConfig} />
+      <AmbientEffects enabled showDust={enableEffects} showGlow={power} />
+      <FpsSampler />
       {enableEffects && (
         <EffectComposer>
           <CRTEffects enabled={enableEffects} />
@@ -239,18 +245,19 @@ function SceneContent({
   )
 }
 
+/** Keeps a lost WebGL context from tearing the page down; three restores it on `webglcontextrestored` */
+const handleCreated = ({ gl }: { gl: THREE.WebGLRenderer }) => {
+  gl.domElement.addEventListener('webglcontextlost', (event) => event.preventDefault())
+}
+
 /**
  * Main 3D scene component with terminal rendering
  */
-export default function TerminalScene({
-  buffer,
-  enableEffects,
-  cameraConfig: customConfig,
-  onDoubleClick,
-}: TerminalSceneProps) {
+export default function TerminalScene({ buffer, enableEffects, cameraConfig: customConfig }: TerminalSceneProps) {
   // Wait for client-side mount before rendering Canvas
   const mounted = useSyncExternalStore(subscribeNoop, () => true, () => false)
-  const screenTexture = useTerminalTexture(buffer)
+  const power = useSceneStore((s) => s.power)
+  const screenTexture = useTerminalTexture(buffer, power)
   const cameraConfig = { ...DEFAULT_CAMERA_CONFIG, ...customConfig }
 
   if (!mounted) {
@@ -264,15 +271,15 @@ export default function TerminalScene({
   return (
     <Canvas
       className="absolute inset-0"
-      camera={{ position: cameraConfig.defaultPosition }}
-      gl={{ antialias: true, alpha: false }}
+      camera={{ position: cameraConfig.defaultPosition, fov: 42, near: 0.05, far: 40 }}
+      gl={{ antialias: true, alpha: false, powerPreference: 'high-performance' }}
+      dpr={[1, 2]}
+      shadows
+      onCreated={handleCreated}
     >
-      <SceneContent
-        screenTexture={screenTexture}
-        enableEffects={enableEffects}
-        cameraConfig={cameraConfig}
-        onDoubleClick={onDoubleClick}
-      />
+      <color attach="background" args={['#030405']} />
+      <fog attach="fog" args={['#030405', 3.5, 7]} />
+      <SceneContent screenTexture={screenTexture} enableEffects={enableEffects} cameraConfig={cameraConfig} />
     </Canvas>
   )
 }

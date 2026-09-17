@@ -26,24 +26,33 @@ export default function AmbientEffects({
   )
 }
 
-/** Screen glow emanating from the monitor */
+/** Screen glow emanating from the monitor, with the faint flicker of a real tube */
 function ScreenGlow() {
+  const mainRef = useRef<THREE.PointLight>(null)
+
+  useFrame(({ clock }) => {
+    if (!mainRef.current) return
+    const t = clock.getElapsedTime()
+    mainRef.current.intensity = 0.55 + Math.sin(t * 17) * 0.03 + Math.sin(t * 3.1) * 0.05
+  })
+
   return (
     <>
       {/* Main screen glow */}
       <pointLight
-        position={[0, 0.5, 0.3]}
-        intensity={0.4}
+        ref={mainRef}
+        position={[0, 0.45, 0.8]}
+        intensity={0.55}
         color="#22c55e"
-        distance={2}
+        distance={2.2}
         decay={2}
       />
-      {/* Subtle ambient fill */}
+      {/* Subtle ambient fill spilling onto the keyboard */}
       <pointLight
-        position={[0, 0.3, 0.5]}
+        position={[0, 0.2, 0.9]}
         intensity={0.2}
         color="#0a3d1a"
-        distance={3}
+        distance={2.5}
         decay={2}
       />
     </>

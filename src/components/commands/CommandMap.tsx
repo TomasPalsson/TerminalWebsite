@@ -14,6 +14,7 @@ import { SchoolCommand } from "./SchoolCommand";
 import { CurlCommand } from "./CurlCommand";
 import { WeatherCommand } from "./WeatherCommand";
 import { ShortenCommand } from "./ShortenCommand";
+import { SceneCommand } from "./SceneCommand";
 // Filesystem commands
 import { PwdCommand } from "./fs/PwdCommand";
 import { CdCommand } from "./fs/CdCommand";
@@ -52,6 +53,7 @@ commandMap.set(CalcCommand.name, CalcCommand);
 commandMap.set(CurlCommand.name, CurlCommand);
 commandMap.set(WeatherCommand.name, WeatherCommand);
 commandMap.set(ShortenCommand.name, ShortenCommand);
+commandMap.set(SceneCommand.name, SceneCommand);
 // Filesystem commands
 commandMap.set(PwdCommand.name, PwdCommand);
 commandMap.set(CdCommand.name, CdCommand);

@@ -259,7 +259,7 @@ const TerminalHandler = ({ onBufferChange, headless = false }: Props) => {
         pushLine(
           <div key={crypto.randomUUID()} className="mb-4">
             <div className="flex items-center gap-2 mb-2">
-              <span className="text-terminal">❯</span>
+              <span className="text-terminal">❯</span>{" "}
               <span className="font-medium text-white">{cmd}</span>
             </div>
             <div className="ml-4">
@@ -299,10 +299,10 @@ const TerminalHandler = ({ onBufferChange, headless = false }: Props) => {
           pushLine(
             <div key={crypto.randomUUID()} className="mb-4">
               <div className="flex items-center gap-2 mb-2">
-                <span className="text-terminal">❯</span>
+                <span className="text-terminal">❯</span>{" "}
                 <span className="font-medium text-white">{base}</span>
                 {args.length > 0 && (
-                  <span className="text-gray-500">{args.join(" ")}</span>
+                  <span className="text-gray-500"> {args.join(" ")}</span>
                 )}
               </div>
               <div className="ml-4">
@@ -320,10 +320,10 @@ const TerminalHandler = ({ onBufferChange, headless = false }: Props) => {
         pushLine(
           <div key={crypto.randomUUID()} className="mb-4">
             <div className="flex items-center gap-2 mb-2">
-              <span className="text-terminal">❯</span>
+              <span className="text-terminal">❯</span>{" "}
               <span className="font-medium text-white">{base}</span>
               {args.length > 0 && (
-                <span className="text-gray-500">{args.join(" ")}</span>
+                <span className="text-gray-500"> {args.join(" ")}</span>
               )}
             </div>
             <div className="ml-4">

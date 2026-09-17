@@ -5,7 +5,7 @@ import { HelpCircle, Terminal, ChevronRight, AlertCircle } from 'lucide-react'
 
 // Group commands by category
 const commandCategories: Record<string, string[]> = {
-  'System': ['clear', 'exit', 'echo', 'color', 'alias', 'export', 'unset'],
+  'System': ['clear', 'exit', 'echo', 'color', 'scene', 'alias', 'export', 'unset'],
   'Info': ['help', 'ip', 'weather'],
   'Portfolio': ['projects', 'school', 'cv', 'certs'],
   'Tools': ['calc', 'curl', 'shorten'],

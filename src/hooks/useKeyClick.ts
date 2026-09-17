@@ -1,19 +1,18 @@
-import { useCallback, useRef } from "react";
+import { useCallback, useEffect, useRef } from 'react'
+import { playClick, warmUp } from '../utils/audio'
 
-export default function useKeyClick() {
-  const audioRef = useRef<HTMLAudioElement | null>(null);
+export default function useKeyClick(enabled = true) {
+  const enabledRef = useRef(enabled)
 
-  const play = useCallback(() => {
-    if (!audioRef.current) {
-      audioRef.current = new Audio('/spacebar-click-keyboard-199448.mp3');
-      audioRef.current.playbackRate = 4.0;
-    }
-    
-    audioRef.current.currentTime = 0;
-    audioRef.current.play().catch(error => {
-      console.error('Error playing sound:', error);
-    });
-  }, []);
+  useEffect(() => {
+    enabledRef.current = enabled
+    if (enabled) warmUp()
+  }, [enabled])
 
-  return play;
+  const play = useCallback((key?: string) => {
+    if (!enabledRef.current) return
+    playClick(key)
+  }, [])
+
+  return play
 }

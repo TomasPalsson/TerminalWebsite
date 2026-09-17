@@ -108,4 +108,10 @@ describe('TerminalHandler input handling', () => {
     expect(lastPrompt(buffer)).not.toBe(first)
     expect(screen.getByText('clear')).toBeInTheDocument()
   })
+
+  it('keeps the spaces between prompt, command and arguments in the 3D buffer', async () => {
+    const { buffer } = renderTerminal()
+    await runCommand('echo hello world', buffer)
+    expect(lastBuffer(buffer)).toContain('$ echo hello world')
+  })
 })
