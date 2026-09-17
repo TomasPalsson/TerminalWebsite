@@ -1,6 +1,6 @@
 import React from 'react'
 import { ChevronRight } from 'lucide-react'
-import { FaGithub } from 'react-icons/fa'
+import { FaGithub, FaExternalLinkAlt } from 'react-icons/fa'
 import { visible } from '@/services/profile'
 import type { Project, Profile } from '@/types/profile'
 import { TECH_ICONS } from './techIcons'
@@ -63,16 +63,30 @@ function ProjectCard({ project }: { project: Project }) {
             )}
             <ProjectBullets bullets={project.bullets.en} />
           </div>
-          {project.github && (
-            <a
-              href={project.github}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex items-center justify-center w-10 h-10 rounded-lg bg-neutral-800 border border-neutral-700 text-gray-400 hover:text-terminal hover:border-terminal/50 transition shrink-0"
-            >
-              <FaGithub size={20} />
-            </a>
-          )}
+          <div className="flex items-center gap-2 shrink-0">
+            {project.link && (
+              <a
+                href={project.link}
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label={`Open ${project.name.en}`}
+                title={new URL(project.link).hostname}
+                className="flex items-center justify-center w-10 h-10 rounded-lg bg-neutral-800 border border-neutral-700 text-gray-400 hover:text-terminal hover:border-terminal/50 transition shrink-0"
+              >
+                <FaExternalLinkAlt size={18} />
+              </a>
+            )}
+            {project.github && (
+              <a
+                href={project.github}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center justify-center w-10 h-10 rounded-lg bg-neutral-800 border border-neutral-700 text-gray-400 hover:text-terminal hover:border-terminal/50 transition shrink-0"
+              >
+                <FaGithub size={20} />
+              </a>
+            )}
+          </div>
         </div>
         <ProjectStack stack={project.stack} />
         <ProjectFeatures features={project.features} />
