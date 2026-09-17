@@ -11,10 +11,7 @@
 
 import { expect, afterEach, vi } from 'vitest';
 import { cleanup } from '@testing-library/react';
-import * as matchers from '@testing-library/jest-dom/matchers';
-
-// Extend Vitest's expect with Testing Library matchers
-expect.extend(matchers);
+import '@testing-library/jest-dom/vitest';
 
 // Cleanup after each test to prevent memory leaks and test pollution
 afterEach(() => {
@@ -405,14 +402,3 @@ console.error = (...args: unknown[]) => {
   originalError.call(console, ...args);
 };
 
-// ============================================================================
-// Type Declarations
-// ============================================================================
-
-declare global {
-  namespace Vi {
-    interface JestAssertion<T = unknown>
-      extends jest.Matchers<void, T>,
-        matchers.TestingLibraryMatchers<T, void> {}
-  }
-}

@@ -28,11 +28,7 @@ export default function BootSequence({ onComplete, skip = false }: BootSequenceP
 
   // Handle skip mode
   useEffect(() => {
-    if (skip) {
-      setPhase('ready')
-      setBrightness(1)
-      onComplete()
-    }
+    if (skip) onComplete()
   }, [skip, onComplete])
 
   // Boot sequence progression
@@ -91,7 +87,7 @@ export default function BootSequence({ onComplete, skip = false }: BootSequenceP
   }, [phase])
 
   // Don't render overlay when ready
-  if (phase === 'ready') return null
+  if (skip || phase === 'ready') return null
 
   return (
     <div

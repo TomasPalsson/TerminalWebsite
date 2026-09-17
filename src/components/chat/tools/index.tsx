@@ -25,11 +25,11 @@ export { toolRendererRegistry, hasCustomRenderer, getRenderer } from './registry
 
 // Main ToolRenderer component
 import { ToolRendererProps } from './types'
-import { getRenderer } from './registry'
+import { toolRendererRegistry } from './registry'
 import { DefaultToolRenderer } from './renderers/DefaultToolRenderer'
 
 export function ToolRenderer({ tool, isActive }: ToolRendererProps) {
-  const CustomRenderer = getRenderer(tool.tool)
+  const CustomRenderer = toolRendererRegistry[tool.tool]
 
   if (CustomRenderer) {
     return <CustomRenderer tool={tool} isActive={isActive} />

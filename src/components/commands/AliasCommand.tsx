@@ -20,9 +20,9 @@ export const AliasCommand: Command = {
       </div>
       <p className="text-terminal mb-2">Examples:</p>
       <div className="space-y-1 text-gray-400">
-        <p><span className="text-white">alias gs="git status"</span> — Create alias 'gs' for 'git status'</p>
-        <p><span className="text-white">alias ll="ls -l"</span> — Create alias 'll' for 'ls -l'</p>
-        <p><span className="text-white">alias -d gs</span> — Remove the 'gs' alias</p>
+        <p><span className="text-white">alias gs=&quot;git status&quot;</span> — Create alias &apos;gs&apos; for &apos;git status&apos;</p>
+        <p><span className="text-white">alias ll=&quot;ls -l&quot;</span> — Create alias &apos;ll&apos; for &apos;ls -l&apos;</p>
+        <p><span className="text-white">alias -d gs</span> — Remove the &apos;gs&apos; alias</p>
       </div>
     </div>
   ),
@@ -60,7 +60,7 @@ export const AliasCommand: Command = {
                 <div key={i} className="flex items-center gap-2">
                   <span className="text-terminal">{name}</span>
                   <span className="text-gray-600">=</span>
-                  <span className="text-gray-300">"{command}"</span>
+                  <span className="text-gray-300">&quot;{command}&quot;</span>
                 </div>
               ))}
             </div>
@@ -124,7 +124,7 @@ export const AliasCommand: Command = {
               <Link size={14} className="text-terminal" />
               <span className="text-terminal">{name}</span>
               <span className="text-gray-600">=</span>
-              <span className="text-gray-300">"{value}"</span>
+              <span className="text-gray-300">&quot;{value}&quot;</span>
             </div>
           </div>
         )
@@ -153,7 +153,7 @@ export const AliasCommand: Command = {
           <Check size={14} className="text-terminal" />
           <span className="text-terminal">{name}</span>
           <span className="text-gray-600">=</span>
-          <span className="text-gray-300">"{cleanCommand}"</span>
+          <span className="text-gray-300">&quot;{cleanCommand}&quot;</span>
         </div>
       </div>
     )

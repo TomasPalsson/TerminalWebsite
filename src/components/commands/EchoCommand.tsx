@@ -63,8 +63,8 @@ export const EchoCommand: Command = {
       <p className="text-terminal mb-2">Examples:</p>
       <div className="space-y-1 text-gray-400">
         <p><span className="text-white">echo Hello, World!</span> — Print to terminal</p>
-        <p><span className="text-white">echo "Hello" &gt; file.txt</span> — Write to file</p>
-        <p><span className="text-white">echo "More text" &gt;&gt; file.txt</span> — Append to file</p>
+        <p><span className="text-white">echo &quot;Hello&quot; &gt; file.txt</span> — Write to file</p>
+        <p><span className="text-white">echo &quot;More text&quot; &gt;&gt; file.txt</span> — Append to file</p>
       </div>
     </div>
   ),

@@ -46,7 +46,7 @@ export const ClearFsCommand: Command = {
             <div className="space-y-2 text-sm text-gray-400 mb-3">
               <p>This will delete:</p>
               <ul className="list-disc list-inside ml-2 space-y-1">
-                <li>All files and directories you've created</li>
+                <li>All files and directories you&apos;ve created</li>
                 <li>All git commits, branches, and history</li>
                 <li>All staged changes</li>
               </ul>

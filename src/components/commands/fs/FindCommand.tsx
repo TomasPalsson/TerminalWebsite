@@ -18,9 +18,9 @@ export const FindCommand: Command = {
       </p>
       <p className="text-terminal mb-2">Examples:</p>
       <div className="space-y-1 text-gray-400">
-        <p><span className="text-white">find . -name "*.txt"</span> — Find all .txt files</p>
-        <p><span className="text-white">find /home -name "readme*"</span> — Find files starting with "readme"</p>
-        <p><span className="text-white">find . -name "*test*"</span> — Find files containing "test"</p>
+        <p><span className="text-white">find . -name &quot;*.txt&quot;</span> — Find all .txt files</p>
+        <p><span className="text-white">find /home -name &quot;readme*&quot;</span> — Find files starting with &quot;readme&quot;</p>
+        <p><span className="text-white">find . -name &quot;*test*&quot;</span> — Find files containing &quot;test&quot;</p>
       </div>
     </div>
   ),
@@ -70,7 +70,7 @@ export const FindCommand: Command = {
         <div className="font-mono text-sm">
           <div className="inline-flex items-center gap-2 px-4 py-3 rounded-lg bg-neutral-900/50 border border-neutral-800">
             <Search size={14} className="text-gray-500" />
-            <span className="text-gray-500">No matches found for "{pattern}"</span>
+            <span className="text-gray-500">No matches found for &quot;{pattern}&quot;</span>
           </div>
         </div>
       )

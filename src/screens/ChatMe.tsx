@@ -205,7 +205,7 @@ export default function ChatMe() {
               </div>
               <h2 className="font-mono text-lg text-white mb-2">AI Chat</h2>
               <p className="font-mono text-sm text-gray-500 text-center max-w-md mb-8">
-                Ask me about my background, projects, tech stack, or anything else you'd like to know.
+                Ask me about my background, projects, tech stack, or anything else you&apos;d like to know.
               </p>
 
               {/* Suggested Prompts */}

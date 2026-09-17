@@ -2,7 +2,7 @@
 
 import { OrbitControls, useGLTF } from '@react-three/drei'
 import { Canvas, useThree } from '@react-three/fiber'
-import React, { useMemo, useEffect, useRef, useCallback, useState } from 'react'
+import React, { useMemo, useEffect, useRef, useCallback, useSyncExternalStore } from 'react'
 import * as THREE from 'three'
 import { EffectComposer } from '@react-three/postprocessing'
 import CRTEffects from './CRTEffects'
@@ -10,11 +10,86 @@ import AmbientEffects from './AmbientEffects'
 import { DEFAULT_CAMERA_CONFIG } from '../../types/terminal3d'
 import type { TerminalSceneProps, CameraConfig } from '../../types/terminal3d'
 
+const subscribeNoop = () => () => {}
+
+/** Reads the terminal accent from CSS on the client; the default green maps to pure phosphor green */
+const readTerminalColor = () => {
+  const c = getComputedStyle(document.documentElement).getPropertyValue('--terminal').trim() || '#0f0'
+  return c === '#22c55e' ? '#0f0' : c
+}
+
+const VISIBLE_HEIGHT = 768
+const MARGIN = 20
+const LINE_HEIGHT = 42
+
+type DrawTerminalArgs = {
+  canvas: HTMLCanvasElement
+  ctx: CanvasRenderingContext2D
+  texture: THREE.CanvasTexture
+  lines: string[]
+  color: string
+  maxWidth: number
+  cursorPosRef: React.MutableRefObject<{ x: number; y: number; visible: boolean }>
+  cursorVisibleRef: React.MutableRefObject<boolean>
+}
+
+/** Word-wraps `lines` and invokes `onLine` for each rendered row, returning the final y */
+function layoutLines(ctx: CanvasRenderingContext2D, lines: string[], maxWidth: number, startY: number, onLine?: (text: string, y: number) => void) {
+  let y = startY
+  lines.forEach((ln) => {
+    const words = ln.split(' ')
+    let line = ''
+    words.forEach((word, idx) => {
+      const test = line + (idx ? ' ' : '') + word
+      if (ctx.measureText(test).width > maxWidth) {
+        onLine?.(line, y)
+        y += LINE_HEIGHT
+        line = word
+      } else {
+        line = test
+      }
+    })
+    onLine?.(line, y)
+    y += LINE_HEIGHT
+  })
+  return y
+}
+
+/** Paints terminal lines (scrolled to the bottom) and the cursor onto the screen canvas */
+function drawTerminal({ canvas, ctx, texture, lines, color, maxWidth, cursorPosRef, cursorVisibleRef }: DrawTerminalArgs) {
+  ctx.clearRect(0, 0, canvas.width, canvas.height)
+  ctx.fillStyle = '#000'
+  ctx.fillRect(0, 0, canvas.width, canvas.height)
+  ctx.fillStyle = color
+  ctx.font = '20px monospace'
+  ctx.textBaseline = 'top'
+
+  const totalHeight = layoutLines(ctx, lines, maxWidth, MARGIN)
+  const startY = totalHeight > VISIBLE_HEIGHT ? MARGIN - (totalHeight - VISIBLE_HEIGHT) : MARGIN
+  const y = layoutLines(ctx, lines, maxWidth, startY, (text, rowY) => {
+    if (rowY >= MARGIN && rowY <= VISIBLE_HEIGHT) ctx.fillText(text, MARGIN, rowY)
+  })
+
+  if (lines.length > 0) {
+    const lastLine = lines[lines.length - 1]
+    cursorPosRef.current = {
+      x: MARGIN + ctx.measureText(lastLine).width,
+      y: y - LINE_HEIGHT,
+      visible: cursorVisibleRef.current,
+    }
+    if (cursorVisibleRef.current && cursorPosRef.current.y >= MARGIN && cursorPosRef.current.y <= VISIBLE_HEIGHT) {
+      ctx.fillText('_', cursorPosRef.current.x, cursorPosRef.current.y)
+    }
+  }
+
+  texture.needsUpdate = true
+}
+
 /**
  * Hook that returns a CanvasTexture driven by terminal lines
  */
 export function useTerminalTexture(lines: string[]) {
-  const [color, setColor] = useState('#0f0')
+  const color = useSyncExternalStore(subscribeNoop, readTerminalColor, () => '#0f0')
 
   const { canvas, ctx, texture } = useMemo(() => {
     // Guard for SSR - return dummy values that will be replaced on client
@@ -32,90 +107,19 @@ export function useTerminalTexture(lines: string[]) {
     return { canvas, ctx, texture }
   }, [])
 
-  const visibleHeight = 768
-  const margin = 20
-  const lineHeight = 42
+  const visibleHeight = VISIBLE_HEIGHT
+  const margin = MARGIN
+  const lineHeight = LINE_HEIGHT
   const maxWidth = canvas ? canvas.width - margin * 2 : 1024 - margin * 2
 
   const cursorPosRef = useRef<{ x: number; y: number; visible: boolean }>({ x: 0, y: 0, visible: true })
   const cursorVisibleRef = useRef(true)
   const linesRef = useRef<string[]>([])
 
-  // Get terminal color on client side
-  useEffect(() => {
-    if (typeof document !== 'undefined') {
-      const c = getComputedStyle(document.documentElement).getPropertyValue('--terminal').trim() || '#0f0'
-      setColor(c === '#22c55e' ? '#0f0' : c)
-    }
-  }, [])
-
   useEffect(() => {
     if (!canvas || !ctx) return
     linesRef.current = lines
-
-    ctx.clearRect(0, 0, canvas.width, canvas.height)
-    ctx.fillStyle = '#000'
-    ctx.fillRect(0, 0, canvas.width, canvas.height)
-    ctx.fillStyle = color
-    ctx.font = '20px monospace'
-    ctx.textBaseline = 'top'
-
-    let tempY = margin
-    lines.forEach((ln) => {
-      const words = ln.split(' ')
-      let line = ''
-      words.forEach((word, idx) => {
-        const test = line + (idx ? ' ' : '') + word
-        if (ctx.measureText(test).width > maxWidth) {
-          tempY += lineHeight
-          line = word
-        } else {
-          line = test
-        }
-      })
-      tempY += lineHeight
-    })
-    const totalHeight = tempY
-
-    let y = margin
-    if (totalHeight > visibleHeight) {
-      y = margin - (totalHeight - visibleHeight)
-    }
-
-    lines.forEach((ln) => {
-      const words = ln.split(' ')
-      let line = ''
-      words.forEach((word, idx) => {
-        const test = line + (idx ? ' ' : '') + word
-        if (ctx.measureText(test).width > maxWidth) {
-          if (y >= margin && y <= visibleHeight) {
-            ctx.fillText(line, margin, y)
-          }
-          y += lineHeight
-          line = word
-        } else {
-          line = test
-        }
-      })
-      if (y >= margin && y <= visibleHeight) {
-        ctx.fillText(line, margin, y)
-      }
-      y += lineHeight
-    })
-
-    if (lines.length > 0) {
-      const lastLine = lines[lines.length - 1]
-      cursorPosRef.current = {
-        x: margin + ctx.measureText(lastLine).width,
-        y: y - lineHeight,
-        visible: cursorVisibleRef.current,
-      }
-      if (cursorVisibleRef.current && cursorPosRef.current.y >= margin && cursorPosRef.current.y <= visibleHeight) {
-        ctx.fillText('_', cursorPosRef.current.x, cursorPosRef.current.y)
-      }
-    }
-
-    texture.needsUpdate = true
+    drawTerminal({ canvas, ctx, texture, lines, color, maxWidth, cursorPosRef, cursorVisibleRef })
   }, [lines, color, canvas, ctx, texture, maxWidth])
 
   useEffect(() => {
@@ -172,7 +176,7 @@ function CameraController({
   onDoubleClick?: () => void
 }) {
   const { camera } = useThree()
-  const controlsRef = useRef<any>(null)
+  const controlsRef = useRef<React.ComponentRef<typeof OrbitControls>>(null)
 
   const handleDoubleClick = useCallback(() => {
     if (controlsRef.current) {
@@ -244,14 +248,10 @@ export default function TerminalScene({
   cameraConfig: customConfig,
   onDoubleClick,
 }: TerminalSceneProps) {
-  const [mounted, setMounted] = useState(false)
+  // Wait for client-side mount before rendering Canvas
+  const mounted = useSyncExternalStore(subscribeNoop, () => true, () => false)
   const screenTexture = useTerminalTexture(buffer)
   const cameraConfig = { ...DEFAULT_CAMERA_CONFIG, ...customConfig }
-
-  // Wait for client-side mount before rendering Canvas
-  useEffect(() => {
-    setMounted(true)
-  }, [])
 
   if (!mounted) {
     return (

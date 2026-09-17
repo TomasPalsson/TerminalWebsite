@@ -20,7 +20,7 @@ export const ExportCommand: Command = {
       <p className="text-terminal mb-2">Examples:</p>
       <div className="space-y-1 text-gray-400">
         <p><span className="text-white">export EDITOR=vim</span> — Set EDITOR variable</p>
-        <p><span className="text-white">export MY_VAR="hello world"</span> — Set with spaces</p>
+        <p><span className="text-white">export MY_VAR=&quot;hello world&quot;</span> — Set with spaces</p>
         <p><span className="text-white">echo $EDITOR</span> — Use in echo</p>
       </div>
     </div>
@@ -48,7 +48,7 @@ export const ExportCommand: Command = {
                 <div key={i} className="flex items-center gap-2">
                   <span className="text-terminal">{name}</span>
                   <span className="text-gray-600">=</span>
-                  <span className="text-gray-300">"{value}"</span>
+                  <span className="text-gray-300">&quot;{value}&quot;</span>
                 </div>
               ))}
             </div>
@@ -85,7 +85,7 @@ export const ExportCommand: Command = {
           <Check size={14} className="text-terminal" />
           <span className="text-terminal">{name}</span>
           <span className="text-gray-600">=</span>
-          <span className="text-gray-300">"{value}"</span>
+          <span className="text-gray-300">&quot;{value}&quot;</span>
         </div>
       </div>
     )

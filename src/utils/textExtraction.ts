@@ -28,7 +28,7 @@ export function extractText(node: React.ReactNode): string {
   }
 
   if (React.isValidElement(node)) {
-    const element = node as React.ReactElement<any>;
+    const element = node as React.ReactElement<{ children?: React.ReactNode; href?: string }>;
     const blockTags = new Set([
       "div",
       "p",
@@ -51,7 +51,8 @@ export function extractText(node: React.ReactNode): string {
     // Skip lucide-react icons - they render as SVG with no meaningful text content
     // Pattern matches common icon component names to avoid traversing their children
     if (typeof node.type === "function") {
-      const name = (node.type as any).displayName || (node.type as any).name || "";
+      const componentType = node.type as { displayName?: string; name?: string };
+      const name = componentType.displayName || componentType.name || "";
       if (name.includes('Icon') || /^(ChevronRight|HelpCircle|Terminal|AlertCircle|Monitor|Zap|ZapOff|ExternalLink|Github|Linkedin|Mail|MapPin|Building|Calendar|GraduationCap|Award|Briefcase|Code|Globe|Download|FileText|Star|GitFork|Eye|ChevronDown|ChevronUp|Search|X|Menu|Home|User|Folder|File|Settings|LogOut|Plus|Minus|Check|Copy|Clipboard|Edit|Trash|Save|RefreshCw|Upload|Play|Pause|Stop|SkipForward|SkipBack|Volume|VolumeX|Volume1|Volume2|Maximize|Minimize|ArrowLeft|ArrowRight|ArrowUp|ArrowDown)$/.test(name)) {
         return "";
       }
@@ -105,7 +106,7 @@ export function extractText(node: React.ReactNode): string {
       try {
         // Call component function directly (works for simple functional components)
         // May fail for components with hooks or complex state - that's ok
-        const rendered = (node.type as any)(element.props);
+        const rendered = (node.type as (props: unknown) => React.ReactNode)(element.props);
         if (rendered) {
           return extractText(rendered);
         }

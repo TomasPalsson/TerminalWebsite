@@ -62,7 +62,7 @@ export function ContactTab({ profile }: { profile: Profile }) {
             </div>
             <div>
               <h3 className="font-mono text-lg font-medium text-white">Get in touch</h3>
-              <p className="font-mono text-xs text-gray-500">I'd love to hear from you</p>
+              <p className="font-mono text-xs text-gray-500">I&apos;d love to hear from you</p>
             </div>
           </div>
 

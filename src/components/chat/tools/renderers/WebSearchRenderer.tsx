@@ -163,7 +163,7 @@ export function WebSearchRenderer({ tool, isActive }: ToolRendererProps) {
         <Search size={12} className="text-terminal" />
         <span>Web Search</span>
         {query && (
-          <span className="text-gray-600 truncate max-w-[200px]">"{query}"</span>
+          <span className="text-gray-600 truncate max-w-[200px]">&quot;{query}&quot;</span>
         )}
       </button>
 
@@ -179,7 +179,7 @@ export function WebSearchRenderer({ tool, isActive }: ToolRendererProps) {
           {query && (
             <div className="flex items-center gap-2 mb-3 pb-3 border-b border-neutral-800">
               <Search size={14} className="text-terminal" />
-              <span className="text-sm font-mono text-gray-300">"{query}"</span>
+              <span className="text-sm font-mono text-gray-300">&quot;{query}&quot;</span>
               <span className="text-xs text-gray-500 ml-auto">{results.length} results</span>
             </div>
           )}

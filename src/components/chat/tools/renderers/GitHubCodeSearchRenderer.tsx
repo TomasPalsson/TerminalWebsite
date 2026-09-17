@@ -4,7 +4,7 @@ import { ToolRendererProps } from '../types'
 import { safeParse } from '../utils'
 import { LoadingSkeleton } from './LoadingSkeleton'
 import { DefaultToolRenderer } from './DefaultToolRenderer'
-import { getTechIcon } from '../icons'
+import { techIconMap, normalizeTech } from '../icons'
 
 type CodeResult = {
   name: string
@@ -61,7 +61,7 @@ function getLanguageFromPath(path: string): string | undefined {
 
 function CodeResultCard({ result }: { result: CodeResult }) {
   const language = getLanguageFromPath(result.path)
-  const LangIcon = language ? getTechIcon(language) : FileCode
+  const LangIcon = techIconMap[normalizeTech(language ?? '')] ?? FileCode
 
   return (
     <a
@@ -169,7 +169,7 @@ export function GitHubCodeSearchRenderer({ tool, isActive }: ToolRendererProps) 
         <ChevronDown size={12} className="text-terminal/70" />
         <Code size={12} className="text-terminal" />
         <span>Code Search</span>
-        {query && <span className="text-gray-600 truncate max-w-[200px]">"{query}"</span>}
+        {query && <span className="text-gray-600 truncate max-w-[200px]">&quot;{query}&quot;</span>}
       </button>
 
       {/* Results Card */}
@@ -183,7 +183,7 @@ export function GitHubCodeSearchRenderer({ tool, isActive }: ToolRendererProps) 
           {query && (
             <div className="flex items-center gap-2 mb-3 pb-3 border-b border-neutral-800">
               <Code size={14} className="text-terminal" />
-              <span className="text-sm font-mono text-gray-300 truncate">"{query}"</span>
+              <span className="text-sm font-mono text-gray-300 truncate">&quot;{query}&quot;</span>
               {totalCount && (
                 <span className="text-xs text-gray-500 ml-auto">{totalCount.toLocaleString()} results</span>
               )}

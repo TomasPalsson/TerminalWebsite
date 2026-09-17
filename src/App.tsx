@@ -88,7 +88,7 @@ function App() {
           <div className="flex items-center justify-center gap-3 mb-8">
             <span className="w-8 h-px bg-neutral-800" />
             <p className="font-mono text-gray-500 text-sm sm:text-base">
-              <span className="text-terminal/60">//</span> Software Dev
+              <span className="text-terminal/60">{'//'}</span> Software Dev
             </p>
             <span className="w-8 h-px bg-neutral-800" />
           </div>
@@ -162,7 +162,7 @@ function App() {
           {/* Bio */}
           <div className="mb-10">
             <p className="font-mono text-base text-gray-300 leading-relaxed max-w-2xl">
-              I'm Tómas, a software developer who enjoys building efficient, reliable software.
+              I&apos;m Tómas, a software developer who enjoys building efficient, reliable software.
               I specialize in serverless systems and large language models, with a focus on
               solutions that scale and hold up in real use.
             </p>

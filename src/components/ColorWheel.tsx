@@ -1,36 +1,48 @@
-import React, { useState, useEffect, useRef } from 'react'
+import React, { useEffect, useRef, useSyncExternalStore } from 'react'
 import { Palette } from 'lucide-react'
 
+const DEFAULT_COLOR = '#22c55e'
+const listeners = new Set<() => void>()
+
+const subscribe = (onChange: () => void) => {
+  listeners.add(onChange)
+  return () => {
+    listeners.delete(onChange)
+  }
+}
+
+const readColor = () => {
+  try {
+    const saved = localStorage.getItem('terminal-color')
+    if (saved) return saved
+  } catch {
+    // ignore storage read errors
+  }
+  return getComputedStyle(document.documentElement).getPropertyValue('--terminal').trim() || DEFAULT_COLOR
+}
+
 export default function ColorWheel() {
-  const [color, setColor] = useState('#22c55e')
+  const color = useSyncExternalStore(subscribe, readColor, () => DEFAULT_COLOR)
   const inputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
     try {
       const saved = localStorage.getItem('terminal-color')
-      if (saved) {
-        setColor(saved)
-        document.documentElement.style.setProperty('--terminal', saved)
-        return
-      }
+      if (saved) document.documentElement.style.setProperty('--terminal', saved)
     } catch {
       // ignore storage read errors
     }
-
-    const style = getComputedStyle(document.documentElement)
-    const current = style.getPropertyValue('--terminal').trim()
-    if (current) setColor(current)
   }, [])
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value
-    setColor(value)
     document.documentElement.style.setProperty('--terminal', value)
     try {
       localStorage.setItem('terminal-color', value)
     } catch {
       // ignore storage write errors
     }
+    listeners.forEach((notify) => notify())
   }
 
   return (
