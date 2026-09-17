@@ -1,6 +1,6 @@
 import type { Profile, ShowTarget } from '@/types/profile'
 
-const PROFILE_URL = 'https://api.tomas.im/profile'
+const PROFILE_URL = 'https://api.tomasari.is/profile'
 
 const MONTHS = [
   'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',

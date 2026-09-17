@@ -57,7 +57,7 @@ function AboutMeHeader() {
           </p>
         </div>
         <a
-          href="https://api.tomas.im/cv"
+          href="https://api.tomasari.is/cv"
           target="_blank"
           rel="noopener noreferrer"
           className="flex items-center gap-2 px-3 py-1.5 font-mono text-xs rounded-lg border border-terminal/30 text-gray-400 hover:text-terminal hover:border-terminal/50 transition"
@@ -115,7 +115,7 @@ function AboutMeContent({
       <div className="font-mono text-sm text-gray-400 space-y-2">
         <p>Couldn&apos;t load profile data.</p>
         <a
-          href="https://api.tomas.im/cv"
+          href="https://api.tomasari.is/cv"
           target="_blank"
           rel="noopener noreferrer"
           className="inline-flex items-center gap-2 text-terminal hover:underline"

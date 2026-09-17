@@ -18,10 +18,10 @@ export default $config({
       domain:
         $app.stage === 'production'
           ? {
-              name: 'tomas.im',
-              aliases: ['tomasp.me'],
+              name: 'tomasari.is',
+              aliases: ['tomas.im', 'tomasp.me'],
               dns: false as const,
-              cert: 'arn:aws:acm:us-east-1:519689943567:certificate/bf532d5d-2883-42f6-bf5e-efe89890214a',
+              cert: 'arn:aws:acm:us-east-1:519689943567:certificate/f4fd03e8-4134-49a4-8f6d-cf01ea78e060',
             }
           : $app.stage === 'dev'
             ? {

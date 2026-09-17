@@ -1,4 +1,4 @@
-// Shared profile contract, served from GET https://api.tomas.im/profile.
+// Shared profile contract, served from GET https://api.tomasari.is/profile.
 // The same JSON also drives PDF CV generation, so this type must tolerate
 // fields the website doesn't render.
 
