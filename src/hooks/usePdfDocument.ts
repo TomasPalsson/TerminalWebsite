@@ -1,14 +1,38 @@
 import { useEffect, useState } from 'react'
 import type { PDFDocumentLoadingTask, PDFDocumentProxy } from 'pdfjs-dist'
 
+export type PdfProgress = { loaded: number; total: number | null; parsing: boolean }
+
 export type PdfState =
-  | { status: 'loading' }
+  | ({ status: 'loading' } & PdfProgress)
   | { status: 'error'; message: string }
   | { status: 'ready'; doc: PDFDocumentProxy; bytes: Uint8Array; text: string[] }
 
+/** Stream the body so the loader can show real download progress. */
+async function readBody(res: Response, onProgress: (loaded: number) => void): Promise<Uint8Array> {
+  if (!res.body) return new Uint8Array(await res.arrayBuffer())
+  const reader = res.body.getReader()
+  const chunks: Uint8Array[] = []
+  let loaded = 0
+  for (;;) {
+    const { done, value } = await reader.read()
+    if (done) break
+    chunks.push(value)
+    loaded += value.length
+    onProgress(loaded)
+  }
+  const bytes = new Uint8Array(loaded)
+  let offset = 0
+  for (const chunk of chunks) {
+    bytes.set(chunk, offset)
+    offset += chunk.length
+  }
+  return bytes
+}
+
 /** Load pdf.js client-side, fetch the document, and pre-extract every page's text. */
 export function usePdfDocument(url: string): PdfState {
-  const [state, setState] = useState<PdfState>({ status: 'loading' })
+  const [state, setState] = useState<PdfState>({ status: 'loading', loaded: 0, total: null, parsing: false })
 
   useEffect(() => {
     let cancelled = false
@@ -23,7 +47,12 @@ export function usePdfDocument(url: string): PdfState {
 
       const res = await fetch(url)
       if (!res.ok) throw new Error(`${res.status} ${res.statusText}`)
-      const bytes = new Uint8Array(await res.arrayBuffer())
+      const total = Number(res.headers.get('content-length')) || null
+      const bytes = await readBody(res, (loaded) => {
+        if (!cancelled) setState({ status: 'loading', loaded, total, parsing: false })
+      })
+      if (cancelled) return
+      setState({ status: 'loading', loaded: bytes.length, total: bytes.length, parsing: true })
       // pdf.js transfers the buffer to its worker, so hand it a copy.
       task = pdfjs.getDocument({ data: bytes.slice() })
       const doc = await task.promise

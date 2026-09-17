@@ -2,8 +2,7 @@
 
 import { ChevronLeft, ChevronRight, Minus, Plus, Download, Tv, FileText, Binary, Eye } from 'lucide-react'
 import type { CvViewerState } from '@/hooks/useCvViewer'
-import { CV_DOWNLOAD_NAME } from '@/hooks/useCvViewer'
-import { CV_URL, ZOOM_STEP, clampZoom } from '@/utils/cvViewer'
+import { ZOOM_STEP, clampZoom } from '@/utils/cvViewer'
 
 const base =
   'inline-flex items-center gap-1 px-2 py-1 font-mono text-xs sm:text-sm transition rounded-sm hover:bg-terminal hover:text-black disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:text-terminal'
@@ -39,9 +38,9 @@ export default function CvToolbar({ viewer }: Props) {
           <Eye size={14} /><span className="hidden sm:inline">pdf</span>
         </button>
       )}
-      <a href={CV_URL} download={CV_DOWNLOAD_NAME} className={btn} title="download (d)">
+      <button className={btn} onClick={() => runAction({ type: 'download' })} title="download (d)">
         <Download size={14} /><span className="hidden sm:inline">save</span>
-      </a>
+      </button>
     </header>
   )
 }

@@ -1,4 +1,4 @@
-export const CV_URL = '/cv.pdf'
+export const CV_URL = 'https://api.tomasari.is/cv'
 
 export type ViewerMode = 'pdf' | 'text' | 'hex'
 
@@ -89,11 +89,3 @@ export function hexDump(bytes: Uint8Array, limit = 512): string[] {
   }
   return lines
 }
-
-export const BOOT_LINES = [
-  'tomas@portfolio:~$ mount /dev/cv0 /mnt/cv',
-  '[  OK  ] Mounted /mnt/cv (type: pdf, ro)',
-  '[  OK  ] Loaded pdf.worker.min.mjs',
-  '[  OK  ] Calibrating phosphor coils',
-  'tomas@portfolio:~$ less /mnt/cv/cv.pdf',
-]

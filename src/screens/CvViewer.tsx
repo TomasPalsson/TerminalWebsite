@@ -1,10 +1,9 @@
 'use client'
 
-import { useCallback, useState } from 'react'
 import { usePdfDocument } from '@/hooks/usePdfDocument'
 import { useCvViewer } from '@/hooks/useCvViewer'
 import { useCvKeys } from '@/hooks/useCvKeys'
-import CvBoot from '@/components/cv/CvBoot'
+import CvLoader from '@/components/cv/CvLoader'
 import CvToolbar from '@/components/cv/CvToolbar'
 import CvDocument from '@/components/cv/CvDocument'
 import CvStatusBar from '@/components/cv/CvStatusBar'
@@ -14,10 +13,9 @@ const shell = 'flex flex-col h-[calc(100vh-2.5rem)] bg-black text-white'
 
 export default function CvViewer() {
   const pdf = usePdfDocument(CV_URL)
-  const [booted, setBooted] = useState(false)
-  const finishBoot = useCallback(() => setBooted(true), [])
-  const viewer = useCvViewer(pdf.status === 'ready' ? pdf.doc.numPages : 0)
-  useCvKeys(viewer, booted && pdf.status === 'ready')
+  const ready = pdf.status === 'ready'
+  const viewer = useCvViewer(ready ? pdf.doc.numPages : 0, ready ? pdf.bytes : undefined)
+  useCvKeys(viewer, ready)
 
   if (pdf.status === 'error') {
     return (
@@ -28,12 +26,10 @@ export default function CvViewer() {
     )
   }
 
-  if (!booted || pdf.status === 'loading') {
+  if (pdf.status === 'loading') {
     return (
       <div className={shell}>
-        {booted
-          ? <p className="m-auto font-mono text-terminal animate-pulse">decoding cv.pdf...</p>
-          : <CvBoot onDone={finishBoot} />}
+        <CvLoader loaded={pdf.loaded} total={pdf.total} parsing={pdf.parsing} />
       </div>
     )
   }
