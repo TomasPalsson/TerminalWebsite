@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useEffect, createContext, useRef } from "react";
+import React, { useState, useEffect, createContext, useRef, useCallback } from "react";
 
 export type VimEditorConfig = {
   filename: string | null
@@ -9,14 +9,21 @@ export type VimEditorConfig = {
   onClose: () => void
 }
 
+export type TerminalShortcut = 'ctrl+r' | 'history-up' | 'history-down' | 'tab'
+
+/** Raw keyboard input, delivered to subscribers synchronously from the key handler */
+export type TerminalInputEvent =
+  | { type: 'input'; text: string }
+  | { type: 'shortcut'; name: TerminalShortcut }
+
 export type KeyPressContextType = {
   text: string
   cursorPos: number
   setText: React.Dispatch<React.SetStateAction<string>>
   setCursorPos: React.Dispatch<React.SetStateAction<number>>
   clearText: () => void
-  shortcut: string | null
-  clearShortcut: () => void
+  /** Subscribe to keyboard input; returns an unsubscribe function */
+  subscribeInput: (listener: (event: TerminalInputEvent) => void) => () => void
   // Vim editor overlay state
   vimEditor: VimEditorConfig | null
   setVimEditor: React.Dispatch<React.SetStateAction<VimEditorConfig | null>>
@@ -37,7 +44,7 @@ export const KeyPressProvider = ({ children, onKeyPress, headless = false }: Key
   const [cursorPos, setCursorPos] = useState(0);
   const textRef = useRef("");
   const cursorPosRef = useRef(0);
-  const [shortcut, setShortcut] = useState<string | null>(null);
+  const inputListenersRef = useRef(new Set<(event: TerminalInputEvent) => void>());
   const [vimEditor, setVimEditor] = useState<VimEditorConfig | null>(null);
   const vimEditorRef = useRef<VimEditorConfig | null>(null);
 
@@ -53,7 +60,25 @@ export const KeyPressProvider = ({ children, onKeyPress, headless = false }: Key
     cursorPosRef.current = 0;
   };
 
-  const clearShortcut = () => setShortcut(null);
+  const subscribeInput = useCallback((listener: (event: TerminalInputEvent) => void) => {
+    inputListenersRef.current.add(listener);
+    return () => {
+      inputListenersRef.current.delete(listener);
+    };
+  }, []);
+
+  const emit = (event: TerminalInputEvent) => {
+    inputListenersRef.current.forEach((listener) => listener(event));
+  };
+
+  /** Commits an edit to the input line and notifies subscribers */
+  const commitInput = (next: string, newCursor: number) => {
+    setText(next);
+    setCursorPos(newCursor);
+    textRef.current = next;
+    cursorPosRef.current = newCursor;
+    emit({ type: 'input', text: next });
+  };
 
   const handleKeyDown = (e: KeyboardEvent) => {
     // Skip terminal key handling when vim editor overlay is active
@@ -81,30 +106,31 @@ export const KeyPressProvider = ({ children, onKeyPress, headless = false }: Key
 
     if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "r") {
       e.preventDefault();
-      setShortcut("ctrl+r");
+      emit({ type: 'shortcut', name: 'ctrl+r' });
       return;
     }
 
     if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "c") {
       clearText();
+      emit({ type: 'input', text: '' });
       return;
     }
 
     if (e.key === "ArrowUp") {
       e.preventDefault();
-      setShortcut("history-up");
+      emit({ type: 'shortcut', name: 'history-up' });
       return;
     }
 
     if (e.key === "ArrowDown") {
       e.preventDefault();
-      setShortcut("history-down");
+      emit({ type: 'shortcut', name: 'history-down' });
       return;
     }
 
     if (e.key === "Tab") {
       e.preventDefault();
-      setShortcut("tab");
+      emit({ type: 'shortcut', name: 'tab' });
       return;
     }
 
@@ -113,26 +139,14 @@ export const KeyPressProvider = ({ children, onKeyPress, headless = false }: Key
 
     if (e.key.length === 1) {
       const next = currentText.slice(0, cursor) + e.key + currentText.slice(cursor);
-      const newCursor = cursor + 1;
-      setText(next);
-      setCursorPos(newCursor);
-      textRef.current = next;
-      cursorPosRef.current = newCursor;
+      commitInput(next, cursor + 1);
     } else if (e.key === "Backspace") {
       if (cursor === 0) return;
       const next = currentText.slice(0, cursor - 1) + currentText.slice(cursor);
-      const newCursor = Math.max(0, cursor - 1);
-      setText(next);
-      setCursorPos(newCursor);
-      textRef.current = next;
-      cursorPosRef.current = newCursor;
+      commitInput(next, Math.max(0, cursor - 1));
     } else if (e.key === "Enter") {
       const next = currentText.slice(0, cursor) + "\n" + currentText.slice(cursor);
-      const newCursor = cursor + 1;
-      setText(next);
-      setCursorPos(newCursor);
-      textRef.current = next;
-      cursorPosRef.current = newCursor;
+      commitInput(next, cursor + 1);
     } else if (e.key === "ArrowLeft") {
       const newCursor = Math.max(0, cursor - 1);
       setCursorPos(newCursor);
@@ -162,11 +176,7 @@ export const KeyPressProvider = ({ children, onKeyPress, headless = false }: Key
       const currentText = textRef.current;
       const cursor = cursorPosRef.current;
       const next = currentText.slice(0, cursor) + pasted + currentText.slice(cursor);
-      const newCursor = cursor + pasted.length;
-      setText(next);
-      setCursorPos(newCursor);
-      textRef.current = next;
-      cursorPosRef.current = newCursor;
+      commitInput(next, cursor + pasted.length);
     }
   };
 
@@ -188,7 +198,7 @@ export const KeyPressProvider = ({ children, onKeyPress, headless = false }: Key
   }, [cursorPos]);
 
   return (
-    <KeyPressContext.Provider value={{ text, setText, clearText, cursorPos, setCursorPos, shortcut, clearShortcut, vimEditor, setVimEditor, headless }}>
+    <KeyPressContext.Provider value={{ text, setText, clearText, cursorPos, setCursorPos, subscribeInput, vimEditor, setVimEditor, headless }}>
       {children}
     </KeyPressContext.Provider>
   );
