@@ -1,14 +1,17 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { CV_URL, type ViewerAction, type ViewerMode } from '@/utils/cvViewer'
+import type { ViewerAction, ViewerMode } from '@/utils/cvViewer'
 
 export const CV_DOWNLOAD_NAME = 'Tomas_Ari_Palsson_CV.pdf'
 
-function downloadCv() {
+/** The API serves the pdf inline and cross-origin, so save the bytes we already have. */
+function downloadCv(bytes: Uint8Array) {
+  const url = URL.createObjectURL(new Blob([bytes.slice()], { type: 'application/pdf' }))
   const a = document.createElement('a')
-  a.href = CV_URL
+  a.href = url
   a.download = CV_DOWNLOAD_NAME
   a.click()
+  URL.revokeObjectURL(url)
 }
 
 /** The page whose top edge sits closest to the scroll container's top. */
@@ -29,7 +32,7 @@ function nearestPage(el: HTMLElement): number {
 export type CvViewerState = ReturnType<typeof useCvViewer>
 
 /** All viewer state plus the single `runAction` dispatcher keys, buttons and `:` commands share. */
-export function useCvViewer(pages: number) {
+export function useCvViewer(pages: number, bytes?: Uint8Array) {
   const router = useRouter()
   const [mode, setMode] = useState<ViewerMode>('pdf')
   const [phosphor, setPhosphor] = useState(false)
@@ -61,12 +64,14 @@ export function useCvViewer(pages: number) {
       case 'zoom': setZoom(action.percent); setMode('pdf'); break
       case 'mode': setMode(action.mode); break
       case 'phosphor': setPhosphor((p) => !p); setMode('pdf'); break
-      case 'download': downloadCv(); setMessage(`"${CV_DOWNLOAD_NAME}" written`); break
+      case 'download':
+        if (bytes) { downloadCv(bytes); setMessage(`"${CV_DOWNLOAD_NAME}" written`) }
+        break
       case 'help': setHelpOpen((h) => !h); break
       case 'quit': router.push('/'); break
       case 'unknown': setMessage(`E492: Not an editor command: ${action.input}`); break
     }
-  }, [goToPage, router])
+  }, [goToPage, router, bytes])
 
   const onScroll = useCallback(() => {
     if (scrollRef.current) setPage(nearestPage(scrollRef.current))

@@ -39,12 +39,19 @@ describe('CvViewer', () => {
 
   const openViewer = async () => {
     render(<CvViewer />)
-    expect(screen.getByText(/press any key to skip/)).toBeInTheDocument()
-    fireEvent.keyDown(window, { key: 'Enter' })
     await waitFor(() => expect(screen.getByText('~/cv.pdf')).toBeInTheDocument())
   }
 
-  it('boots, then shows the toolbar and status bar with page count', async () => {
+  it('fetches the cv from the api and shows download progress while loading', async () => {
+    render(<CvViewer />)
+    expect(screen.getByText(/curl -O https:\/\/api\.tomasari\.is\/cv/)).toBeInTheDocument()
+    expect(screen.getByText(/%$/)).toBeInTheDocument()
+    await waitFor(() => expect(fetch).toHaveBeenCalledWith('https://api.tomasari.is/cv'))
+    await waitFor(() => expect(screen.getByText('~/cv.pdf')).toBeInTheDocument())
+    expect(screen.queryByText(/curl -O/)).not.toBeInTheDocument()
+  })
+
+  it('shows the toolbar and status bar with page count', async () => {
     await openViewer()
     expect(screen.getByText('NORMAL')).toBeInTheDocument()
     expect(position()).toBe('1/2 · 100%')
