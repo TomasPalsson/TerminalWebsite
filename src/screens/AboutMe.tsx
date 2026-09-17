@@ -11,6 +11,7 @@ import { ProjectsTab } from './about-me/ProjectsTab'
 import { CertificationsTab } from './about-me/CertificationsTab'
 import { ExploreTab } from './about-me/ExploreTab'
 import { ContactTab } from './about-me/ContactTab'
+import { ProfileLoader } from './about-me/ProfileLoader'
 
 const TABS = [
   { id: 'experience', name: 'Experience', icon: Briefcase },
@@ -109,7 +110,7 @@ function AboutMeContent({
   navigate: (path: string) => void
 }) {
   if (activeTab === 'explore') return <ExploreTab navigate={navigate} />
-  if (loading) return <p className="font-mono text-sm text-gray-600">Loading…</p>
+  if (loading) return <ProfileLoader />
   if (error || !profile) {
     return (
       <div className="font-mono text-sm text-gray-400 space-y-2">
