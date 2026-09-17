@@ -6,6 +6,7 @@ import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import { Lightbulb, Sparkles, Star, Zap, ArrowRight, Command, Copy, Check, ChevronDown, Brain, MessageSquare, Wand2 } from 'lucide-react'
 import { markdownComponents } from '../components/MarkdownComponents'
+import { uid } from '../utils/uid'
 
 export type SavedIdea = { id: string; idea: string; description: string; savedAt: number }
 
@@ -528,7 +529,7 @@ export default function IdeaGenerator() {
       return
     }
 
-    const id = crypto.randomUUID()
+    const id = uid()
     const next: SavedIdea = {
       id,
       idea: generatedIdea,

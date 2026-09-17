@@ -3,14 +3,6 @@
  * @module terminal3d
  */
 
-/** Props for the main TerminalCanvas component */
-export interface TerminalCanvasProps {
-  /** Enable performance mode (disables effects) */
-  performanceMode?: boolean
-  /** Enable sound effects */
-  enableSound?: boolean
-}
-
 /** Configuration for CRT visual effects */
 export interface CRTEffectSettings {
   /** Enable scanline overlay */
@@ -50,6 +42,8 @@ export type BootPhase = 'off' | 'warming' | 'booting' | 'ready'
 export interface BootSequenceProps {
   /** Callback when boot sequence completes */
   onComplete: () => void
+  /** Callback when the CRT starts warming up (power-on sound hook) */
+  onStart?: () => void
   /** Skip boot sequence (for performance mode) */
   skip?: boolean
 }
@@ -80,30 +74,18 @@ export interface TerminalSceneProps {
   enableEffects: boolean
   /** Camera configuration */
   cameraConfig?: Partial<CameraConfig>
-  /** Callback for double-click reset */
-  onDoubleClick?: () => void
-}
-
-/** Performance mode hook return type */
-export interface UsePerformanceModeReturn {
-  /** Current performance mode state */
-  performanceMode: boolean
-  /** Toggle performance mode */
-  togglePerformanceMode: () => void
-  /** Set performance mode explicitly */
-  setPerformanceMode: (enabled: boolean) => void
 }
 
 /** Default camera configuration */
 export const DEFAULT_CAMERA_CONFIG: CameraConfig = {
-  defaultPosition: [0, 0.5, 1],
-  target: [0, 0.35, 0],
-  minDistance: 0.5,
-  maxDistance: 2.5,
-  minPolarAngle: Math.PI / 6,      // 30 degrees - prevent going too far under
-  maxPolarAngle: Math.PI / 2,       // 90 degrees - prevent going over
-  minAzimuthAngle: -Math.PI / 3,    // -60 degrees
-  maxAzimuthAngle: Math.PI / 3,     // 60 degrees
+  defaultPosition: [0.05, 0.62, 1.25],
+  target: [0, 0.3, 0.2],
+  minDistance: 0.35,
+  maxDistance: 3,
+  minPolarAngle: Math.PI / 12,      // 15 degrees - room for the top-down view
+  maxPolarAngle: Math.PI / 2.05,    // just under desk level - never go under the desk
+  minAzimuthAngle: -Math.PI * 0.42, // ±75 degrees
+  maxAzimuthAngle: Math.PI * 0.42,
 }
 
 /** Default CRT effect settings */
