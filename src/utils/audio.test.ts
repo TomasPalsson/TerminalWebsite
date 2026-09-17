@@ -20,6 +20,7 @@ type MockBufferSource = {
   playbackRate: { value: number }
   connect: ReturnType<typeof vi.fn>
   start: ReturnType<typeof vi.fn>
+  stop: ReturnType<typeof vi.fn>
 }
 
 class MockAudioContext {
@@ -35,6 +36,15 @@ class MockAudioContext {
 
   createBuffer = vi.fn((_channels: number, length: number) => ({
     getChannelData: () => new Float32Array(length),
+  }))
+
+  createDynamicsCompressor = vi.fn(() => ({
+    threshold: { value: 0 },
+    knee: { value: 0 },
+    ratio: { value: 1 },
+    attack: { value: 0 },
+    release: { value: 0 },
+    connect: vi.fn(),
   }))
 
   createBiquadFilter = vi.fn(() => ({
@@ -54,6 +64,7 @@ class MockAudioContext {
       playbackRate: { value: 1 },
       connect: vi.fn(),
       start: vi.fn(),
+      stop: vi.fn(),
     }
     this.sources.push(source)
     return source
@@ -153,6 +164,26 @@ describe('audio', () => {
       expect(ctx.createBuffer).toHaveBeenCalledTimes(1)
       expect(ctx.createOscillator).not.toHaveBeenCalled()
       for (const source of ctx.sources) expect(source.start).toHaveBeenCalled()
+    })
+
+    it('cancels the previous up-stroke when the next key lands first', () => {
+      playClick('a')
+      const ctx = MockAudioContext.instances[0]
+      const firstRelease = ctx.sources.slice(3, 5)
+      // Still before the scheduled up-stroke
+      playClick('b')
+      firstRelease.forEach((src) => expect(src.stop).toHaveBeenCalled())
+      // Let time pass beyond the up-stroke: nothing more is cancelled
+      ctx.currentTime = 1
+      const secondRelease = ctx.sources.slice(8, 10)
+      playClick('c')
+      secondRelease.forEach((src) => expect(src.stop).not.toHaveBeenCalled())
+    })
+
+    it('routes clicks through a shared compressor', () => {
+      playClick('a')
+      playClick('a')
+      expect(MockAudioContext.instances[0].createDynamicsCompressor).toHaveBeenCalledTimes(1)
     })
 
     it('creates nothing for modifier keys', () => {

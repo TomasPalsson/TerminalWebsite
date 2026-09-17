@@ -20,6 +20,7 @@ class MockAudioContext {
     playbackRate: { value: 1 },
     connect: vi.fn(),
     start: vi.fn(),
+    stop: vi.fn(),
   }))
 
   createGain = vi.fn(() => ({
@@ -35,6 +36,15 @@ class MockAudioContext {
 
   createBuffer = vi.fn((_channels: number, length: number) => ({
     getChannelData: () => new Float32Array(length),
+  }))
+
+  createDynamicsCompressor = vi.fn(() => ({
+    threshold: { value: 0 },
+    knee: { value: 0 },
+    ratio: { value: 1 },
+    attack: { value: 0 },
+    release: { value: 0 },
+    connect: vi.fn(),
   }))
 
   createBiquadFilter = vi.fn(() => ({

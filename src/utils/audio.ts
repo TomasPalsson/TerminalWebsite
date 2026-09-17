@@ -9,6 +9,9 @@ export const SOUNDED_SPECIAL_KEYS: ReadonlySet<string> = new Set([
 
 let context: AudioContext | null = null
 let noiseBuffer: AudioBuffer | null = null
+let bus: AudioNode | null = null
+/** Up-stroke strikes of the most recent press, so a fast next press can cancel them */
+let pendingRelease: { sources: AudioBufferSourceNode[]; at: number } | null = null
 
 export function isAudioSupported(): boolean {
   return typeof window !== 'undefined' && !!(window.AudioContext || (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext)
@@ -34,6 +37,25 @@ function getNoise(ctx: AudioContext): AudioBuffer {
     for (let i = 0; i < length; i++) data[i] = Math.random() * 2 - 1
   }
   return noiseBuffer
+}
+
+/** Shared output: a gentle compressor so a burst of overlapping clicks stays one keyboard, not a pile-up */
+function getBus(ctx: AudioContext): AudioNode {
+  if (!bus) {
+    if (typeof ctx.createDynamicsCompressor === 'function') {
+      const comp = ctx.createDynamicsCompressor()
+      comp.threshold.value = -20
+      comp.knee.value = 12
+      comp.ratio.value = 5
+      comp.attack.value = 0.002
+      comp.release.value = 0.09
+      comp.connect(ctx.destination)
+      bus = comp
+    } else {
+      bus = ctx.destination
+    }
+  }
+  return bus
 }
 
 /** Creates the context and the noise buffer ahead of the first keypress; swallows all errors */
@@ -91,7 +113,7 @@ function strike(
   out: AudioNode,
   at: number,
   opts: { type: BiquadFilterType; freq: number; q: number; gain: number; decay: number; impulse: number }
-) {
+): AudioBufferSourceNode {
   const source = ctx.createBufferSource()
   source.buffer = getNoise(ctx)
   const filter = ctx.createBiquadFilter()
@@ -105,6 +127,7 @@ function strike(
   filter.connect(env)
   env.connect(out)
   source.start(at, 0, opts.impulse)
+  return source
 }
 
 /**
@@ -122,7 +145,13 @@ export function playClick(key?: string): void {
     const voice = clickVoiceFor(key)
     const master = ctx.createGain()
     master.gain.value = 0.55 * voice.level
-    master.connect(ctx.destination)
+    master.connect(getBus(ctx))
+
+    // Typing fast: the previous key's up-stroke has not happened yet — a real finger is already
+    // on the next key, so drop it instead of stacking two clicks on top of each other
+    if (pendingRelease && pendingRelease.at > t) {
+      pendingRelease.sources.forEach((src) => src.stop())
+    }
 
     // Down-stroke
     strike(ctx, master, t, { type: 'bandpass', freq: voice.click * rate * vary(0.08), q: 6, gain: 1.4, decay: 0.035, impulse: 0.004 })
@@ -130,9 +159,14 @@ export function playClick(key?: string): void {
     strike(ctx, master, t + 0.003, { type: 'lowpass', freq: voice.thud, q: 1.2, gain: 1.1, decay: 0.06, impulse: 0.012 })
 
     // Up-stroke: the switch springing back, quieter and a touch higher
-    const up = t + 0.06 + Math.random() * 0.03
-    strike(ctx, master, up, { type: 'bandpass', freq: voice.click * rate * 1.15 * vary(0.08), q: 6, gain: 0.6, decay: 0.025, impulse: 0.003 })
-    strike(ctx, master, up, { type: 'bandpass', freq: voice.body * rate * vary(0.1), q: 3, gain: 0.35, decay: 0.03, impulse: 0.004 })
+    const up = t + 0.07 + Math.random() * 0.02
+    pendingRelease = {
+      at: up,
+      sources: [
+        strike(ctx, master, up, { type: 'bandpass', freq: voice.click * rate * 1.15 * vary(0.08), q: 6, gain: 0.45, decay: 0.022, impulse: 0.003 }),
+        strike(ctx, master, up, { type: 'bandpass', freq: voice.body * rate * vary(0.1), q: 3, gain: 0.25, decay: 0.028, impulse: 0.004 }),
+      ],
+    }
   } catch (err) {
     console.error('Error playing sound:', err)
   }
@@ -263,4 +297,6 @@ export function resetAudioForTests(): void {
   stopParty()
   context = null
   noiseBuffer = null
+  bus = null
+  pendingRelease = null
 }
