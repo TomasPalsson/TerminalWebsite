@@ -147,12 +147,12 @@ describe('audio', () => {
 
       const ctx = MockAudioContext.instances[0]
       expect(ctx.resume).toHaveBeenCalled()
-      // One noise source per click, the noise buffer built once
-      expect(ctx.sources).toHaveLength(3)
+      // Press + release noise sources per click, the noise buffer built once
+      expect(ctx.sources).toHaveLength(6)
       expect(ctx.createBuffer).toHaveBeenCalledTimes(1)
-      // Body + tick oscillators per click
+      // Body + tick oscillators per click; snap, body and release filters per click
       expect(ctx.createOscillator).toHaveBeenCalledTimes(6)
-      expect(ctx.createBiquadFilter).toHaveBeenCalledTimes(6)
+      expect(ctx.createBiquadFilter).toHaveBeenCalledTimes(9)
       for (const source of ctx.sources) expect(source.start).toHaveBeenCalled()
     })
 

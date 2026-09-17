@@ -48,13 +48,18 @@ export function ExhibitCard() {
   const exhibit = exhibits.find((e) => e.id === focused)
   const tip = useMemo(() => (focused === 'duck' ? duckTip() : null), [focused])
 
+  // Q closes the card (and is not typed into the terminal); Esc too when the browser
+  // passes it on — in fullscreen or pointer lock the browser keeps Esc for itself
   useEffect(() => {
     if (!focused || walk) return
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') closeCard()
+      if (e.code !== 'Escape' && e.code !== 'KeyQ') return
+      e.stopImmediatePropagation()
+      e.preventDefault()
+      closeCard()
     }
-    window.addEventListener('keydown', onKey)
-    return () => window.removeEventListener('keydown', onKey)
+    window.addEventListener('keydown', onKey, true)
+    return () => window.removeEventListener('keydown', onKey, true)
   }, [focused, walk])
 
   if (!exhibit) return null
@@ -74,7 +79,7 @@ export function ExhibitCard() {
             <h3 className="text-base text-white">{exhibit.title}</h3>
             {exhibit.subtitle && <p className="text-xs text-gray-500 mt-0.5">{exhibit.subtitle}</p>}
           </div>
-          <button onClick={closeCard} className="text-gray-500 hover:text-terminal transition" title="Close (Esc)">
+          <button onClick={closeCard} className="text-gray-500 hover:text-terminal transition" title="Close (Q)">
             <X size={16} />
           </button>
         </div>
@@ -90,7 +95,7 @@ export function ExhibitCard() {
         )}
         <CardFooter tags={exhibit.tags} links={exhibit.links} numbered={walk} />
         <p className="mt-3 text-[10px] text-gray-600">
-          {walk ? 'E or Esc — back to walking · 1-4 open links' : 'Esc or click away — back to the desk'}
+          {walk ? 'E or Q — back to walking · 1-4 open links' : 'Q or click away — back to the desk'}
         </p>
       </div>
     </div>
@@ -114,7 +119,7 @@ export function WalkHud() {
       )}
       <div className="absolute bottom-4 left-1/2 -translate-x-1/2 px-3 py-1.5 font-mono text-[10px] text-gray-400 bg-black/70 border border-neutral-800 rounded-full whitespace-nowrap">
         <Footprints size={10} className="inline mr-1 text-terminal" />
-        WASD move · mouse look · shift run · E inspect · Q or esc leave
+        WASD move · mouse look · shift run · E inspect · Q leave
       </div>
     </div>
   )

@@ -71,18 +71,18 @@ type ClickVoice = {
   level: number
 }
 
-/** Mechanical keyboard character per key: Enter is a deep stabiliser thunk, Space a wide one, letters a crisp tap */
+/** Clicky-switch character per key: Enter is a heavier, lower click, Space a broader one, letters a sharp tick */
 export function clickVoiceFor(key?: string): ClickVoice {
-  if (key === 'Enter') return { body: 150, ring: 0.1, snap: 0.035, level: 1 }
-  if (key === ' ') return { body: 175, ring: 0.085, snap: 0.045, level: 0.9 }
-  if (key === 'Backspace') return { body: 250, ring: 0.05, snap: 0.02, level: 0.7 }
-  return { body: 215, ring: 0.055, snap: 0.02, level: 0.75 }
+  if (key === 'Enter') return { body: 240, ring: 0.045, snap: 0.016, level: 1 }
+  if (key === ' ') return { body: 280, ring: 0.04, snap: 0.02, level: 0.9 }
+  if (key === 'Backspace') return { body: 380, ring: 0.025, snap: 0.011, level: 0.75 }
+  return { body: 330, ring: 0.028, snap: 0.012, level: 0.8 }
 }
 
 /**
- * Synthesised key click: a filtered noise snap (the switch), a short tuned body (the case
- * resonance) and a tiny bright tick (the keycap). Every call is its own set of nodes, so
- * fast typing overlaps naturally.
+ * Synthesised clicky-switch keypress: a bright noise snap (the click leaf), a short biting
+ * body (the housing), a high ping (the keycap) and a softer release click. Every call is
+ * its own set of nodes, so fast typing overlaps naturally.
  */
 export function playClick(key?: string): void {
   if (!shouldClick(key)) return
@@ -93,35 +93,35 @@ export function playClick(key?: string): void {
     const rate = clickRateFor(key)
     const voice = clickVoiceFor(key)
     const master = ctx.createGain()
-    master.gain.value = 0.32 * voice.level
+    master.gain.value = 0.28 * voice.level
     master.connect(ctx.destination)
 
-    // Switch: bandpassed noise with a very fast decay
+    // Click leaf: a sharp, bright noise burst — the part that reads as "clicky"
     const snap = ctx.createBufferSource()
     snap.buffer = getNoise(ctx)
     const snapFilter = ctx.createBiquadFilter()
     snapFilter.type = 'bandpass'
-    snapFilter.frequency.value = 2600 * rate
-    snapFilter.Q.value = 0.9
+    snapFilter.frequency.value = 5200 * rate
+    snapFilter.Q.value = 1.6
     const snapGain = ctx.createGain()
-    snapGain.gain.setValueAtTime(1, t)
+    snapGain.gain.setValueAtTime(1.6, t)
     snapGain.gain.exponentialRampToValueAtTime(0.001, t + voice.snap)
     snap.connect(snapFilter)
     snapFilter.connect(snapGain)
     snapGain.connect(master)
     snap.start(t, 0, voice.snap + 0.01)
 
-    // Body: triangle that drops in pitch as it dies, low-passed so it thumps rather than buzzes
+    // Housing: short square body, high-passed so it adds bite instead of thud
     const body = ctx.createOscillator()
-    body.type = 'triangle'
+    body.type = 'square'
     body.frequency.setValueAtTime(voice.body * rate, t)
-    body.frequency.exponentialRampToValueAtTime(voice.body * rate * 0.7, t + voice.ring)
+    body.frequency.exponentialRampToValueAtTime(voice.body * rate * 0.6, t + voice.ring)
     const bodyFilter = ctx.createBiquadFilter()
-    bodyFilter.type = 'lowpass'
-    bodyFilter.frequency.value = 900
+    bodyFilter.type = 'highpass'
+    bodyFilter.frequency.value = 700
     const bodyGain = ctx.createGain()
     bodyGain.gain.setValueAtTime(0.0001, t)
-    bodyGain.gain.exponentialRampToValueAtTime(0.9, t + 0.004)
+    bodyGain.gain.exponentialRampToValueAtTime(0.35, t + 0.002)
     bodyGain.gain.exponentialRampToValueAtTime(0.001, t + voice.ring)
     body.connect(bodyFilter)
     bodyFilter.connect(bodyGain)
@@ -129,17 +129,34 @@ export function playClick(key?: string): void {
     body.start(t)
     body.stop(t + voice.ring + 0.02)
 
-    // Keycap: a whisper of high sine so the click reads as plastic, not wood
+    // Keycap: a bright ping right at the top of the click
     const tick = ctx.createOscillator()
     tick.type = 'sine'
-    tick.frequency.setValueAtTime(4200 * rate, t)
+    tick.frequency.setValueAtTime(7000 * rate, t)
     const tickGain = ctx.createGain()
-    tickGain.gain.setValueAtTime(0.12, t)
-    tickGain.gain.exponentialRampToValueAtTime(0.001, t + 0.012)
+    tickGain.gain.setValueAtTime(0.4, t)
+    tickGain.gain.exponentialRampToValueAtTime(0.001, t + 0.008)
     tick.connect(tickGain)
     tickGain.connect(master)
     tick.start(t)
-    tick.stop(t + 0.02)
+    tick.stop(t + 0.015)
+
+    // Release: a quieter second click a moment later, like the leaf springing back
+    const release = ctx.createBufferSource()
+    release.buffer = getNoise(ctx)
+    const releaseFilter = ctx.createBiquadFilter()
+    releaseFilter.type = 'bandpass'
+    releaseFilter.frequency.value = 4200 * rate
+    releaseFilter.Q.value = 1.4
+    const releaseGain = ctx.createGain()
+    const tr = t + 0.055 + Math.random() * 0.02
+    releaseGain.gain.setValueAtTime(0.0001, t)
+    releaseGain.gain.setValueAtTime(0.55, tr)
+    releaseGain.gain.exponentialRampToValueAtTime(0.001, tr + 0.01)
+    release.connect(releaseFilter)
+    releaseFilter.connect(releaseGain)
+    releaseGain.connect(master)
+    release.start(tr, 0, 0.02)
   } catch (err) {
     console.error('Error playing sound:', err)
   }
