@@ -23,11 +23,12 @@ import {
 } from './screenTexture'
 import { buildExhibits, ROOM, type Exhibit } from './exhibits'
 import { CertExhibit, PaintedExhibit, ShelfExhibit, SignExhibit } from './RoomExhibits'
-import { Cat, Duck } from './RoomCritters'
+import { Duck } from './RoomCritters'
 import { AuroraWindow, LavaLamp, Plant, WallClock } from './RoomGadgets'
 import { Confetti, Disco, FloatGroup, RoomLights, XRay } from './RoomEffects'
 import WalkControls from './WalkControls'
 import { useProfile } from '../../hooks/useProfile'
+import { reactions } from './reactions'
 import { DEFAULT_CAMERA_CONFIG } from '../../types/terminal3d'
 import type { TerminalSceneProps, CameraConfig } from '../../types/terminal3d'
 
@@ -114,10 +115,14 @@ export function useTerminalTexture(lines: string[], power: boolean, screensaver:
   const cursorVisibleRef = useRef(true)
   const linesRef = useRef(lines)
   const fontReadyRef = useRef(false)
+  // How many committed lines are on screen; new output is revealed a row at a time like a real teletype
+  const revealedRef = useRef(Math.max(0, lines.length - 1))
 
   const redraw = useCallback(() => {
     if (saverActive) return
-    surface.paint({ lines: linesRef.current, color, cursorVisible: cursorVisibleRef.current, power })
+    const all = linesRef.current
+    const shown = [...all.slice(0, revealedRef.current), ...all.slice(-1)]
+    surface.paint({ lines: shown, color, cursorVisible: cursorVisibleRef.current, power })
   }, [surface, color, power, saverActive])
 
   // Screensaver: ~30 fps animation loop that owns the canvas while active
@@ -132,7 +137,23 @@ export function useTerminalTexture(lines: string[], power: boolean, screensaver:
 
   useEffect(() => {
     linesRef.current = lines
-    redraw()
+    const committed = Math.max(0, lines.length - 1)
+    if (committed < revealedRef.current) revealedRef.current = committed // `clear`
+    if (committed === revealedRef.current) {
+      redraw()
+      return
+    }
+    // A command just produced output: pulse the glow and roll the rows in at ~45 rows/s
+    // (time-based so a slow frame rate catches up instead of crawling)
+    reactions.screen += 1
+    const from = revealedRef.current
+    const startedAt = performance.now()
+    const timer = setInterval(() => {
+      revealedRef.current = Math.min(committed, from + Math.floor((performance.now() - startedAt) / 22))
+      redraw()
+      if (revealedRef.current >= committed) clearInterval(timer)
+    }, 22)
+    return () => clearInterval(timer)
   }, [lines, redraw])
 
   // Repaint once the web font arrives so the first frames are not in the fallback face
@@ -180,6 +201,45 @@ function RetroComputer({ screenTexture }: { screenTexture: THREE.Texture }) {
   }, [scene, screenTexture])
 
   return <primitive object={scene} scale={[1.2, 1.2, 1.2]} />
+}
+
+const SCREEN_CENTER: [number, number, number] = [0, 0.411, 0.2165]
+const SCREEN_SIZE: [number, number] = [0.352, 0.288]
+
+/** Translucent bright band that slowly rolls down the tube, like a CRT filmed on video */
+function ScreenRoll({ enabled }: { enabled: boolean }) {
+  const material = useRef<THREE.MeshBasicMaterial>(null)
+  const texture = useMemo(() => {
+    const canvas = document.createElement('canvas')
+    canvas.width = 4
+    canvas.height = 256
+    const ctx = canvas.getContext('2d')!
+    const g = ctx.createLinearGradient(0, 0, 0, 256)
+    g.addColorStop(0, 'rgba(255,255,255,0)')
+    g.addColorStop(0.46, 'rgba(255,255,255,0)')
+    g.addColorStop(0.5, 'rgba(255,255,255,1)')
+    g.addColorStop(0.54, 'rgba(255,255,255,0)')
+    g.addColorStop(1, 'rgba(255,255,255,0)')
+    ctx.fillStyle = g
+    ctx.fillRect(0, 0, 4, 256)
+    const t = new THREE.CanvasTexture(canvas)
+    t.wrapS = THREE.RepeatWrapping
+    t.wrapT = THREE.RepeatWrapping
+    return t
+  }, [])
+
+  useFrame((_, delta) => {
+    if (!material.current?.map) return
+    material.current.map.offset.y = (material.current.map.offset.y + delta * 0.12) % 1
+  })
+
+  if (!enabled) return null
+  return (
+    <mesh position={SCREEN_CENTER}>
+      <planeGeometry args={SCREEN_SIZE} />
+      <meshBasicMaterial ref={material} map={texture} transparent opacity={0.035} blending={THREE.AdditiveBlending} depthWrite={false} toneMapped={false} />
+    </mesh>
+  )
 }
 
 /** Orbit controls plus smooth fly-to for `scene cam …` / exhibits, double-click reset and optional auto-spin */
@@ -246,6 +306,8 @@ function CameraRig({ config }: { config: CameraConfig }) {
       maxPolarAngle={config.maxPolarAngle}
       autoRotate={spin && !walk}
       autoRotateSpeed={0.6}
+      zoomSpeed={0.35}
+      rotateSpeed={0.7}
       enableDamping
       dampingFactor={0.08}
       enablePan={false}
@@ -284,7 +346,6 @@ function ExhibitMesh({ exhibit }: { exhibit: Exhibit }) {
     case 'clock':
       return <WallClock exhibit={exhibit} />
     case 'duck':
-    case 'cat':
     case 'lava':
       // Desk residents live inside the FloatGroup so they can drift when gravity is off
       return null
@@ -322,7 +383,6 @@ function SceneContent({
   const exhibits = useRoomExhibits()
   const byId = (id: string) => exhibits.find((e) => e.id === id)
   const duck = byId('duck')
-  const cat = byId('cat')
   const lava = byId('lava')
 
   return (
@@ -332,11 +392,11 @@ function SceneContent({
       <XRay enabled={xray}>
         <Room />
         <RetroComputer screenTexture={screenTexture} />
+        <ScreenRoll enabled={power && enableEffects} />
         {props && (
           <FloatGroup>
             <DeskProps lampOn={lampOn} />
             {duck && <Duck exhibit={duck} />}
-            {cat && <Cat exhibit={cat} />}
             {lava && <LavaLamp exhibit={lava} />}
           </FloatGroup>
         )}

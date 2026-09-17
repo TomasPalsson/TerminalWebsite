@@ -150,6 +150,29 @@ describe('SceneCommand', () => {
     expect(sceneStore.getState().screensaver).toBe('off')
   })
 
+  it('renders compact plain text for the CRT', () => {
+    const plain = SceneCommand.plain!
+    const status = plain([], context(true))!
+    expect(status.split('\n').length).toBeLessThanOrEqual(7)
+    expect(status).toContain('camera  default')
+    expect(plain(['help'], context(true))).toContain('goto <id>')
+    expect(plain(['look'], context(true))).toContain('still loading')
+    sceneStore.setState({ exhibits: buildExhibits(null) })
+    sceneStore.inspect('duck')
+    const look = plain(['look'], context(true))!
+    expect(look).toContain('* duck')
+    expect(look).toContain('  sign')
+    // Everything else falls back to the rich output
+    expect(plain(['lamp', 'on'], context(true))).toBeNull()
+  })
+
+  it('applies a phosphor theme', async () => {
+    expect(await textOf(['theme'])).toContain('amber')
+    expect(await textOf(['theme', 'amber'])).toContain('#ffb000')
+    expect(localStorage.getItem('terminal-color')).toBe('#ffb000')
+    expect(await textOf(['theme', 'mauve'])).toContain('Unknown theme')
+  })
+
   it('shows usage for help and errors for unknown subcommands', async () => {
     expect(await textOf(['help'])).toContain('Usage')
     expect(await textOf(['dance'])).toContain('Unknown scene command')

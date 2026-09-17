@@ -11,6 +11,7 @@ import {
   initialChatStreamState,
   ChatStreamState,
 } from '../services/aguiStream'
+import { uid } from '../utils/uid'
 
 export type Msg = {
   role: 'user' | 'assistant'
@@ -71,7 +72,7 @@ export default function ChatMe() {
     setIsTyping(true)
     try {
       if (!sessionRef.current) {
-        sessionRef.current = crypto.randomUUID()
+        sessionRef.current = uid()
       }
       const start = performance.now()
       const res = await fetch(API_ENDPOINT, {

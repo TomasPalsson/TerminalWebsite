@@ -13,6 +13,17 @@ import {
 } from '../terminal/sceneStore'
 import { exhibitView } from '../terminal/exhibits'
 import { activateExhibit } from '../terminal/exhibitActions'
+import { persistColor } from '../../utils/colorPersistence'
+
+/** Phosphor presets for `scene theme` */
+export const THEMES: Record<string, string> = {
+  green: '#22c55e',
+  amber: '#ffb000',
+  ice: '#7dd3fc',
+  white: '#e5e7eb',
+  pink: '#f472b6',
+  purple: '#c084fc',
+}
 
 /** Subcommand → store key for the on/off toggles */
 const TOGGLES: Record<string, SceneToggle> = {
@@ -130,7 +141,7 @@ const usage = (
     <div className="space-y-1 text-gray-400 mb-3">
       <p><span className="text-white">look</span> — List everything in the room</p>
       <p><span className="text-white">goto &lt;id&gt;</span> — Fly to a thing and open its card</p>
-      <p><span className="text-white">walk on|off</span> — First-person mode (WASD, mouse, E, Esc)</p>
+      <p><span className="text-white">walk on|off</span> — First-person mode (WASD, mouse, E, Q to leave)</p>
       <p><span className="text-white">cam {CAMERA_PRESET_NAMES.join('|')}</span> — Fly the camera to a view</p>
     </div>
     <p className="text-terminal mb-2">Room:</p>
@@ -140,6 +151,7 @@ const usage = (
       <p><span className="text-white">gravity on|off</span> — Off, and the desk floats away</p>
       <p><span className="text-white">xray on|off</span> — Wireframe everything</p>
       <p><span className="text-white">saver {SCREENSAVERS.join('|')}</span> — Screensaver on the CRT</p>
+      <p><span className="text-white">theme {Object.keys(THEMES).join('|')}</span> — Phosphor colour</p>
       <p><span className="text-white">reset</span> — Back to defaults</p>
     </div>
     <p className="text-gray-500 text-xs">Omit the value to toggle. Run <span className="text-terminal">scene</span> alone for the current state.</p>
@@ -163,6 +175,14 @@ const runGoto = (value: string | undefined, state: SceneState) => {
   return <Ok>looking at {exhibit.title}</Ok>
 }
 
+const runTheme = (value: string | undefined) => {
+  if (!value) return <Ok>themes: {Object.keys(THEMES).join(', ')} — or color set #hex</Ok>
+  const hex = THEMES[value]
+  if (!hex) return <Fail>Unknown theme &quot;{value}&quot; — try {Object.keys(THEMES).join(', ')}</Fail>
+  persistColor(hex)
+  return <Ok>theme {value} ({hex})</Ok>
+}
+
 const runSaver = (value: string | undefined) => {
   const saver = (value ?? 'matrix') as Screensaver
   if (!SCREENSAVERS.includes(saver)) return <Fail>Unknown screensaver &quot;{value}&quot; — try {SCREENSAVERS.join(', ')}</Fail>
@@ -170,11 +190,67 @@ const runSaver = (value: string | undefined) => {
   return <Ok>screensaver {saver}</Ok>
 }
 
+/** Two-column key/value rows for the CRT */
+const columns = (rows: [string, string][], width = 29) =>
+  rows
+    .reduce<string[]>((lines, [key, value], i) => {
+      const cell = `${key.padEnd(8)}${value}`
+      if (i % 2 === 0) lines.push(cell.padEnd(width))
+      else lines[lines.length - 1] += cell
+      return lines
+    }, [])
+    .map((l) => l.trimEnd())
+
+const PLAIN_HELP = [
+  'scene <command> [value]',
+  '',
+  'look            list the room',
+  'goto <id>       fly to it, open its card',
+  'walk on|off     first person: WASD, mouse, E, Q',
+  `cam <view>      ${CAMERA_PRESET_NAMES.join('|')}`,
+  'power lamp lights fx sound spin props',
+  'party gravity xray   …on|off (omit to toggle)',
+  `saver <name>    ${SCREENSAVERS.join('|')}`,
+  `theme <name>    ${Object.keys(THEMES).join('|')}`,
+  'reset           back to defaults',
+].join('\n')
+
+const plainStatus = (state: SceneState) =>
+  columns([
+    ['camera', state.walk ? 'walking' : (state.cameraPreset ?? 'exhibit')],
+    ['power', onOff(state.power)],
+    ['lamp', onOff(state.lampOn)],
+    ['lights', onOff(state.roomLights)],
+    ['fx', onOff(state.effects)],
+    ['sound', onOff(state.sound)],
+    ['spin', onOff(state.spin)],
+    ['props', onOff(state.props)],
+    ['gravity', onOff(state.gravity)],
+    ['party', onOff(state.party)],
+    ['xray', onOff(state.xray)],
+    ['saver', state.screensaver],
+    ['found', `${state.exhibits.filter((e) => state.discovered.includes(e.id)).length}/${state.exhibits.length}`],
+    ['fps', state.fps ? String(state.fps) : '-'],
+  ]).join('\n')
+
+const plainLook = (state: SceneState) =>
+  state.exhibits.length === 0
+    ? 'The room is still loading — try again in a second.'
+    : [...state.exhibits.map((e) => `${state.discovered.includes(e.id) ? '*' : ' '} ${e.id.padEnd(26)}${e.title}`), '', 'scene goto <id> flies there'].join('\n')
+
 export const SceneCommand: Command = {
   name: 'scene',
   description: 'Control the 3D room: walk around, fly to exhibits, lights, party mode…',
   usage,
   args: [],
+  plain: (args: string[]) => {
+    const [sub] = args
+    const state = sceneStore.getState()
+    if (!sub || sub === 'status') return plainStatus(state)
+    if (sub === 'help') return PLAIN_HELP
+    if (sub === 'look' || sub === 'ls') return plainLook(state)
+    return null
+  },
   run: async (args: string[], context: KeyPressContextType) => {
     const headless = !!context.headless
     const [sub, value] = args
@@ -186,6 +262,7 @@ export const SceneCommand: Command = {
     if (CAMERA_ALIASES.includes(sub)) return runCamera(value)
     if (GOTO_ALIASES.includes(sub)) return runGoto(value, state)
     if (sub === 'saver' || sub === 'screensaver') return runSaver(value)
+    if (sub === 'theme' || sub === 'phosphor') return runTheme(value)
 
     if (sub === 'reset') {
       sceneStore.reset()

@@ -2,7 +2,7 @@ import type { Profile } from '@/types/profile'
 import { formatMonth, formatPeriod, visible } from '@/services/profile'
 
 /** What kind of thing hangs in the room; drives both the 3D rendering and the info card */
-export type ExhibitKind = 'poster' | 'cert' | 'board' | 'shelf' | 'sign' | 'corkboard' | 'duck' | 'window' | 'cat' | 'clock' | 'lava'
+export type ExhibitKind = 'poster' | 'cert' | 'board' | 'shelf' | 'sign' | 'corkboard' | 'duck' | 'window' | 'clock' | 'lava'
 
 export type ExhibitLink = { label: string; href: string }
 
@@ -86,16 +86,6 @@ const staticExhibits = (name: string, role: string): Exhibit[] => [
     position: [-0.34, -0.062, 0.32],
     rotationY: 0.4,
     size: [0.1, 0.1],
-  },
-  {
-    id: 'cat',
-    kind: 'cat',
-    title: 'Kisa',
-    subtitle: 'Office cat · Head of Naps',
-    lines: ['Sleeps 22 hours a day. Reviews pull requests the other two.', 'Approves anything with fish in the commit message.'],
-    position: [-1.0, -0.062, 0.55],
-    rotationY: -0.6,
-    size: [0.3, 0.15],
   },
   {
     id: 'clock',
@@ -258,7 +248,7 @@ export const exhibitNormal = (e: Exhibit): [number, number] => [Math.sin(e.rotat
 export function exhibitView(e: Exhibit): { position: [number, number, number]; target: [number, number, number] } {
   const [nx, nz] = exhibitNormal(e)
   const distance = Math.min(2.2, Math.max(0.7, Math.max(...e.size) * 1.4))
-  const eyeY = e.kind === 'duck' || e.kind === 'cat' || e.kind === 'lava' ? e.position[1] + 0.3 : e.position[1] + 0.05
+  const eyeY = e.kind === 'duck' || e.kind === 'lava' ? e.position[1] + 0.3 : e.position[1] + 0.05
   return {
     position: [e.position[0] + nx * distance, eyeY, e.position[2] + nz * distance],
     target: [e.position[0], e.position[1], e.position[2]],

@@ -4,6 +4,7 @@ import React, { useRef, useMemo } from 'react'
 import { useFrame } from '@react-three/fiber'
 import * as THREE from 'three'
 import type { AmbientEffectsProps } from '../../types/terminal3d'
+import { reactions } from './reactions'
 
 /**
  * Ambient visual effects for the 3D terminal scene
@@ -29,11 +30,19 @@ export default function AmbientEffects({
 /** Screen glow emanating from the monitor, with the faint flicker of a real tube */
 function ScreenGlow() {
   const mainRef = useRef<THREE.PointLight>(null)
+  const seen = useRef(reactions.screen)
+  const pulse = useRef(0)
 
-  useFrame(({ clock }) => {
+  useFrame(({ clock }, delta) => {
     if (!mainRef.current) return
+    if (reactions.screen !== seen.current) {
+      seen.current = reactions.screen
+      pulse.current = 1
+    }
+    pulse.current = Math.max(0, pulse.current - delta * 2.5)
     const t = clock.getElapsedTime()
-    mainRef.current.intensity = 0.55 + Math.sin(t * 17) * 0.03 + Math.sin(t * 3.1) * 0.05
+    // Idle flicker plus a brief surge whenever the terminal prints something
+    mainRef.current.intensity = 0.55 + Math.sin(t * 17) * 0.03 + Math.sin(t * 3.1) * 0.05 + pulse.current * 0.9
   })
 
   return (

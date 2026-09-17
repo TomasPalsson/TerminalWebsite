@@ -42,6 +42,14 @@ describe('findNearExhibit', () => {
     expect(findNearExhibit(exhibits, position, new THREE.Vector3(0, 0, 1))).toBeNull()
   })
 
+  it('ignores exhibits that are only in the corner of the eye', () => {
+    const position = new THREE.Vector3(sign.position[0] + 1.2, 0.7, sign.position[2] + 1.2)
+    // Looking straight ahead (-z) while the sign sits 45° off to the left
+    expect(findNearExhibit(exhibits, position, new THREE.Vector3(0, 0, -1))).toBeNull()
+    // Turn toward it and it is picked up
+    expect(findNearExhibit(exhibits, position, new THREE.Vector3(-0.7071, 0, -0.7071))).toBe('sign')
+  })
+
   it('ignores exhibits that are too far away', () => {
     const position = new THREE.Vector3(sign.position[0], 0.7, sign.position[2] + 4)
     expect(findNearExhibit(exhibits, position, new THREE.Vector3(0, 0, -1))).toBeNull()
@@ -49,10 +57,11 @@ describe('findNearExhibit', () => {
 })
 
 describe('findNearExhibit with desk residents', () => {
-  it('prefers the closer thing when two are in front', () => {
+  it('picks the centred thing over a closer one off to the side', () => {
     const exhibits = buildExhibits(null)
     const sign = exhibits.find((e) => e.id === 'sign')!
     const position = new THREE.Vector3(sign.position[0], 0.7, sign.position[2] + 1.5)
-    expect(findNearExhibit(exhibits, position, new THREE.Vector3(0, 0, -1))).toBe('duck')
+    // The duck is nearer but ~40° off-axis; the sign is dead ahead
+    expect(findNearExhibit(exhibits, position, new THREE.Vector3(0, 0, -1))).toBe('sign')
   })
 })

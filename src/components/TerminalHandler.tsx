@@ -12,6 +12,7 @@ import { KeyPressContext, type TerminalShortcut } from "../context/KeypressedCon
 import { commandMap } from "./commands/CommandMap";
 import { extractText } from "../utils/textExtraction";
 import { loadPersistedColor } from "../utils/colorPersistence";
+import { uid } from "../utils/uid";
 import { fileSystem } from "../services/filesystem";
 import { aliasService } from "../services/alias";
 import { envService } from "../services/env";
@@ -63,10 +64,10 @@ const TerminalHandler = ({ onBufferChange, headless = false }: Props) => {
   }, []);
 
   /* helper to push a React line + its text twin */
-  const pushLine = (node: ReactNode) => {
+  const pushLine = (node: ReactNode, plain?: string) => {
     setOutput((prev) => [...prev, node]);
 
-    const extracted = extractText(node);
+    const extracted = plain ?? extractText(node);
     const split = extracted
       .split(/\r?\n/) // break on \n
       .filter(Boolean); // toss empties
@@ -257,7 +258,7 @@ const TerminalHandler = ({ onBufferChange, headless = false }: Props) => {
 
       if (expansionError) {
         pushLine(
-          <div key={crypto.randomUUID()} className="mb-4">
+          <div key={uid()} className="mb-4">
             <div className="flex items-center gap-2 mb-2">
               <span className="text-terminal">❯</span>{" "}
               <span className="font-medium text-white">{cmd}</span>
@@ -292,12 +293,23 @@ const TerminalHandler = ({ onBufferChange, headless = false }: Props) => {
       }
 
       if (command) {
-
-        const result = await command.run(args, context);
+        let result: React.ReactNode | null = null;
+        try {
+          result = await command.run(args, context);
+        } catch (err) {
+          // A crashing command must not leave the input line stuck with its trailing newline
+          result = (
+            <p className="text-red-400">
+              {command.name} failed: {err instanceof Error ? err.message : String(err)}
+            </p>
+          );
+        }
         if (command.name === "exit") setTimeout(() => router.push("/"), 1000);
+        // The CRT is ~60x19; commands may supply a compact rendering for it
+        const plain = headless ? command.plain?.(args, context) ?? undefined : undefined;
         if (result) {
           pushLine(
-            <div key={crypto.randomUUID()} className="mb-4">
+            <div key={uid()} className="mb-4">
               <div className="flex items-center gap-2 mb-2">
                 <span className="text-terminal">❯</span>{" "}
                 <span className="font-medium text-white">{base}</span>
@@ -308,7 +320,8 @@ const TerminalHandler = ({ onBufferChange, headless = false }: Props) => {
               <div className="ml-4">
                 {result}
               </div>
-            </div>
+            </div>,
+            plain === undefined ? undefined : `${PROMPT}${cmd}\n${plain}`
           );
         }
         setLastCommandTokens(finalTokens);
@@ -318,7 +331,7 @@ const TerminalHandler = ({ onBufferChange, headless = false }: Props) => {
         });
       } else {
         pushLine(
-          <div key={crypto.randomUUID()} className="mb-4">
+          <div key={uid()} className="mb-4">
             <div className="flex items-center gap-2 mb-2">
               <span className="text-terminal">❯</span>{" "}
               <span className="font-medium text-white">{base}</span>

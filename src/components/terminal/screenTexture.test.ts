@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest'
-import { wrapLines, drawScreen, phosphorColor, SCREEN, SCREEN_BG_ON, SCREEN_BG_OFF, createMatrixState, drawMatrixFrame, createDvdState, drawDvdFrame } from './screenTexture'
+import { wrapLines, wrapRows, drawScreen, phosphorColor, SCREEN, SCREEN_BG_OFF, screenBackground, shade, classifyLine, inkFor, createMatrixState, drawMatrixFrame, createDvdState, drawDvdFrame } from './screenTexture'
 
 /** Minimal 2D context stub that records what was painted */
 const makeCtx = (charWidth = 10) => {
@@ -44,6 +44,36 @@ describe('wrapLines', () => {
   })
 })
 
+describe('line colouring', () => {
+  it('classifies prompt, error, heading and plain output', () => {
+    expect(classifyLine('$ help')).toBe('prompt')
+    expect(classifyLine('Command not found: foo')).toBe('error')
+    expect(classifyLine('Usage:')).toBe('heading')
+    expect(classifyLine('Filesystem')).toBe('heading')
+    expect(classifyLine('Copy files or directories')).toBe('output')
+  })
+
+  it('derives inks from the phosphor colour', () => {
+    expect(inkFor('output', '#39ff6e')).toBe('#39ff6e')
+    expect(inkFor('error', '#39ff6e')).toBe('#ff7b72')
+    expect(inkFor('prompt', '#39ff6e')).not.toBe('#39ff6e')
+  })
+
+  it('shade darkens below 1 and lightens above 1', () => {
+    expect(shade('#ffb000', 0.5)).toBe('#805800')
+    expect(shade('#000000', 1.5)).toBe('#808080')
+    expect(shade('#0f0', 1)).toBe('#00ff00')
+    expect(shade('nope', 0.5)).toBe('nope')
+    expect(screenBackground('#ffb000')).toBe('#130d00')
+  })
+
+  it('wrapped continuation rows keep the source line kind', () => {
+    const rows = wrapRows(['$ a very long command line typed here'], 12)
+    expect(rows.length).toBeGreaterThan(1)
+    rows.forEach((r) => expect(r.kind).toBe('prompt'))
+  })
+})
+
 describe('phosphorColor', () => {
   it('brightens the default accent and passes custom colors through', () => {
     expect(phosphorColor('#22c55e')).toBe('#39ff6e')
@@ -57,13 +87,13 @@ describe('drawScreen', () => {
     const lines = Array.from({ length: 40 }, (_, i) => `line ${i}`)
     drawScreen({ ctx, lines, color: '#39ff6e', cursorVisible: true, power: true })
 
-    expect(ctx.fillRects[0]).toMatchObject({ x: 0, y: 0, w: SCREEN.width, h: SCREEN.height, style: SCREEN_BG_ON })
+    expect(ctx.fillRects[0]).toMatchObject({ x: 0, y: 0, w: SCREEN.width, h: SCREEN.height, style: screenBackground('#39ff6e') })
     const maxRows = Math.floor((SCREEN.height - SCREEN.margin * 2) / SCREEN.lineHeight)
     expect(ctx.texts).toHaveLength(maxRows)
     expect(ctx.texts[ctx.texts.length - 1].text).toBe('line 39')
     expect(ctx.texts[0].y).toBe(SCREEN.margin)
 
-    const cursor = ctx.fillRects.find((r) => r.style === '#39ff6e')
+    const cursor = ctx.fillRects.find((r) => r.style === shade('#39ff6e', 1.35))
     expect(cursor).toBeDefined()
     expect(cursor!.x).toBe(SCREEN.margin + 'line 39'.length * 10 + 2)
   })
@@ -71,7 +101,7 @@ describe('drawScreen', () => {
   it('draws no cursor when it is blinked off', () => {
     const ctx = makeCtx()
     drawScreen({ ctx, lines: ['$ '], color: '#39ff6e', cursorVisible: false, power: true })
-    expect(ctx.fillRects.some((r) => r.style === '#39ff6e')).toBe(false)
+    expect(ctx.fillRects.some((r) => r.style === shade('#39ff6e', 1.35))).toBe(false)
   })
 
   it('paints only dead glass when powered off', () => {

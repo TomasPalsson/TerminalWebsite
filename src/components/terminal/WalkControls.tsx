@@ -7,13 +7,14 @@ import * as THREE from 'three'
 import { DESK_BOUNDS, ROOM, exhibitNormal } from './exhibits'
 import type { Exhibit } from './exhibits'
 import { sceneStore, useSceneStore } from './sceneStore'
-import { activateExhibit } from './exhibitActions'
+import { activateExhibit, closeCard, openCardLink } from './exhibitActions'
 
 /** Eye height above the floor and how close you must be to an exhibit to inspect it */
 const EYE_Y = ROOM.floorY + 1.55
 const WALK_SPEED = 1.7
 const SPRINT = 1.8
 const REACH = 2.1
+const FACING_MIN = 0.82
 const SPAWN = new THREE.Vector3(0, EYE_Y, 2.9)
 const MARGIN = 0.25
 
@@ -56,10 +57,11 @@ export function findNearExhibit(exhibits: Exhibit[], position: THREE.Vector3, fo
     if (dist > REACH) return
     const facing = (dx * forward.x + dz * forward.z) / (dist || 1)
     const [nx, nz] = exhibitNormal(e)
-    // Must be in front of the exhibit's face and looking toward it
+    // Must be in front of the exhibit's face and looking fairly straight at it (≈35° cone)
     const inFront = (dx * nx + dz * nz) < 0.1
-    if (facing < 0.55 || !inFront) return
-    const score = dist - facing * 0.5
+    if (facing < FACING_MIN || !inFront) return
+    // Prefer what is centred over what is merely close
+    const score = dist * (1.6 - facing)
     if (!best || score < best.score) best = { id: e.id, score }
   })
   return best ? (best as { id: string }).id : null
@@ -75,9 +77,17 @@ function useWalkKeys(walk: boolean, moves: React.MutableRefObject<Moves>) {
       const move = MOVE_KEYS[e.code]
       if (move) moves.current[move] = true
       if (e.code === 'ShiftLeft' || e.code === 'ShiftRight') moves.current.sprint = true
+      const { nearExhibit, focusedExhibit } = sceneStore.getState()
       if (e.code === 'KeyE' || e.code === 'Enter') {
-        const near = sceneStore.getState().nearExhibit
-        if (near) activateExhibit(near)
+        if (focusedExhibit) closeCard()
+        else if (nearExhibit) activateExhibit(nearExhibit)
+      }
+      if (focusedExhibit && /^Digit[1-4]$/.test(e.code)) openCardLink(Number(e.code.slice(5)))
+      // Always a way out: Esc (when the browser passes it on) or Q, even without pointer lock.
+      // With a card open they just close the card.
+      if (e.code === 'Escape' || e.code === 'KeyQ') {
+        if (focusedExhibit) closeCard()
+        else sceneStore.setState({ walk: false })
       }
       e.stopImmediatePropagation()
       e.preventDefault()
@@ -104,6 +114,7 @@ function useWalkKeys(walk: boolean, moves: React.MutableRefObject<Moves>) {
  */
 export default function WalkControls() {
   const walk = useSceneStore((s) => s.walk)
+  const cardOpen = useSceneStore((s) => s.focusedExhibit !== null)
   const { camera } = useThree()
   const controls = useRef<React.ComponentRef<typeof PointerLockControls>>(null)
   const moves = useRef<Moves>({ ...IDLE })
@@ -119,11 +130,25 @@ export default function WalkControls() {
     sceneStore.setState({ roomLights: true })
     const lock = controls.current
     lock?.lock()
+    // If the browser refuses the lock (no user gesture, iframe policy…) do not stay stuck swallowing keys
+    const check = setTimeout(() => {
+      if (sceneStore.getState().walk && !document.pointerLockElement && !sceneStore.getState().focusedExhibit) {
+        sceneStore.setState({ walk: false })
+      }
+    }, 800)
     return () => {
+      clearTimeout(check)
       lock?.unlock()
       sceneStore.setState({ nearExhibit: null })
     }
   }, [walk, camera])
+
+  // A card releases the mouse so its links can be clicked; closing it grabs the mouse again
+  useEffect(() => {
+    if (!walk) return
+    if (cardOpen) controls.current?.unlock()
+    else controls.current?.lock()
+  }, [walk, cardOpen])
 
   useWalkKeys(walk, moves)
 
@@ -155,7 +180,9 @@ export default function WalkControls() {
       enabled={walk}
       selector="#walk-lock-target"
       onUnlock={() => {
-        if (sceneStore.getState().walk) sceneStore.setState({ walk: false, focusedExhibit: null })
+        // Browser-initiated unlock (Esc, tab switch) ends the walk unless a card deliberately released it
+        const { walk: walking, focusedExhibit } = sceneStore.getState()
+        if (walking && !focusedExhibit) sceneStore.setState({ walk: false })
       }}
     />
   )

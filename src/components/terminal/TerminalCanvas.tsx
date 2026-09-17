@@ -82,6 +82,13 @@ export default function TerminalCanvas() {
 
   const modelLoading = progress < 100 && !loaderTimedOut
 
+  // Typing while the camera is parked at an exhibit brings the CRT back into view
+  const liveLine = buffer[buffer.length - 1] ?? ''
+  useEffect(() => {
+    const state = sceneStore.getState()
+    if (liveLine.length > 2 && !state.walk && state.cameraPreset === null) sceneStore.setCamera('default')
+  }, [liveLine])
+
   // Mobile fallback with link to 2D terminal
   if (isMobile) {
     return (
@@ -111,7 +118,7 @@ export default function TerminalCanvas() {
     <KeyPressProvider onKeyPress={playClick} headless>
       <div className="flex flex-col h-[calc(100vh-40px)] bg-black text-white">
         <Header>
-          <button onClick={() => sceneStore.toggle('walk')} className={toggleButton(walk)} title="Walk around the room (WASD + mouse, Esc to leave)">
+          <button onClick={() => sceneStore.toggle('walk')} className={toggleButton(walk)} title="Walk around the room (WASD + mouse, Q or Esc to leave)">
             <Footprints size={12} />
             {walk ? 'Exploring' : 'Explore'}
           </button>
@@ -179,7 +186,7 @@ export default function TerminalCanvas() {
               <span className="font-mono text-[10px] text-terminal uppercase tracking-wider">3D Mode</span>
             </div>
             <span className="hidden lg:inline font-mono text-[10px] text-gray-600">
-              {walk ? 'WASD to walk • mouse to look • E to inspect • Esc to leave' : 'drag to orbit • scroll to zoom • click things to inspect them'}
+              {walk ? 'WASD to walk • mouse to look • E to inspect • Q or Esc to leave' : 'drag to orbit • scroll to zoom • click things to inspect them'}
             </span>
             <DiscoveryCounter />
           </div>

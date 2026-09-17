@@ -5,7 +5,6 @@ import {
   playClick,
   playPowerOn,
   playQuack,
-  playMeow,
   playFanfare,
   startParty,
   stopParty,
@@ -196,13 +195,12 @@ describe('audio', () => {
   })
 
   describe('room sounds', () => {
-    it('quack, meow and fanfare each schedule oscillators', () => {
+    it('quack and fanfare each schedule oscillators', () => {
       playQuack()
-      playMeow()
       playFanfare()
       const ctx = MockAudioContext.instances[0]
-      // 2 + 2 + 4 notes
-      expect(ctx.createOscillator).toHaveBeenCalledTimes(8)
+      // 2 + 4 notes
+      expect(ctx.createOscillator).toHaveBeenCalledTimes(6)
       expect(ctx.resume).toHaveBeenCalled()
     })
 

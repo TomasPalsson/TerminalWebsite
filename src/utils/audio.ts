@@ -160,19 +160,6 @@ export function playQuack(): void {
   }
 }
 
-/** Sleepy cat: a soft rising-falling mew */
-export function playMeow(): void {
-  try {
-    const ctx = liveContext()
-    if (!ctx) return
-    const t = ctx.currentTime
-    tone(ctx, { type: 'triangle', from: 600, to: 900, at: t, duration: 0.22, peak: 0.09 })
-    tone(ctx, { type: 'triangle', from: 900, to: 520, at: t + 0.22, duration: 0.3, peak: 0.08 })
-  } catch {
-    // ignore
-  }
-}
-
 /** "You found everything" fanfare */
 export function playFanfare(): void {
   try {

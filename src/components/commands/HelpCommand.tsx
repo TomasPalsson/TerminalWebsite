@@ -2,6 +2,7 @@ import React from 'react'
 import Command from './Command'
 import { commandMap } from './CommandMap'
 import { HelpCircle, Terminal, ChevronRight, AlertCircle } from 'lucide-react'
+import { extractText } from '../../utils/textExtraction'
 
 // Group commands by category
 const commandCategories: Record<string, string[]> = {
@@ -12,6 +13,42 @@ const commandCategories: Record<string, string[]> = {
   'Filesystem': ['pwd', 'cd', 'ls', 'touch', 'cat', 'mkdir', 'rm', 'cp', 'mv', 'find', 'grep', 'clearfs'],
   'Git': ['git'],
   'Editors': ['vim'],
+  'Code': ['node', 'python'],
+}
+
+/** Every command with its description, grouped by category (clear is built into the shell) */
+function categorize() {
+  const allCommands = new Map<string, { desc: string }>()
+  allCommands.set('clear', { desc: 'Clear the terminal screen' })
+  for (const [name, cmd] of commandMap) {
+    allCommands.set(name, { desc: cmd.description })
+  }
+  return Object.entries(commandCategories).map(([category, commands]) => ({
+    category,
+    commands: commands
+      .filter((name) => allCommands.has(name))
+      .map((name) => ({ name, desc: allCommands.get(name)?.desc || '' })),
+  }))
+}
+
+/** Compact listing for the 3D CRT: one category per line, names wrapped to the screen width */
+export function plainHelp(width = 58): string {
+  const label = 12
+  const lines = ['Commands — help <name> for usage', '']
+  categorize().forEach(({ category, commands }) => {
+    let line = category.padEnd(label)
+    commands.forEach(({ name }, i) => {
+      const next = line + (i ? ' ' : '') + name
+      if (next.length > width) {
+        lines.push(line)
+        line = ' '.repeat(label) + name
+      } else {
+        line = next
+      }
+    })
+    lines.push(line)
+  })
+  return lines.join('\n')
 }
 
 export const HelpCommand: Command = {
@@ -29,6 +66,13 @@ export const HelpCommand: Command = {
     </div>
   ),
   args: [],
+  plain: (args: string[]) => {
+    if (args.length === 0) return plainHelp()
+    const command = commandMap.get(args[0])
+    if (!command) return `Command not found: ${args[0]}`
+    const usage = command.usage ? extractText(command.usage).trim() : ''
+    return [`${command.name} — ${command.description}`, ...(usage ? ['', usage] : [])].join('\n')
+  },
   run: async (args: string[]) => {
     // Show specific command help
     if (args.length > 0) {
@@ -66,24 +110,7 @@ export const HelpCommand: Command = {
       )
     }
 
-    // Build command list with descriptions
-    const allCommands = new Map<string, { desc: string }>()
-    allCommands.set('clear', { desc: 'Clear the terminal screen' })
-
-    for (const [name, cmd] of commandMap) {
-      allCommands.set(name, { desc: cmd.description })
-    }
-
-    // Get categorized commands
-    const categorizedCommands = Object.entries(commandCategories).map(([category, commands]) => ({
-      category,
-      commands: commands
-        .filter(name => allCommands.has(name))
-        .map(name => ({
-          name,
-          desc: allCommands.get(name)?.desc || '',
-        })),
-    }))
+    const categorizedCommands = categorize()
 
     return (
       <div className="font-mono text-sm">

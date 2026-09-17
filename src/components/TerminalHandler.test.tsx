@@ -109,6 +109,16 @@ describe('TerminalHandler input handling', () => {
     expect(screen.getByText('clear')).toBeInTheDocument()
   })
 
+  it("uses a command's compact plain rendering for the 3D buffer", async () => {
+    const { buffer } = renderTerminal()
+    await runCommand('help', buffer)
+    const lines = lastBuffer(buffer)
+    expect(lines).toContain('$ help')
+    expect(lines.some((l) => l.startsWith('Commands'))).toBe(true)
+    // The rich version lists every command on its own line; the compact one does not
+    expect(lines).not.toContain('Copy files or directories')
+  })
+
   it('keeps the spaces between prompt, command and arguments in the 3D buffer', async () => {
     const { buffer } = renderTerminal()
     await runCommand('echo hello world', buffer)

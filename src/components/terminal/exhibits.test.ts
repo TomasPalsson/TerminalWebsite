@@ -46,9 +46,9 @@ describe('skillBooks', () => {
 })
 
 describe('buildExhibits', () => {
-  it('always includes the sign, window, duck, cat, clock and lava lamp', () => {
+  it('always includes the sign, window, duck, clock and lava lamp', () => {
     const ids = buildExhibits(null).map((e) => e.id)
-    expect(ids).toEqual(['sign', 'window', 'duck', 'cat', 'clock', 'lava'])
+    expect(ids).toEqual(['sign', 'window', 'duck', 'clock', 'lava'])
   })
 
   it('falls back to a default name without a profile', () => {

@@ -165,25 +165,40 @@ export function Confetti() {
   )
 }
 
-/** Sets every material in the subtree to wireframe while x-ray is on */
+const XRAY_COLOR = new THREE.Color('#22c55e')
+type XrayMaterial = THREE.MeshStandardMaterial & { userData: { xray?: { emissive: number; intensity: number } } }
+
+/** Green wireframe view of every lit mesh (the CRT face stays solid so you can still read it) */
 export function XRay({ enabled, children }: { enabled: boolean; children: React.ReactNode }) {
   const group = useRef<THREE.Group>(null)
   useEffect(() => {
     const root = group.current
-    if (!root) return
-    const touched: THREE.Material[] = []
+    if (!root || !enabled) return
+    const touched: XrayMaterial[] = []
     root.traverse((obj) => {
       const mesh = obj as THREE.Mesh
-      if (!mesh.isMesh) return
+      if (!mesh.isMesh || mesh.name === 'PC_M_Screen_0') return
       const materials = Array.isArray(mesh.material) ? mesh.material : [mesh.material]
       materials.forEach((m) => {
-        if ('wireframe' in m) {
-          ;(m as THREE.MeshStandardMaterial).wireframe = enabled
-          touched.push(m)
-        }
+        const mat = m as XrayMaterial
+        if (!('wireframe' in mat) || !mat.emissive) return
+        mat.userData.xray = { emissive: mat.emissive.getHex(), intensity: mat.emissiveIntensity }
+        mat.wireframe = true
+        mat.emissive.copy(XRAY_COLOR)
+        mat.emissiveIntensity = 0.9
+        touched.push(mat)
       })
     })
-    return () => touched.forEach((m) => ('wireframe' in m ? ((m as THREE.MeshStandardMaterial).wireframe = false) : undefined))
+    return () =>
+      touched.forEach((mat) => {
+        const saved = mat.userData.xray
+        mat.wireframe = false
+        if (saved) {
+          mat.emissive.setHex(saved.emissive)
+          mat.emissiveIntensity = saved.intensity
+        }
+        delete mat.userData.xray
+      })
   }, [enabled])
   return <group ref={group}>{children}</group>
 }

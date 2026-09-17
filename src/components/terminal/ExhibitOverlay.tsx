@@ -3,10 +3,11 @@
 import React, { useEffect, useMemo } from 'react'
 import { X, ExternalLink, Footprints, Trophy } from 'lucide-react'
 import { duckTip, type ExhibitLink } from './exhibits'
-import { sceneStore, useSceneStore } from './sceneStore'
+import { useSceneStore } from './sceneStore'
+import { closeCard } from './exhibitActions'
 
 /** Tag pills and link buttons under the card body */
-function CardFooter({ tags, links }: { tags?: string[]; links?: ExhibitLink[] }) {
+function CardFooter({ tags, links, numbered }: { tags?: string[]; links?: ExhibitLink[]; numbered?: boolean }) {
   return (
     <>
       {tags && tags.length > 0 && (
@@ -20,7 +21,7 @@ function CardFooter({ tags, links }: { tags?: string[]; links?: ExhibitLink[] })
       )}
       {links && links.length > 0 && (
         <div className="flex flex-wrap gap-2">
-          {links.map((link) => (
+          {links.map((link, i) => (
             <a
               key={link.href}
               href={link.href}
@@ -29,6 +30,7 @@ function CardFooter({ tags, links }: { tags?: string[]; links?: ExhibitLink[] })
               className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-sm text-terminal border border-terminal/40 hover:bg-terminal hover:text-black transition"
             >
               <ExternalLink size={12} />
+              {numbered && <span className="text-gray-500">[{i + 1}]</span>}
               {link.label}
             </a>
           ))}
@@ -47,21 +49,21 @@ export function ExhibitCard() {
   const tip = useMemo(() => (focused === 'duck' ? duckTip() : null), [focused])
 
   useEffect(() => {
-    if (!focused) return
+    if (!focused || walk) return
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') sceneStore.inspect(null)
+      if (e.key === 'Escape') closeCard()
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [focused])
+  }, [focused, walk])
 
   if (!exhibit) return null
   const lines = tip ? [tip] : exhibit.lines
 
   return (
     <div
-      className={`absolute z-30 ${walk ? 'right-4 bottom-4 max-w-sm' : 'inset-0 flex items-end justify-end p-4 sm:p-6'}`}
-      onClick={walk ? undefined : () => sceneStore.inspect(null)}
+      className={`absolute z-30 ${walk ? 'right-4 bottom-14 max-w-sm' : 'inset-0 flex items-end justify-end p-4 sm:p-6'}`}
+      onClick={walk ? undefined : closeCard}
     >
       <div
         className="w-full max-w-md bg-black/90 backdrop-blur border border-terminal/50 rounded-lg p-4 font-mono shadow-lg shadow-terminal/10"
@@ -72,7 +74,7 @@ export function ExhibitCard() {
             <h3 className="text-base text-white">{exhibit.title}</h3>
             {exhibit.subtitle && <p className="text-xs text-gray-500 mt-0.5">{exhibit.subtitle}</p>}
           </div>
-          <button onClick={() => sceneStore.inspect(null)} className="text-gray-500 hover:text-terminal transition" title="Close (Esc)">
+          <button onClick={closeCard} className="text-gray-500 hover:text-terminal transition" title="Close (Esc)">
             <X size={16} />
           </button>
         </div>
@@ -86,7 +88,10 @@ export function ExhibitCard() {
             ))}
           </ul>
         )}
-        <CardFooter tags={exhibit.tags} links={exhibit.links} />
+        <CardFooter tags={exhibit.tags} links={exhibit.links} numbered={walk} />
+        <p className="mt-3 text-[10px] text-gray-600">
+          {walk ? 'E or Esc — back to walking · 1-4 open links' : 'Esc or click away — back to the desk'}
+        </p>
       </div>
     </div>
   )
@@ -109,7 +114,7 @@ export function WalkHud() {
       )}
       <div className="absolute bottom-4 left-1/2 -translate-x-1/2 px-3 py-1.5 font-mono text-[10px] text-gray-400 bg-black/70 border border-neutral-800 rounded-full whitespace-nowrap">
         <Footprints size={10} className="inline mr-1 text-terminal" />
-        WASD move · mouse look · shift run · E inspect · esc leave
+        WASD move · mouse look · shift run · E inspect · Q or esc leave
       </div>
     </div>
   )
