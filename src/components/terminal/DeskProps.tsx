@@ -3,12 +3,21 @@
 import React, { useMemo } from 'react'
 import { Grid } from '@react-three/drei'
 import * as THREE from 'three'
+import { ROOM } from './exhibits'
 
 /** Top surface of the desk; the computer model's base sits exactly here */
 export const DESK_TOP_Y = -0.062
-const FLOOR_Y = -0.86
+const FLOOR_Y = ROOM.floorY
 
-/** Static room: desk, wall and a retro grid floor. Always visible. */
+const WALL = '#1b1e26'
+const ROOM_W = ROOM.maxX - ROOM.minX
+const ROOM_D = ROOM.maxZ - ROOM.minZ
+const ROOM_H = ROOM.ceilingY - ROOM.floorY
+const ROOM_CX = (ROOM.minX + ROOM.maxX) / 2
+const ROOM_CZ = (ROOM.minZ + ROOM.maxZ) / 2
+const ROOM_CY = (ROOM.floorY + ROOM.ceilingY) / 2
+
+/** Static room: desk, four walls, ceiling and a retro grid floor. Always visible. */
 export function Room() {
   return (
     <group>
@@ -26,28 +35,56 @@ export function Room() {
         ))
       )}
 
-      {/* Back wall and floor so the lamp and screen glow have something to land on */}
-      <mesh position={[0, 1.1, -0.78]} receiveShadow>
-        <planeGeometry args={[9, 4.5]} />
-        <meshStandardMaterial color="#0b0c10" roughness={1} />
+      {/* Walls, ceiling and floor so lights have something to land on */}
+      <mesh position={[ROOM_CX, ROOM_CY, ROOM.minZ]} receiveShadow>
+        <planeGeometry args={[ROOM_W, ROOM_H]} />
+        <meshStandardMaterial color={WALL} roughness={1} />
       </mesh>
-      <mesh position={[0, FLOOR_Y, 1]} rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
-        <planeGeometry args={[9, 6]} />
+      <mesh position={[ROOM_CX, ROOM_CY, ROOM.maxZ]} rotation={[0, Math.PI, 0]} receiveShadow>
+        <planeGeometry args={[ROOM_W, ROOM_H]} />
+        <meshStandardMaterial color={WALL} roughness={1} />
+      </mesh>
+      <mesh position={[ROOM.minX, ROOM_CY, ROOM_CZ]} rotation={[0, Math.PI / 2, 0]} receiveShadow>
+        <planeGeometry args={[ROOM_D, ROOM_H]} />
+        <meshStandardMaterial color={WALL} roughness={1} />
+      </mesh>
+      <mesh position={[ROOM.maxX, ROOM_CY, ROOM_CZ]} rotation={[0, -Math.PI / 2, 0]} receiveShadow>
+        <planeGeometry args={[ROOM_D, ROOM_H]} />
+        <meshStandardMaterial color={WALL} roughness={1} />
+      </mesh>
+      <mesh position={[ROOM_CX, ROOM.ceilingY, ROOM_CZ]} rotation={[Math.PI / 2, 0, 0]}>
+        <planeGeometry args={[ROOM_W, ROOM_D]} />
+        <meshStandardMaterial color="#0e0f12" roughness={1} />
+      </mesh>
+      <mesh position={[ROOM_CX, FLOOR_Y, ROOM_CZ]} rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
+        <planeGeometry args={[ROOM_W, ROOM_D]} />
         <meshStandardMaterial color="#060709" roughness={1} />
       </mesh>
       <Grid
-        position={[0, FLOOR_Y + 0.004, 1]}
-        args={[9, 6]}
+        position={[ROOM_CX, FLOOR_Y + 0.004, ROOM_CZ]}
+        args={[ROOM_W, ROOM_D]}
         cellSize={0.25}
         cellThickness={0.6}
         cellColor="#0f3d22"
         sectionSize={1}
         sectionThickness={1.2}
         sectionColor="#22c55e"
-        fadeDistance={5}
+        fadeDistance={7}
         fadeStrength={1.2}
         followCamera={false}
       />
+      {/* Skirting so the walls meet the floor */}
+      {[
+        [ROOM_CX, ROOM.minZ + 0.02, ROOM_W, 0],
+        [ROOM_CX, ROOM.maxZ - 0.02, ROOM_W, 0],
+        [ROOM.minX + 0.02, ROOM_CZ, ROOM_D, Math.PI / 2],
+        [ROOM.maxX - 0.02, ROOM_CZ, ROOM_D, Math.PI / 2],
+      ].map(([x, z, len, rot], i) => (
+        <mesh key={i} position={[x, FLOOR_Y + 0.04, z]} rotation={[0, rot, 0]}>
+          <boxGeometry args={[len, 0.08, 0.04]} />
+          <meshStandardMaterial color="#1f2126" roughness={0.9} />
+        </mesh>
+      ))}
     </group>
   )
 }
@@ -193,12 +230,13 @@ function Floppies() {
 
 /** Desk clutter, toggled with `scene props` */
 export function DeskProps({ lampOn }: { lampOn: boolean }) {
+  // A fragment, so each prop is its own FloatGroup child and drifts independently when gravity is off
   return (
-    <group>
+    <>
       <DeskLamp on={lampOn} />
       <Mug />
       <Floppies />
       <StickyNote />
-    </group>
+    </>
   )
 }

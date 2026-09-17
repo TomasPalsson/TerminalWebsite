@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest'
-import { wrapLines, drawScreen, phosphorColor, SCREEN, SCREEN_BG_ON, SCREEN_BG_OFF } from './screenTexture'
+import { wrapLines, drawScreen, phosphorColor, SCREEN, SCREEN_BG_ON, SCREEN_BG_OFF, createMatrixState, drawMatrixFrame, createDvdState, drawDvdFrame } from './screenTexture'
 
 /** Minimal 2D context stub that records what was painted */
 const makeCtx = (charWidth = 10) => {
@@ -79,5 +79,32 @@ describe('drawScreen', () => {
     drawScreen({ ctx, lines: ['$ hello'], color: '#39ff6e', cursorVisible: true, power: false })
     expect(ctx.fillRects[0].style).toBe(SCREEN_BG_OFF)
     expect(ctx.texts).toHaveLength(0)
+  })
+})
+
+describe('screensavers', () => {
+  it('matrix rain advances every column and recycles heads that fall off', () => {
+    const ctx = makeCtx()
+    const state = createMatrixState(() => 0.5)
+    const before = [...state.heads]
+    drawMatrixFrame(ctx, state, '#39ff6e', () => 0.5)
+    expect(state.started).toBe(true)
+    state.heads.forEach((h, i) => expect(h).toBeGreaterThan(before[i]))
+    expect(ctx.fillRects[0].style).toBe('#000')
+    state.heads[0] = 10_000
+    drawMatrixFrame(ctx, state, '#39ff6e', () => 0.5)
+    expect(state.heads[0]).toBeLessThan(0)
+  })
+
+  it('dvd logo bounces off the edges and changes hue', () => {
+    const ctx = Object.assign(makeCtx(), { strokeStyle: '', lineWidth: 0, textAlign: '', beginPath: vi.fn(), roundRect: vi.fn(), stroke: vi.fn() })
+    const state = createDvdState()
+    state.x = SCREEN.width - 262
+    state.vx = 5
+    const hue = state.hue
+    drawDvdFrame(ctx, state)
+    expect(state.vx).toBe(-5)
+    expect(state.hue).not.toBe(hue)
+    expect(ctx.texts.map((t) => t.text)).toContain('tomasari.is')
   })
 })

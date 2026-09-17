@@ -90,3 +90,94 @@ export function drawScreen({ ctx, lines, color, cursorVisible, power }: DrawScre
   ctx.fillRect(0, 0, width, height)
   ctx.restore()
 }
+
+
+/* ---------- Screensavers ---------- */
+
+const MATRIX_GLYPHS = 'ｱｲｳｴｵｶｷｸｹｺｻｼｽｾｿﾀﾁﾂﾃﾄﾅﾆﾇﾈﾉ0123456789ABCDEFXYZ<>/\\=+*#'
+const MATRIX_CELL = 22
+
+export type MatrixState = { heads: number[]; speeds: number[]; started: boolean }
+
+export const createMatrixState = (random = Math.random): MatrixState => {
+  const cols = Math.ceil(SCREEN.width / MATRIX_CELL)
+  return {
+    heads: Array.from({ length: cols }, () => -random() * 40),
+    speeds: Array.from({ length: cols }, () => 0.4 + random() * 0.9),
+    started: false,
+  }
+}
+
+/** One frame of digital rain: fade the previous frame, then advance every column head */
+export function drawMatrixFrame(ctx: CanvasRenderingContext2D, state: MatrixState, color: string, random = Math.random) {
+  const { width, height } = SCREEN
+  if (!state.started) {
+    ctx.fillStyle = '#000'
+    ctx.fillRect(0, 0, width, height)
+    state.started = true
+  }
+  ctx.fillStyle = 'rgba(0, 0, 0, 0.12)'
+  ctx.fillRect(0, 0, width, height)
+  ctx.font = `${MATRIX_CELL - 2}px ${SCREEN.font}`
+  ctx.textBaseline = 'top'
+  state.heads.forEach((head, col) => {
+    const y = Math.floor(head) * MATRIX_CELL
+    if (y >= 0 && y < height) {
+      const glyph = MATRIX_GLYPHS[Math.floor(random() * MATRIX_GLYPHS.length)]
+      ctx.fillStyle = '#eafff0'
+      ctx.fillText(glyph, col * MATRIX_CELL, y)
+      ctx.fillStyle = color
+      ctx.fillText(MATRIX_GLYPHS[Math.floor(random() * MATRIX_GLYPHS.length)], col * MATRIX_CELL, y - MATRIX_CELL)
+    }
+    state.heads[col] = head + state.speeds[col]
+    if (y > height + random() * 600) {
+      state.heads[col] = -random() * 20
+      state.speeds[col] = 0.4 + random() * 0.9
+    }
+  })
+}
+
+export type DvdState = { x: number; y: number; vx: number; vy: number; hue: number }
+
+const DVD_W = 260
+const DVD_H = 120
+
+export const createDvdState = (): DvdState => ({ x: 120, y: 200, vx: 3.2, vy: 2.4, hue: 140 })
+
+/** Bouncing logo; changes colour on every wall hit like the real thing */
+export function drawDvdFrame(ctx: CanvasRenderingContext2D, state: DvdState, label = 'tomasari.is') {
+  const { width, height } = SCREEN
+  state.x += state.vx
+  state.y += state.vy
+  let bounced = false
+  if (state.x <= 0 || state.x + DVD_W >= width) {
+    state.vx *= -1
+    state.x = Math.max(0, Math.min(width - DVD_W, state.x))
+    bounced = true
+  }
+  if (state.y <= 0 || state.y + DVD_H >= height) {
+    state.vy *= -1
+    state.y = Math.max(0, Math.min(height - DVD_H, state.y))
+    bounced = true
+  }
+  if (bounced) state.hue = (state.hue + 67) % 360
+
+  ctx.fillStyle = '#000'
+  ctx.fillRect(0, 0, width, height)
+  const color = `hsl(${state.hue} 90% 60%)`
+  ctx.strokeStyle = color
+  ctx.lineWidth = 6
+  ctx.beginPath()
+  ctx.roundRect(state.x + 3, state.y + 3, DVD_W - 6, DVD_H - 6, 24)
+  ctx.stroke()
+  ctx.fillStyle = color
+  ctx.textAlign = 'center'
+  ctx.textBaseline = 'middle'
+  ctx.font = `700 40px ${SCREEN.font}`
+  ctx.fillText(label, state.x + DVD_W / 2, state.y + DVD_H / 2 - 12)
+  ctx.font = `18px ${SCREEN.font}`
+  ctx.fillText('· TERMINAL ·', state.x + DVD_W / 2, state.y + DVD_H / 2 + 28)
+  ctx.textAlign = 'left'
+  ctx.fillStyle = 'rgba(0, 0, 0, 0.28)'
+  for (let y = 0; y < height; y += 3) ctx.fillRect(0, y, width, 1)
+}

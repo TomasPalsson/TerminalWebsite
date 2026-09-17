@@ -2,14 +2,32 @@
 
 import { OrbitControls, useGLTF } from '@react-three/drei'
 import { Canvas, useFrame, useThree } from '@react-three/fiber'
-import React, { useCallback, useMemo, useEffect, useRef, useSyncExternalStore } from 'react'
+import React, { Suspense, useCallback, useMemo, useEffect, useRef, useSyncExternalStore } from 'react'
 import * as THREE from 'three'
 import { EffectComposer } from '@react-three/postprocessing'
 import CRTEffects from './CRTEffects'
 import AmbientEffects from './AmbientEffects'
 import { Room, DeskProps } from './DeskProps'
-import { CAMERA_PRESETS, sceneStore, useSceneStore } from './sceneStore'
-import { SCREEN, drawScreen, phosphorColor, type DrawScreenOptions } from './screenTexture'
+import { sceneStore, useSceneStore, type Screensaver } from './sceneStore'
+import {
+  SCREEN,
+  drawScreen,
+  phosphorColor,
+  createMatrixState,
+  drawMatrixFrame,
+  createDvdState,
+  drawDvdFrame,
+  type DrawScreenOptions,
+  type MatrixState,
+  type DvdState,
+} from './screenTexture'
+import { buildExhibits, ROOM, type Exhibit } from './exhibits'
+import { CertExhibit, PaintedExhibit, ShelfExhibit, SignExhibit } from './RoomExhibits'
+import { Cat, Duck } from './RoomCritters'
+import { AuroraWindow, LavaLamp, Plant, WallClock } from './RoomGadgets'
+import { Confetti, Disco, FloatGroup, RoomLights, XRay } from './RoomEffects'
+import WalkControls from './WalkControls'
+import { useProfile } from '../../hooks/useProfile'
 import { DEFAULT_CAMERA_CONFIG } from '../../types/terminal3d'
 import type { TerminalSceneProps, CameraConfig } from '../../types/terminal3d'
 
@@ -61,22 +79,56 @@ class ScreenSurface {
     drawScreen({ ctx: this.ctx, ...options })
     this.texture.needsUpdate = true
   }
+
+  /** Advances the active screensaver by one frame */
+  paintSaver(saver: Screensaver, color: string) {
+    if (!this.ctx) return
+    if (saver === 'matrix') {
+      this.matrix ??= createMatrixState()
+      drawMatrixFrame(this.ctx, this.matrix, color)
+    } else if (saver === 'dvd') {
+      this.dvd ??= createDvdState()
+      drawDvdFrame(this.ctx, this.dvd)
+    }
+    this.texture.needsUpdate = true
+  }
+
+  /** Forgets saver state so the next activation starts fresh */
+  resetSavers() {
+    this.matrix = null
+    this.dvd = null
+  }
+
+  private matrix: MatrixState | null = null
+  private dvd: DvdState | null = null
 }
 
 /**
  * Hook that returns a CanvasTexture driven by terminal lines
  */
-export function useTerminalTexture(lines: string[], power: boolean) {
+export function useTerminalTexture(lines: string[], power: boolean, screensaver: Screensaver = 'off') {
   const color = useSyncExternalStore(subscribeTerminalColor, readTerminalColor, () => '#39ff6e')
   const surface = useMemo(() => new ScreenSurface(), [])
+  const saverActive = power && screensaver !== 'off'
 
   const cursorVisibleRef = useRef(true)
   const linesRef = useRef(lines)
   const fontReadyRef = useRef(false)
 
   const redraw = useCallback(() => {
+    if (saverActive) return
     surface.paint({ lines: linesRef.current, color, cursorVisible: cursorVisibleRef.current, power })
-  }, [surface, color, power])
+  }, [surface, color, power, saverActive])
+
+  // Screensaver: ~30 fps animation loop that owns the canvas while active
+  useEffect(() => {
+    if (!saverActive) {
+      surface.resetSavers()
+      return
+    }
+    const timer = setInterval(() => surface.paintSaver(screensaver, color), 33)
+    return () => clearInterval(timer)
+  }, [saverActive, screensaver, color, surface])
 
   useEffect(() => {
     linesRef.current = lines
@@ -98,13 +150,13 @@ export function useTerminalTexture(lines: string[], power: boolean) {
   }, [redraw])
 
   useEffect(() => {
-    if (!power) return
+    if (!power || saverActive) return
     const interval = setInterval(() => {
       cursorVisibleRef.current = !cursorVisibleRef.current
       redraw()
     }, 530)
     return () => clearInterval(interval)
-  }, [power, redraw])
+  }, [power, saverActive, redraw])
 
   return surface.texture
 }
@@ -130,24 +182,31 @@ function RetroComputer({ screenTexture }: { screenTexture: THREE.Texture }) {
   return <primitive object={scene} scale={[1.2, 1.2, 1.2]} />
 }
 
-/** Orbit controls plus smooth fly-to for `scene cam …`, double-click reset and optional auto-spin */
+/** Orbit controls plus smooth fly-to for `scene cam …` / exhibits, double-click reset and optional auto-spin */
 function CameraRig({ config }: { config: CameraConfig }) {
   const { camera, gl } = useThree()
   const controlsRef = useRef<React.ComponentRef<typeof OrbitControls>>(null)
-  const preset = useSceneStore((s) => s.cameraPreset)
+  const goal = useSceneStore((s) => s.cameraGoal)
   const nonce = useSceneStore((s) => s.cameraNonce)
   const spin = useSceneStore((s) => s.spin)
+  const walk = useSceneStore((s) => s.walk)
 
   const flight = useRef<{ position: THREE.Vector3; target: THREE.Vector3 } | null>(null)
 
+  // A new goal, or leaving walk mode, starts a flight
   useEffect(() => {
-    const { position, target } = CAMERA_PRESETS[preset]
-    flight.current = { position: new THREE.Vector3(...position), target: new THREE.Vector3(...target) }
-  }, [preset, nonce])
+    if (walk) {
+      flight.current = null
+      return
+    }
+    flight.current = { position: new THREE.Vector3(...goal.position), target: new THREE.Vector3(...goal.target) }
+  }, [goal, nonce, walk])
 
   useEffect(() => {
     const el = gl.domElement
-    const reset = () => sceneStore.setCamera('default')
+    const reset = () => {
+      if (!sceneStore.getState().walk) sceneStore.setCamera('default')
+    }
     // Dragging takes over from an in-progress flight
     const cancel = () => {
       flight.current = null
@@ -164,14 +223,14 @@ function CameraRig({ config }: { config: CameraConfig }) {
 
   useFrame((_, delta) => {
     const controls = controlsRef.current
-    const goal = flight.current
-    if (!controls || !goal) return
+    const target = flight.current
+    if (!controls || !target || walk) return
     const k = 1 - Math.exp(-delta * 4.5)
-    camera.position.lerp(goal.position, k)
-    controls.target.lerp(goal.target, k)
-    if (camera.position.distanceTo(goal.position) < 0.002 && controls.target.distanceTo(goal.target) < 0.002) {
-      camera.position.copy(goal.position)
-      controls.target.copy(goal.target)
+    camera.position.lerp(target.position, k)
+    controls.target.lerp(target.target, k)
+    if (camera.position.distanceTo(target.position) < 0.002 && controls.target.distanceTo(target.target) < 0.002) {
+      camera.position.copy(target.position)
+      controls.target.copy(target.target)
       flight.current = null
     }
   })
@@ -179,14 +238,13 @@ function CameraRig({ config }: { config: CameraConfig }) {
   return (
     <OrbitControls
       ref={controlsRef}
+      enabled={!walk}
       target={config.target}
       minDistance={config.minDistance}
       maxDistance={config.maxDistance}
       minPolarAngle={config.minPolarAngle}
       maxPolarAngle={config.maxPolarAngle}
-      minAzimuthAngle={spin ? -Infinity : config.minAzimuthAngle}
-      maxAzimuthAngle={spin ? Infinity : config.maxAzimuthAngle}
-      autoRotate={spin}
+      autoRotate={spin && !walk}
       autoRotateSpeed={0.6}
       enableDamping
       dampingFactor={0.08}
@@ -212,6 +270,39 @@ function FpsSampler() {
   return null
 }
 
+/** Picks the 3D component for an exhibit kind */
+function ExhibitMesh({ exhibit }: { exhibit: Exhibit }) {
+  switch (exhibit.kind) {
+    case 'cert':
+      return <CertExhibit exhibit={exhibit} />
+    case 'sign':
+      return <SignExhibit exhibit={exhibit} />
+    case 'shelf':
+      return <ShelfExhibit exhibit={exhibit} />
+    case 'window':
+      return <AuroraWindow exhibit={exhibit} />
+    case 'clock':
+      return <WallClock exhibit={exhibit} />
+    case 'duck':
+    case 'cat':
+    case 'lava':
+      // Desk residents live inside the FloatGroup so they can drift when gravity is off
+      return null
+    default:
+      return <PaintedExhibit exhibit={exhibit} />
+  }
+}
+
+/** Loads the profile once and publishes the room layout to the store */
+function useRoomExhibits() {
+  const { profile } = useProfile()
+  const exhibits = useMemo(() => buildExhibits(profile), [profile])
+  useEffect(() => {
+    sceneStore.setState({ exhibits })
+  }, [exhibits])
+  return exhibits
+}
+
 /** Scene content rendered inside Canvas */
 function SceneContent({
   screenTexture,
@@ -225,15 +316,42 @@ function SceneContent({
   const power = useSceneStore((s) => s.power)
   const lampOn = useSceneStore((s) => s.lampOn)
   const props = useSceneStore((s) => s.props)
+  const roomLights = useSceneStore((s) => s.roomLights)
+  const party = useSceneStore((s) => s.party)
+  const xray = useSceneStore((s) => s.xray)
+  const exhibits = useRoomExhibits()
+  const byId = (id: string) => exhibits.find((e) => e.id === id)
+  const duck = byId('duck')
+  const cat = byId('cat')
+  const lava = byId('lava')
 
   return (
     <>
       <ambientLight intensity={0.25} color="#8fb3a0" />
       <hemisphereLight intensity={0.25} color="#1b2a22" groundColor="#050505" />
-      <Room />
-      <RetroComputer screenTexture={screenTexture} />
-      {props && <DeskProps lampOn={lampOn} />}
+      <XRay enabled={xray}>
+        <Room />
+        <RetroComputer screenTexture={screenTexture} />
+        {props && (
+          <FloatGroup>
+            <DeskProps lampOn={lampOn} />
+            {duck && <Duck exhibit={duck} />}
+            {cat && <Cat exhibit={cat} />}
+            {lava && <LavaLamp exhibit={lava} />}
+          </FloatGroup>
+        )}
+        <Suspense fallback={null}>
+          {exhibits.map((exhibit) => (
+            <ExhibitMesh key={exhibit.id} exhibit={exhibit} />
+          ))}
+        </Suspense>
+        <Plant position={[2.7, ROOM.floorY, -0.4]} />
+        <RoomLights on={roomLights} />
+      </XRay>
+      <Disco on={party} />
+      <Confetti />
       <CameraRig config={cameraConfig} />
+      <WalkControls />
       <AmbientEffects enabled showDust={enableEffects} showGlow={power} />
       <FpsSampler />
       {enableEffects && (
@@ -257,7 +375,8 @@ export default function TerminalScene({ buffer, enableEffects, cameraConfig: cus
   // Wait for client-side mount before rendering Canvas
   const mounted = useSyncExternalStore(subscribeNoop, () => true, () => false)
   const power = useSceneStore((s) => s.power)
-  const screenTexture = useTerminalTexture(buffer, power)
+  const screensaver = useSceneStore((s) => s.screensaver)
+  const screenTexture = useTerminalTexture(buffer, power, screensaver)
   const cameraConfig = { ...DEFAULT_CAMERA_CONFIG, ...customConfig }
 
   if (!mounted) {
@@ -278,7 +397,7 @@ export default function TerminalScene({ buffer, enableEffects, cameraConfig: cus
       onCreated={handleCreated}
     >
       <color attach="background" args={['#030405']} />
-      <fog attach="fog" args={['#030405', 3.5, 7]} />
+      <fog attach="fog" args={['#030405', 6, 12]} />
       <SceneContent screenTexture={screenTexture} enableEffects={enableEffects} cameraConfig={cameraConfig} />
     </Canvas>
   )

@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach } from 'vitest'
 import { render } from '@testing-library/react'
 import { SceneCommand, parseSwitch } from './SceneCommand'
 import { sceneStore } from '../terminal/sceneStore'
+import { buildExhibits } from '../terminal/exhibits'
 import type { KeyPressContextType } from '../../context/KeypressedContext'
 
 const context = (headless: boolean) => ({ headless }) as unknown as KeyPressContextType
@@ -105,6 +106,48 @@ describe('SceneCommand', () => {
     expect(text).toContain('reset')
     expect(sceneStore.getState().lampOn).toBe(true)
     expect(sceneStore.getState().cameraPreset).toBe('default')
+  })
+
+  it('lists the room and flies to an exhibit', async () => {
+    expect(await textOf(['look'])).toContain('still loading')
+    sceneStore.setState({ exhibits: buildExhibits(null) })
+    const look = await textOf(['look'])
+    expect(look).toContain('duck')
+    expect(look).toContain('Debugging duck')
+    const text = await textOf(['goto', 'duck'])
+    expect(text).toContain('looking at Debugging duck')
+    expect(sceneStore.getState().focusedExhibit).toBe('duck')
+    expect(sceneStore.getState().cameraPreset).toBeNull()
+    expect(await textOf(['look'])).toContain('✓ Debugging duck')
+  })
+
+  it('rejects an unknown exhibit', async () => {
+    sceneStore.setState({ exhibits: buildExhibits(null) })
+    expect(await textOf(['goto', 'fridge'])).toContain('Nothing called')
+  })
+
+  it('toggles walk, lights, party, gravity and xray', async () => {
+    await textOf(['walk', 'on'])
+    await textOf(['lights', 'off'])
+    await textOf(['party', 'on'])
+    await textOf(['gravity', 'off'])
+    await textOf(['xray', 'on'])
+    const state = sceneStore.getState()
+    expect(state.walk).toBe(true)
+    expect(state.roomLights).toBe(false)
+    expect(state.party).toBe(true)
+    expect(state.gravity).toBe(false)
+    expect(state.xray).toBe(true)
+  })
+
+  it('sets the screensaver', async () => {
+    expect(await textOf(['saver'])).toContain('screensaver matrix')
+    expect(sceneStore.getState().screensaver).toBe('matrix')
+    await textOf(['saver', 'dvd'])
+    expect(sceneStore.getState().screensaver).toBe('dvd')
+    expect(await textOf(['saver', 'toaster'])).toContain('Unknown screensaver')
+    await textOf(['saver', 'off'])
+    expect(sceneStore.getState().screensaver).toBe('off')
   })
 
   it('shows usage for help and errors for unknown subcommands', async () => {

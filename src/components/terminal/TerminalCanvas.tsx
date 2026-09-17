@@ -3,7 +3,7 @@
 import React, { useState, useCallback, useEffect } from 'react'
 import { isMobile } from 'react-device-detect'
 import { useProgress } from '@react-three/drei'
-import { Monitor, Zap, ZapOff, Volume2, VolumeX, Lightbulb, LightbulbOff, RotateCcw, ExternalLink, Power } from 'lucide-react'
+import { Monitor, Zap, ZapOff, Volume2, VolumeX, Lightbulb, LightbulbOff, RotateCcw, ExternalLink, Power, Footprints, PartyPopper } from 'lucide-react'
 import TerminalHandler from '../TerminalHandler'
 import { KeyPressProvider } from '../../context/KeypressedContext'
 import useKeyClick from '../../hooks/useKeyClick'
@@ -11,6 +11,7 @@ import { playPowerOn } from '../../utils/audio'
 import TerminalScene from './TerminalScene'
 import BootSequence from './BootSequence'
 import { CAMERA_PRESET_NAMES, sceneStore, useSceneStore } from './sceneStore'
+import { ExhibitCard, WalkHud, DiscoveryCounter } from './ExhibitOverlay'
 
 const toggleButton = (active: boolean) =>
   `flex items-center gap-1.5 px-2 py-1 font-mono text-[10px] rounded border transition ${
@@ -34,7 +35,7 @@ function Header({ children }: { children?: React.ReactNode }) {
             <span className="font-mono text-xs text-gray-500">retro</span>
           </div>
           <p className="font-mono text-[10px] text-gray-600 mt-0.5">
-            type <span className="text-terminal">scene help</span> to control the room from the shell
+            walk around with <span className="text-terminal">Explore</span> · type <span className="text-terminal">scene help</span> for everything else
           </p>
         </div>
       </div>
@@ -53,6 +54,8 @@ export default function TerminalCanvas() {
   const lampOn = useSceneStore((s) => s.lampOn)
   const power = useSceneStore((s) => s.power)
   const cameraPreset = useSceneStore((s) => s.cameraPreset)
+  const walk = useSceneStore((s) => s.walk)
+  const party = useSceneStore((s) => s.party)
   const fps = useSceneStore((s) => s.fps)
   const playClick = useKeyClick(sound)
   const { progress } = useProgress()
@@ -108,6 +111,14 @@ export default function TerminalCanvas() {
     <KeyPressProvider onKeyPress={playClick} headless>
       <div className="flex flex-col h-[calc(100vh-40px)] bg-black text-white">
         <Header>
+          <button onClick={() => sceneStore.toggle('walk')} className={toggleButton(walk)} title="Walk around the room (WASD + mouse, Esc to leave)">
+            <Footprints size={12} />
+            {walk ? 'Exploring' : 'Explore'}
+          </button>
+          <button onClick={() => sceneStore.toggle('party')} className={toggleButton(party)} title="Party mode">
+            <PartyPopper size={12} />
+            Party
+          </button>
           <button onClick={() => sceneStore.toggle('sound')} className={toggleButton(sound)} title={sound ? 'Mute key clicks' : 'Unmute key clicks'}>
             {sound ? <Volume2 size={12} /> : <VolumeX size={12} />}
             Sound
@@ -154,6 +165,10 @@ export default function TerminalCanvas() {
 
           {/* 3D Scene */}
           <TerminalScene buffer={buffer} enableEffects={effects && bootComplete} />
+
+          {/* Room overlays */}
+          <WalkHud />
+          <ExhibitCard />
         </div>
 
         {/* Status Bar */}
@@ -164,8 +179,9 @@ export default function TerminalCanvas() {
               <span className="font-mono text-[10px] text-terminal uppercase tracking-wider">3D Mode</span>
             </div>
             <span className="hidden lg:inline font-mono text-[10px] text-gray-600">
-              drag to orbit • scroll to zoom • double-click to reset
+              {walk ? 'WASD to walk • mouse to look • E to inspect • Esc to leave' : 'drag to orbit • scroll to zoom • click things to inspect them'}
             </span>
+            <DiscoveryCounter />
           </div>
           <div className="flex items-center gap-1.5">
             <span className="font-mono text-[10px] text-gray-600 mr-1">view</span>

@@ -4,6 +4,12 @@ import {
   clickRateFor,
   playClick,
   playPowerOn,
+  playQuack,
+  playMeow,
+  playFanfare,
+  startParty,
+  stopParty,
+  isPartyPlaying,
   isAudioSupported,
   resetAudioForTests,
 } from './audio'
@@ -186,6 +192,38 @@ describe('audio', () => {
       const oscillator = ctx.createOscillator.mock.results[0].value
       expect(oscillator.start).toHaveBeenCalled()
       expect(oscillator.stop).toHaveBeenCalled()
+    })
+  })
+
+  describe('room sounds', () => {
+    it('quack, meow and fanfare each schedule oscillators', () => {
+      playQuack()
+      playMeow()
+      playFanfare()
+      const ctx = MockAudioContext.instances[0]
+      // 2 + 2 + 4 notes
+      expect(ctx.createOscillator).toHaveBeenCalledTimes(8)
+      expect(ctx.resume).toHaveBeenCalled()
+    })
+
+    it('party loop schedules notes ahead and stops cleanly', () => {
+      vi.useFakeTimers()
+      startParty()
+      expect(isPartyPlaying()).toBe(true)
+      const ctx = MockAudioContext.instances[0]
+      const scheduled = ctx.createOscillator.mock.calls.length
+      expect(scheduled).toBeGreaterThan(0)
+      startParty()
+      expect(MockAudioContext.instances).toHaveLength(1)
+      ctx.currentTime = 0.5
+      vi.advanceTimersByTime(200)
+      expect(ctx.createOscillator.mock.calls.length).toBeGreaterThan(scheduled)
+      stopParty()
+      expect(isPartyPlaying()).toBe(false)
+      const after = ctx.createOscillator.mock.calls.length
+      vi.advanceTimersByTime(500)
+      expect(ctx.createOscillator.mock.calls.length).toBe(after)
+      vi.useRealTimers()
     })
   })
 

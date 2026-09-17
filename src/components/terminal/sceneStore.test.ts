@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { renderHook, act } from '@testing-library/react'
-import { sceneStore, useSceneStore, DEFAULT_SCENE_STATE, CAMERA_PRESET_NAMES } from './sceneStore'
+import { sceneStore, useSceneStore, DEFAULT_SCENE_STATE, CAMERA_PRESET_NAMES, type SceneState } from './sceneStore'
 
 describe('sceneStore', () => {
   beforeEach(() => {
@@ -28,6 +28,7 @@ describe('sceneStore', () => {
       effects: true,
       sound: true,
       props: true,
+      discovered: [],
     })
   })
 
@@ -77,6 +78,59 @@ describe('sceneStore', () => {
 
   it('exposes every preset name', () => {
     expect(CAMERA_PRESET_NAMES).toEqual(['default', 'close', 'side', 'top', 'wide'])
+  })
+
+  it('flyTo frames a custom view and clears the preset', () => {
+    sceneStore.flyTo({ position: [1, 1, 1], target: [0, 0, 0] })
+    const state = sceneStore.getState()
+    expect(state.cameraPreset).toBeNull()
+    expect(state.cameraGoal.position).toEqual([1, 1, 1])
+    expect(state.walk).toBe(false)
+  })
+
+  it('setCamera leaves walk mode', () => {
+    sceneStore.setState({ walk: true })
+    sceneStore.setCamera('close')
+    expect(sceneStore.getState().walk).toBe(false)
+  })
+
+  it('inspect opens the card, records discovery and persists it', () => {
+    sceneStore.setState({ exhibits: [{ id: 'a' }, { id: 'b' }] as SceneState['exhibits'] })
+    sceneStore.inspect('a')
+    expect(sceneStore.getState().focusedExhibit).toBe('a')
+    expect(sceneStore.getState().discovered).toEqual(['a'])
+    sceneStore.inspect('a')
+    expect(sceneStore.getState().discovered).toEqual(['a'])
+    expect(JSON.parse(localStorage.getItem('terminal3d-scene')!).discovered).toEqual(['a'])
+    sceneStore.inspect(null)
+    expect(sceneStore.getState().focusedExhibit).toBeNull()
+  })
+
+  it('celebrates exactly once when the last exhibit is found', () => {
+    sceneStore.setState({ exhibits: [{ id: 'a' }, { id: 'b' }] as SceneState['exhibits'] })
+    sceneStore.inspect('a')
+    expect(sceneStore.getState().celebrateNonce).toBe(0)
+    sceneStore.inspect('b')
+    expect(sceneStore.getState().celebrateNonce).toBe(1)
+    sceneStore.inspect('b')
+    expect(sceneStore.getState().celebrateNonce).toBe(1)
+  })
+
+  it('hydrates the discovered list and ignores junk in it', () => {
+    localStorage.setItem('terminal3d-scene', JSON.stringify({ discovered: ['x', 3, null] }))
+    sceneStore.resetForTests()
+    expect(sceneStore.getState().discovered).toEqual(['x'])
+  })
+
+  it('reset keeps exhibits and discoveries', () => {
+    sceneStore.setState({ exhibits: [{ id: 'a' }] as SceneState['exhibits'], party: true, walk: true })
+    sceneStore.inspect('a')
+    sceneStore.reset()
+    const state = sceneStore.getState()
+    expect(state.party).toBe(false)
+    expect(state.walk).toBe(false)
+    expect(state.exhibits).toHaveLength(1)
+    expect(state.discovered).toEqual(['a'])
   })
 
   it('useSceneStore re-renders on the selected slice', () => {

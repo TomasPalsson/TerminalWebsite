@@ -1,4 +1,5 @@
 import { useSyncExternalStore } from 'react'
+import type { Exhibit } from './exhibits'
 
 /** Named camera views; each is a position + look-at target in world units */
 export type CameraPreset = 'default' | 'close' | 'side' | 'top' | 'wide'
@@ -13,10 +14,38 @@ export const CAMERA_PRESETS: Record<CameraPreset, { position: [number, number, n
 
 export const CAMERA_PRESET_NAMES = Object.keys(CAMERA_PRESETS) as CameraPreset[]
 
+export type CameraGoal = { position: [number, number, number]; target: [number, number, number] }
+
+/** What the CRT shows instead of the shell */
+export type Screensaver = 'off' | 'matrix' | 'dvd'
+export const SCREENSAVERS: Screensaver[] = ['off', 'matrix', 'dvd']
+
 export type SceneState = {
-  /** Which preset the camera is flying to; `cameraNonce` bumps so re-selecting the same preset re-animates */
-  cameraPreset: CameraPreset
+  /** Preset the camera last flew to, or null when framing an exhibit; `cameraNonce` bumps so re-selecting re-animates */
+  cameraPreset: CameraPreset | null
+  cameraGoal: CameraGoal
   cameraNonce: number
+  /** First-person walk mode (pointer lock + WASD) */
+  walk: boolean
+  /** Ceiling light so the room is visible while walking */
+  roomLights: boolean
+  /** Disco lights + chiptune */
+  party: boolean
+  /** When false the desk clutter floats away */
+  gravity: boolean
+  screensaver: Screensaver
+  /** Everything drawn as wireframe */
+  xray: boolean
+  /** Things hung around the room, set once the profile has loaded */
+  exhibits: Exhibit[]
+  /** Exhibit the player is standing in front of (walk mode) */
+  nearExhibit: string | null
+  /** Exhibit whose info card is open */
+  focusedExhibit: string | null
+  /** Ids of exhibits the visitor has inspected (persisted) */
+  discovered: string[]
+  /** Bumps to fire a confetti burst */
+  celebrateNonce: number
   /** Monitor power — off blanks the screen and kills its glow */
   power: boolean
   lampOn: boolean
@@ -36,10 +65,23 @@ const STORAGE_KEY = 'terminal3d-scene'
 const LEGACY_PERFORMANCE_KEY = 'terminal3d-performance-mode'
 
 const PERSISTED_KEYS = ['lampOn', 'effects', 'sound', 'props'] as const
+const PERSISTED_LISTS = ['discovered'] as const
 
 export const DEFAULT_SCENE_STATE: SceneState = {
   cameraPreset: 'default',
+  cameraGoal: CAMERA_PRESETS.default,
   cameraNonce: 0,
+  walk: false,
+  roomLights: false,
+  party: false,
+  gravity: true,
+  screensaver: 'off',
+  xray: false,
+  exhibits: [],
+  nearExhibit: null,
+  focusedExhibit: null,
+  discovered: [],
+  celebrateNonce: 0,
   power: true,
   lampOn: true,
   effects: true,
@@ -50,6 +92,8 @@ export const DEFAULT_SCENE_STATE: SceneState = {
 }
 
 type Listener = () => void
+
+export type SceneToggle = 'power' | 'lampOn' | 'effects' | 'sound' | 'spin' | 'props' | 'walk' | 'roomLights' | 'party' | 'gravity' | 'xray'
 
 let state: SceneState = DEFAULT_SCENE_STATE
 let hydrated = false
@@ -63,6 +107,9 @@ const readPersisted = (): Partial<SceneState> => {
       const out: Partial<SceneState> = {}
       PERSISTED_KEYS.forEach((key) => {
         if (typeof parsed[key] === 'boolean') out[key] = parsed[key]
+      })
+      PERSISTED_LISTS.forEach((key) => {
+        if (Array.isArray(parsed[key])) out[key] = parsed[key].filter((v): v is string => typeof v === 'string')
       })
       return out
     }
@@ -78,6 +125,9 @@ const writePersisted = () => {
   try {
     const out: Partial<SceneState> = {}
     PERSISTED_KEYS.forEach((key) => {
+      out[key] = state[key]
+    })
+    PERSISTED_LISTS.forEach((key) => {
       out[key] = state[key]
     })
     localStorage.setItem(STORAGE_KEY, JSON.stringify(out))
@@ -104,7 +154,7 @@ export const sceneStore = {
     const changed = (Object.keys(partial) as (keyof SceneState)[]).some((key) => next[key] !== state[key])
     if (!changed) return
     state = next
-    if (PERSISTED_KEYS.some((key) => key in partial)) writePersisted()
+    if ([...PERSISTED_KEYS, ...PERSISTED_LISTS].some((key) => key in partial)) writePersisted()
     listeners.forEach((listener) => listener())
   },
   subscribe(listener: Listener) {
@@ -115,13 +165,42 @@ export const sceneStore = {
   },
   /** Flies the camera to a preset, even if it is already selected */
   setCamera(preset: CameraPreset) {
-    sceneStore.setState({ cameraPreset: preset, cameraNonce: state.cameraNonce + 1 })
+    sceneStore.setState({ cameraPreset: preset, cameraGoal: CAMERA_PRESETS[preset], cameraNonce: state.cameraNonce + 1, walk: false })
   },
-  toggle(key: 'power' | 'lampOn' | 'effects' | 'sound' | 'spin' | 'props') {
+  /** Flies the camera to an arbitrary view (used to frame exhibits) */
+  flyTo(goal: CameraGoal) {
+    sceneStore.setState({ cameraPreset: null, cameraGoal: goal, cameraNonce: state.cameraNonce + 1, walk: false })
+  },
+  toggle(key: SceneToggle) {
     sceneStore.setState({ [key]: !sceneStore.getState()[key] })
   },
+  /** Opens an exhibit's card and records it as discovered; fires confetti when the last one is found */
+  inspect(id: string | null) {
+    if (!id) {
+      sceneStore.setState({ focusedExhibit: null })
+      return
+    }
+    const current = sceneStore.getState()
+    const discovered = current.discovered.includes(id) ? current.discovered : [...current.discovered, id]
+    const total = current.exhibits.length
+    const completed = total > 0 && discovered.length >= total && current.discovered.length < total
+    sceneStore.setState({
+      focusedExhibit: id,
+      discovered,
+      celebrateNonce: completed ? current.celebrateNonce + 1 : current.celebrateNonce,
+    })
+  },
+  celebrate() {
+    sceneStore.setState({ celebrateNonce: state.celebrateNonce + 1 })
+  },
   reset() {
-    sceneStore.setState({ ...DEFAULT_SCENE_STATE, cameraNonce: state.cameraNonce + 1, fps: state.fps })
+    sceneStore.setState({
+      ...DEFAULT_SCENE_STATE,
+      cameraNonce: state.cameraNonce + 1,
+      fps: state.fps,
+      exhibits: state.exhibits,
+      discovered: state.discovered,
+    })
   },
   /** Test hook: drops state and persistence back to defaults */
   resetForTests() {
